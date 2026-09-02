@@ -1,0 +1,31 @@
+# kind=gvl
+# name=PersistentVars
+# retain=false
+# persistent=true
+# objectId=fb1321bc-080e-49dc-9b7c-a517f16632af
+
+VAR_GLOBAL
+    TiOffset : REAL;
+    ElOffset : REAL;
+    rAzKpBase : REAL;
+    rAzKiBase : REAL;
+    rAzKpscale : REAL;
+    rAzKiscale : REAL;
+    rElKpBase : REAL;
+    rElKiBase : REAL;
+    rElKpscale : REAL;
+    rElKiscale : REAL;
+    rAzKpMax : REAL;
+    rAzKiMax : REAL;
+    rElKpMax : REAL;
+    rElKiMax : REAL;
+    rAzThre : REAL;
+    rElThre : REAL;
+    bTrackingMode : BOOL;
+    rAzScanRange : REAL;
+    rElScanRange : REAL;
+    bSearchType : BOOL;
+    rErrorThre : REAL;
+    rStartThre : REAL;
+    rStep : REAL;
+END_VAR

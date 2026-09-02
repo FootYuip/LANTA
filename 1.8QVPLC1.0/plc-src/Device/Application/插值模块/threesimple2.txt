@@ -1,0 +1,76 @@
+# kind=functionBlock
+# name=threesimple2
+# objectId=38741d83-b95e-49d9-885d-c93696a27ca8
+
+VAR_INPUT
+    aUTC_TIME : ARRAY[1..5] OF ULINT;
+    aPosCmd : ARRAY[1..5] OF LREAL;
+    y0 : REAL;
+    yn : REAL;
+    xt : REAL;
+END_VAR
+
+VAR_OUTPUT
+    sout : REAL;
+    nout : INT;
+END_VAR
+
+VAR
+    Three : three2;
+    X : ARRAY[1..5] OF LREAL;
+    Y : ARRAY[1..5] OF LREAL;
+    M : ARRAY[1..5] OF LREAL;
+    A : ARRAY[1..5] OF LREAL;
+    D : ARRAY[1..3] OF LREAL;
+    g : ARRAY[1..3] OF LREAL;
+    h : ARRAY[1..4] OF LREAL;
+    n : INT;
+    p1 : ARRAY[1..4] OF REAL;
+    p2 : ARRAY[1..4] OF REAL;
+    p3 : ARRAY[1..4] OF REAL;
+    p4 : ARRAY[1..4] OF REAL;
+    i : INT;
+END_VAR
+
+// --- implementation (ST) ---
+FOR i:=1 TO 5 DO
+	X[i]:=ULINT_TO_LREAL(aUTC_TIME[i]);
+	Y[i]:=aPosCmd[i];
+END_FOR
+
+
+Three(X:=X,Y:=Y,y0:=y0,yn:=yn,D=>D,h=>h,A=>A,g=>g,M=>M);
+
+FOR i:=1 TO (n-1) DO
+	p1[i]:=M[i]*(X[i+1]-xt)*(X[i+1]-xt)*(X[i+1]-xt)/(6*h[i]);
+	p2[i]:=M[i+1]*(xt-X[i])*(xt-X[i])*(xt-X[i])/(6*h[i]);
+	p3[i]:=(A[i,1]-M[i]/6*(h[i])*(h[i]))*(X[i+1]-xt)/h[i];
+	p4[i]:=(A[i+1,1]-M[i+1]/6*(h[i])*(h[i]))*(xt-X[i])/h[i];
+	
+	
+END_FOR
+
+
+FOR i:=1 TO (n-1) DO
+	IF (xt<=X[i+1])AND (xt>=X[i]) THEN
+		nout:=i;
+		sout:=p1[nout]+p2[nout]+p3[nout]+p4[nout]; 
+	ELSIF xt>X[5] THEN
+		nout:=4;
+	ELSIF xt<X[1]THEN
+		nout:=1;
+	END_IF
+END_FOR
+
+
+//要不要判断插值模块是否有效？
+sout:=p1[nout]+p2[nout]+p3[nout]+p4[nout]; 
+(*
+IF xt>X[5] THEN
+	nout:=4;
+	sout:=p1[nout]+p2[nout]+p3[nout]+p4[nout]; 
+ELSIF xt<X[1] THEN
+	nout:=1;
+	sout:=p1[nout]+p2[nout]+p3[nout]+p4[nout]; 
+END_IF
+*)

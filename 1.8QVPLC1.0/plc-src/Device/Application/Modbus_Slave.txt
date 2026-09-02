@@ -1,0 +1,866 @@
+# kind=program
+# name=Modbus_Slave
+# objectId=b8ad2f70-c1f4-4ca4-b34f-79f47417026d
+
+VAR
+    modTcpSlaveInit : gcan.FB_ModbusTCP_Slave_Init;
+    modTcpSlaveCtrl : gcan.FB_ModbusTCP_Slave_Ctrl;
+    eout : BOOL;
+    iSocket : INT;
+    uiErr : UINT;
+    isInit : BOOL;
+    arClient : ARRAY[0..10] OF INT;
+    arDo_data : ARRAY[0..654] OF BOOL;
+    arDi_data : ARRAY[0..79] OF BOOL;
+    modbusData AT %MW0 : ARRAY[0..654] OF WORD;
+    modbusInputRegs AT %MW660 : ARRAY[0..79] OF WORD;
+    enCtr : BOOL;
+    dif : ULINT;
+    iCount : WORD;
+    TypeList1 : DWORD;
+    UTC_Union : float2bit;
+    CtrlBool : WORD_AS_BIT;
+    bCommReset : BOOL;
+    iWatchDogTime : INT;
+    Pos1_Union : float2bit;
+    Pos2_Union : float2bit;
+    Pos3_Union : float2bit;
+    iMode_1 : INT;
+    rPosCmd_1 : REAL;
+    rVelcmd_1 : REAL;
+    rP_1 : REAL;
+    rI_1 : REAL;
+    rD_1 : REAL;
+    rThreshold_1 : INT;
+    rAcceleration_1 : REAL;
+    rDeceleration_1 : REAL;
+    rVelLim_1 : REAL;
+    iMode_2 : INT;
+    rPosCmd_2 : REAL;
+    rVelcmd_2 : REAL;
+    rP_2 : REAL;
+    rI_2 : REAL;
+    rD_2 : REAL;
+    rThreshold_2 : INT;
+    rAcceleration_2 : REAL;
+    rDeceleration_2 : REAL;
+    rVelLim_2 : REAL;
+    iMode_3 : INT;
+    rPosCmd_3 : REAL;
+    rVelcmd_3 : REAL;
+    rP_3 : REAL;
+    rI_3 : REAL;
+    rD_3 : REAL;
+    rThreshold_3 : INT;
+    rAcceleration_3 : REAL;
+    rDeceleration_3 : REAL;
+    rVelLim_3 : REAL;
+    UTC_Orbit_Union : float2bit;
+    UTC_Orbit_New : ULINT;
+    UTC_Orbit_Last : ULINT;
+    TimeBias_Union : float2bit;
+    Bias1_Union : float2bit;
+    Bias2_Union : float2bit;
+    Bias3_Union : float2bit;
+    AcuElOffset : float2bit;
+    rTimeBias : LREAL;
+    rBias_1 : LREAL;
+    rBias_2 : LREAL;
+    rBias_3 : LREAL;
+    lrElOffset : LREAL;
+    UTC_New : ULINT;
+    UTC_Last : ULINT;
+    aUTC_TIME : ARRAY[1..10] OF ULINT;
+    aPosCmd_1 : ARRAY[1..10] OF LREAL;
+    aPosCmd_2 : ARRAY[1..10] OF LREAL;
+    isave : INT;
+    iCheck : INT;
+    bPass : BOOL;
+    iclear : INT;
+    uPTPTime_Union : float2bit;
+    DI1_Union : Util.BIT_AS_WORD;
+    DI2_Union : Util.BIT_AS_WORD;
+    DO1_Union : Util.BIT_AS_WORD;
+    DO2_Union : Util.BIT_AS_WORD;
+    DI1_word : WORD;
+    DI2_word : WORD;
+    DO1_word : WORD;
+    DO2_word : WORD;
+    PosSub1_Union : float2bit;
+    PosSub2_Union : float2bit;
+    PosSub3_Union : float2bit;
+    BiasSub1_Union : float2bit;
+    BiasSub2_Union : float2bit;
+    BiasSub3_Union : float2bit;
+    Chan_Union : Util.BIT_AS_WORD;
+    Chan_word : WORD;
+    ptptime : ULINT;
+    rAzTheory : LREAL;
+    rEltheory : LREAL;
+    rAzTheory_Union : float2bit;
+    rEltheory_Union : float2bit;
+    MillisecondsTime : ULINT;
+    DeltaTimeBetPC : ULINT;
+    AGC_Value : REAL;
+    starttime : LREAL;
+    rNodeTime1_az : LREAL;
+    rNodeTime2_az : LREAL;
+    rNodeTime3_az : LREAL;
+    rNodeTime4_az : LREAL;
+    rNodeTime5_az : LREAL;
+    rEndTime : LREAL;
+    lrFun1_az : ARRAY[0..10] OF LREAL;
+    lrFun2_az : ARRAY[0..10] OF LREAL;
+    lrFun3_az : ARRAY[0..10] OF LREAL;
+    lrFun4_az : ARRAY[0..10] OF LREAL;
+    lrFun5_az : ARRAY[0..10] OF LREAL;
+    lrFun6_az : ARRAY[0..10] OF LREAL;
+    unionFun1_az : ARRAY[0..10] OF UnionLREAL_WORD;
+    unionFun2_az : ARRAY[0..10] OF UnionLREAL_WORD;
+    unionFun3_az : ARRAY[0..10] OF UnionLREAL_WORD;
+    unionFun4_az : ARRAY[0..10] OF UnionLREAL_WORD;
+    unionFun5_az : ARRAY[0..10] OF UnionLREAL_WORD;
+    unionFun6_az : ARRAY[0..10] OF UnionLREAL_WORD;
+    unionStartTime : UnionLREAL_WORD;
+    unionNodeTime1_az : UnionLREAL_WORD;
+    unionNodeTime2_az : UnionLREAL_WORD;
+    unionNodeTime3_az : UnionLREAL_WORD;
+    unionNodeTime4_az : UnionLREAL_WORD;
+    unionNodeTime5_az : UnionLREAL_WORD;
+    unionEndTime : UnionLREAL_WORD;
+    rNodeTime1_el : REAL;
+    rNodeTime2_el : REAL;
+    rNodeTime3_el : REAL;
+    rNodeTime4_el : REAL;
+    rNodeTime5_el : REAL;
+    lrFun1_el : ARRAY[0..10] OF LREAL;
+    lrFun2_el : ARRAY[0..10] OF LREAL;
+    lrFun3_el : ARRAY[0..10] OF LREAL;
+    lrFun4_el : ARRAY[0..10] OF LREAL;
+    lrFun5_el : ARRAY[0..10] OF LREAL;
+    lrFun6_el : ARRAY[0..10] OF LREAL;
+    unionFun1_el : ARRAY[0..10] OF UnionLREAL_WORD;
+    unionFun2_el : ARRAY[0..10] OF UnionLREAL_WORD;
+    unionFun3_el : ARRAY[0..10] OF UnionLREAL_WORD;
+    unionFun4_el : ARRAY[0..10] OF UnionLREAL_WORD;
+    unionFun5_el : ARRAY[0..10] OF UnionLREAL_WORD;
+    unionFun6_el : ARRAY[0..10] OF UnionLREAL_WORD;
+    unionNodeTime1_el : UnionLREAL_WORD;
+    unionNodeTime2_el : UnionLREAL_WORD;
+    unionNodeTime3_el : UnionLREAL_WORD;
+    unionNodeTime4_el : UnionLREAL_WORD;
+    unionNodeTime5_el : UnionLREAL_WORD;
+    unionSum : UnionLREAL_WORD;
+    lrSum : LREAL;
+    lrSumlocal : LREAL;
+    i : INT;
+    bNotFirst : BOOL;
+    bCheck : BOOL;
+    bIFPoly : BOOL;
+    iCountPolyGet : INT;
+    uChangeTest : Time2Word;
+    iCountSum : INT;
+    bSearch : BOOL;
+    bStartTrackAcu : BOOL;
+    rAzPosVel : REAL;
+    rElPosVel : REAL;
+    rTlPosVel : REAL;
+END_VAR
+
+// --- implementation (ST) ---
+(*==============================================================================
+  PRG: Modbus_Slave（Modbus TCP 从站网关）
+  任务: MainTask 50ms
+  协议: Modbus TCP 端口 502，GCAN FB_ModbusTCP_Slave_*
+
+  内存映射（与 GVL AT %MW 一致）:
+    modbusData      AT %MW0   — 保持寄存器 HR，上位机读写（下发命令+多项式系数）
+    modbusInputRegs AT %MW660 — 输入寄存器 IR，PLC 写入、上位机只读（状态上报）
+
+  数据流:
+    上位机写 HR → 本程序解析 → iMode_x/rPosCmd_x/aUTC_TIME 等
+                              → SecurityCheck 写 AxisXRemote
+    PLC 状态 → 打包 IR → 上位机读
+
+  扩展自定义寄存器: 在 HR 区 modbusData[n] 增加解析/在 IR 区赋值即可
+==============================================================================*)
+// =============================================================================
+// 段 A: Modbus TCP 从站初始化（端口 502，仅首次）
+// =============================================================================
+IF isInit=FALSE THEN							
+	
+	modtcpslaveinit(en_in:=TRUE,					//Modbus TCP Slave初始化功能块使能
+	xenable:=TRUE,									//使能初始化功能
+	iport:=502,										//开放端口号502
+	en_out=>eout,									//Modbus TCP Slave初始化功能块执行完成
+	isocket=>iSocket,								//创建的socket存入变量
+	uierror=>uiErr);								//Modbus TCP Slave初始化功能块执行错误信息
+	
+	IF isocket>=0 AND uiErr=0 THEN					//成功创建socket且无错误，逻辑标志置位，下周期执行ELSE
+		isInit:=TRUE;	
+		
+		enCtr:=FALSE;
+		ELSE                                        //等待连接成功
+		modtcpslaveinit(en_in:=0,xenable:=0);	
+	END_IF
+	
+ 
+ELSE
+
+// =============================================================================
+// 段 B: 从站周期服务 — 映射 HR/IR 缓冲区，看门狗 2000ms
+// =============================================================================
+	modtcpslavectrl(en_in:=enCtr,					//Modbus TCP Slave执行功能块使能
+	xenable:=TRUE,									//Modbus TCP Slave执行功能使能
+	isocket:=isocket,								//输入创建的socket
+	dwatchdogtime:=2000,							//看门狗时间
+	p_clientsocket:=ADR(arClient),					//将连接进来的socket存放到数组
+	imaxclientcount:=10,							//设置最大连接数量
+	uido_number:=10,uido_startaddr:=0,pdo_data:=ADR(ardo_data),		//uido_number设定线圈个数，uido_startaddr设定线圈起始地址，数据存放在ardo_data数组
+	uidi_number:=10,uidi_startaddr:=0,pdi_data:=ADR(ardi_data),		//uidi_number设定离散型数据个数，uidi_startaddr设定离散型数据起始地址，数据存放在ardi_data数组
+	uireg_number:=655,uireg_startaddr:=0,preg_data:=ADR(modbusData), //uireg_number设定保持型寄存器个数，uireg_startaddr设定保持型寄存器起始地址，数据存放在arreg_data数组
+	uiai_number:=79,uiai_startaddr:=0,pai_data:=ADR(modbusInputRegs),//uiai_number设定输入型寄存器个数，uiai_startaddr设定输入型寄存器起始地址，数据存放在arai_data数组
+	en_out=>eout,									//Modbus TCP Slave执行功能块执行完成
+	uierror=>uierr);								//Modbus TCP Slave执行功能块执行错误信息
+	enctr:=TRUE;
+	IF uierr <>0 THEN                               //如果从站报错，则重新连接从站
+		modtcpslaveinit(en_in:=0,xenable:=0);	
+		isInit:=0;
+	END_IF
+	//iMode:  0 下电  1 上电  2 速度模式  3 停止  4 位置模式  5 继续运行
+	//方位轴指令
+(*
+	Az_ctrl.iMode:=WORD_TO_INT(modbusData[0]);
+	AZ_ctrl.rTarVel:=WORD_TO_REAL(modbusData[1]);
+	AZ_ctrl.rTarPos:=WORD_TO_REAL(modbusData[2])*-1.0;
+	
+	//俯仰轴指令
+	El_ctrl.iMode:=WORD_TO_INT(modbusData[10]);
+	El_ctrl.rTarVel:=WORD_TO_REAL(modbusData[11]);
+	El_ctrl.rTarPos:=WORD_TO_REAL(modbusData[12])+90.0;
+	*)
+	
+	// =============================================================================
+	// 段 C: 解析 HR 下发（保持寄存器 modbusData → 内部变量）
+	// HR[0..3] UTC  HR[7] 控制字  HR[8..18]Az  HR[19..29]El  HR[30..39]Ti
+	// HR[43] AGC门限  HR[45..48]轨道时间  HR[51..54]拉偏  HR[57..58]俯仰零位
+	// =============================================================================
+	UTC_Union.Apart_word[1]:=modbusData[3];
+	UTC_Union.Apart_word[2]:=modbusData[2];
+	UTC_Union.Apart_word[3]:=modbusData[1];
+	UTC_Union.Apart_word[4]:=modbusData[0];
+	UTC_New:=UTC_Union.Apart_ulint;
+	DeltaTimeBetPC := UTC_New - TO_ULINT(GVL.dRealTime);
+	// HR[7] 控制字位定义（WORD_AS_BIT）
+	CtrlBool(W:=modbusData[7],
+			B14=>bCommReset,
+			B13=>Axis2Remote.bPIDEnable,
+			B12=>Axis1Remote.bPIDEnable,
+			B11=>Axis3Remote.bPIDEnable,
+			B10=>bStartTrackAcu,
+			B07=>bIFPoly,
+			B06=>bSearch, //十字搜索开启标识
+			);
+	//方位轴指令
+	iMode_2:=WORD_TO_INT(modbusData[8]);
+	Pos2_Union.Apart_word[2]:=modbusData[9];
+	Pos2_Union.Apart_word[1]:=modbusData[10];
+	rPosCmd_2:=DINT_TO_LREAL( DWORD_TO_DINT( Pos2_Union.Apart_dword[1]))/100000*-1;
+	rVelcmd_2:=DINT_TO_LREAL( WORD_TO_INT(modbusData[11]))/1000*-1;
+	rP_2:=INT_TO_LREAL(WORD_TO_INT(modbusData[12]))/1000;
+	rI_2:=INT_TO_LREAL(WORD_TO_INT(modbusData[13]))/1000;
+	rD_2:=INT_TO_LREAL(WORD_TO_INT(modbusData[14]))/1000;
+	rThreshold_2:=WORD_TO_INT(modbusData[15])/1000;
+	rAcceleration_2:=INT_TO_LREAL(WORD_TO_INT(modbusData[16]))/1000;
+	rDeceleration_2:=INT_TO_LREAL(WORD_TO_INT(modbusData[17]))/1000;
+	rVelLim_2:=INT_TO_LREAL(WORD_TO_INT(modbusData[18]))/1000;
+	
+	//俯仰轴指令
+	iMode_1:=WORD_TO_INT(modbusData[19]);
+	Pos1_Union.Apart_word[2]:=modbusData[20];
+	Pos1_Union.Apart_word[1]:=modbusData[21];
+	rPosCmd_1:=DINT_TO_LREAL( DWORD_TO_DINT( Pos1_Union.Apart_dword[1]))/100000+90;
+	rVelcmd_1:=DINT_TO_LREAL( WORD_TO_INT(modbusData[22]))/1000;
+	rP_1:=INT_TO_LREAL(WORD_TO_INT(modbusData[23]))/1000;
+	rI_1:=INT_TO_LREAL(WORD_TO_INT(modbusData[24]))/1000;
+	rD_1:=INT_TO_LREAL(WORD_TO_INT(modbusData[25]))/1000;
+	rThreshold_1:=WORD_TO_INT(modbusData[26])/1000;
+	rAcceleration_1:=INT_TO_LREAL(WORD_TO_INT(modbusData[27]))/1000;
+	rDeceleration_1:=INT_TO_LREAL(WORD_TO_INT(modbusData[28]))/1000;
+	rVelLim_1:=INT_TO_LREAL(WORD_TO_INT(modbusData[29]))/1000;
+	
+	//倾斜轴指令
+	iMode_3:=WORD_TO_INT(modbusData[30]);
+	Pos3_Union.Apart_word[2]:=modbusData[31];
+	Pos3_Union.Apart_word[1]:=modbusData[32];
+	rPosCmd_3:=DINT_TO_LREAL( DWORD_TO_DINT( Pos3_Union.Apart_dword[1]))/100000*-1;
+	rVelcmd_3:=DINT_TO_LREAL( WORD_TO_INT(modbusData[33]))/1000*-1;
+	rP_3:=INT_TO_LREAL(WORD_TO_INT(modbusData[34]))/1000;
+	rI_3:=INT_TO_LREAL(WORD_TO_INT(modbusData[35]))/1000;
+	rD_3:=INT_TO_LREAL(WORD_TO_INT(modbusData[36]))/1000;
+	rThreshold_3:=WORD_TO_INT(modbusData[37])/1000;
+	rAcceleration_3:=INT_TO_LREAL(WORD_TO_INT(modbusData[38]))/1000;
+	rDeceleration_3:=INT_TO_LREAL(WORD_TO_INT(modbusData[39]))/1000;
+	
+	
+	//AGC锁定门限
+	AGC_Value:=(WORD_TO_UDINT(modbusData[43])/100.0);
+	GVL.Chanthreshold:=AGC_Value;
+	
+	//轨道时间
+	UTC_Orbit_Union.Apart_word[1]:=modbusData[48];
+	UTC_Orbit_Union.Apart_word[2]:=modbusData[47];
+	UTC_Orbit_Union.Apart_word[3]:=modbusData[46];
+	UTC_Orbit_Union.Apart_word[4]:=modbusData[45];
+	UTC_Orbit_New:=UTC_Orbit_Union.Apart_ulint;
+	//时间拉偏
+	TimeBias_Union.Apart_word[1]:=modbusData[50];
+	TimeBias_Union.Apart_word[2]:=modbusData[49];
+	rTimeBias:=DINT_TO_LREAL( DWORD_TO_DINT( TimeBias_Union.Apart_dword[1]))/100000.0; //单位为秒
+	IF rTimeBias>0.4 THEN//时间偏置最大限制 正负0.4秒
+		rTimeBias:=0.4;
+	ELSIF rTimeBias<-0.4 THEN
+		rTimeBias:=-0.4;
+	END_IF
+	rTimeBias:=rTimeBias*1000000000;//秒转纳秒
+	//两轴拉偏
+	Bias2_Union.Apart_word[1]:=modbusData[52];
+	Bias2_Union.Apart_word[2]:=modbusData[51];
+	rBias_2:=DINT_TO_LREAL( DWORD_TO_DINT( Bias2_Union.Apart_dword[1]))/100000.0*(-1);
+	
+	Bias1_Union.Apart_word[1]:=modbusData[54];
+	Bias1_Union.Apart_word[2]:=modbusData[53];
+	rBias_1:=DINT_TO_LREAL( DWORD_TO_DINT( Bias1_Union.Apart_dword[1]))/100000.0;
+	
+	//俯仰零值
+	AcuElOffset.Apart_word[1]:=modbusData[58];
+	AcuElOffset.Apart_word[2]:=modbusData[57];
+	lrElOffset:=DINT_TO_LREAL( DWORD_TO_DINT( AcuElOffset.Apart_dword[1]))/100000.0;
+	// ----- 程引轨道表: UTC_Orbit_New 递增时移位写入 aUTC_TIME / aPosCmd_x -----
+	
+	// 指向模式最大速度 HR[61..63] → GVL.AxisXRemote.Pos_Vel
+	rAzPosVel:=INT_TO_LREAL(WORD_TO_INT(modbusData[61]))/1000.0;
+	rElPosVel:=INT_TO_LREAL(WORD_TO_INT(modbusData[62]))/1000.0;
+	rTlPosVel:=INT_TO_LREAL(WORD_TO_INT(modbusData[63]))/1000.0;
+	
+	IF rAzPosVel <= 16.0 THEN
+		GVL.Axis2Remote.Pos_Vel := rAzPosVel;
+	ELSE
+		GVL.Axis2Remote.Pos_Vel := 16;
+	END_IF
+	
+	IF rElPosVel <= 11.0 THEN
+		GVL.Axis1Remote.Pos_Vel := rElPosVel;
+	ELSE
+		GVL.Axis1Remote.Pos_Vel := 11;
+	END_IF
+	
+	IF rTlPosVel <= 8.0 THEN
+		GVL.Axis3Remote.Pos_Vel := rTlPosVel;
+	ELSE
+		GVL.Axis3Remote.Pos_Vel := 8;
+	END_IF
+	
+	FOR iCheck:=1 TO 10 DO
+		IF UTC_Orbit_New>aUTC_TIME[iCheck] THEN
+			bPass:=TRUE;
+		ELSE
+			bPass:=FALSE;
+			EXIT;
+		END_IF
+	END_FOR
+	IF bPass THEN //命令刷新，则更新序列
+		FOR isave:=1 TO 9 DO
+			aUTC_TIME[isave]:=aUTC_TIME[isave+1];
+			aPosCmd_1[isave]:=aPosCmd_1[isave+1];
+			aPosCmd_2[isave]:=aPosCmd_2[isave+1];
+		END_FOR
+		aUTC_TIME[10]:=UTC_Orbit_New;
+		aPosCmd_1[10]:=rPosCmd_1;
+		aPosCmd_2[10]:=rPosCmd_2;
+	END_IF
+	//若不是程引模式，则清空轨道时间数据
+	IF Axis1Remote.iMode<>4 AND Axis2Remote.iMode<>4 THEN
+		FOR iCheck:=1 TO 10 DO
+			aUTC_TIME[iCheck]:=0;;
+		END_FOR
+	END_IF
+	
+	// =============================================================================
+	// 段 D: 打包 IR 上报（modbusInputRegs，上位机只读）
+	// IR[0..3]时间 IR[5]Error IR[6..9]DI/DO IR[10+]三轴状态 IR[59..65]跟踪机
+	// IR[69..74]跟踪偏差 IR[75..78]理论角
+	// =============================================================================
+	IF icount<16#FFFF THEN
+		icount:=icount+1;
+	ELSE
+		icount:=0;
+	END_IF
+	
+	DI1_Union(B15:=SecurityCheck.bPrelimit_Positive_1,						//俯仰轴预限位--正 B15=0为未触发，B15=1为触发
+			B14:=SecurityCheck.bFinallimit_1,								//俯仰轴终限位
+			B13:=SecurityCheck.bPrelimit_Negative_1,						//俯仰轴预限位--负
+			B12:=SecurityCheck.bFinallimit_1,								//俯仰位终限位
+			B11:=SecurityCheck.bPrelimit_Positive_2,						//方位轴预限位--正
+			B10:=SecurityCheck.bFinallimit_2,								//方位轴终限位
+			B09:=SecurityCheck.bPrelimit_Negative_2,						//方位轴预限位--负
+			B08:=SecurityCheck.bFinallimit_2,								//方位轴终限位
+			B07:=FALSE,												//倾斜预限位--正
+			B06:=FALSE,												//倾斜终限位--正
+			B05:=FALSE,												//倾斜预限位--负
+			B04:=FALSE,												//倾斜终限位--负
+			B03:=FALSE,												//方位轴过零检测
+			B02:=Axis2Status.bBrake,								//方位轴抱闸状态 0为解抱闸，1为抱闸
+			B01:=Axis1Status.bBrake,								//俯仰轴抱闸状态
+			B00:=Axis3Status.bBrake,								//倾斜轴抱闸状态
+			W=>DI1_word	);
+			
+	DI2_Union(B15:=FALSE,								//
+			B14:=FALSE,								//
+			B13:=FALSE,
+			B12:=FALSE,
+			B11:=FALSE,
+			B10:=FALSE,
+			B09:=FALSE,
+			B08:=FALSE,
+			B07:=FALSE,
+			B06:=FALSE,
+			B05:=GVL.bError_Reset,											//错误复位符
+			B04:=GVL.bLocalCtrl,											//本远控标识符
+			B03:=FALSE,									//退限位标识符
+			B02:=Axis2Remote.bPIDEnable,											//方位轴PID使能状态
+			B01:=Axis1Remote.bPIDEnable,											//俯仰轴PID使能状态
+			B00:=Axis3Remote.bPIDEnable,											//倾斜轴PID使能状态
+			W=>DI2_word);
+	DO1_Union(B15:=FALSE,								//中心体急停指示灯
+			B14:=FALSE,							//声光报警		1为触发，0为未触发
+			B13:=FALSE,							//爬梯急停指示灯 B13=1为亮 B13=0为灭
+			B12:=FALSE,							//机柜蜂鸣器	B12=1为触发，B12=0为未触发
+			B11:=FALSE,							//限位释放指示灯 同上 
+			B10:=FALSE,						//本远控指示灯	B10=1为本控，B10=0为远控
+			B09:=FALSE,							//系统状态指示灯 B09=1为异常，B09=0为正常	
+			B08:=Axis2Status.bBrake,								//方位轴抱闸输出 B08=1为抱闸输出 B08=1为解抱闸输出
+			B07:=Axis1Status.bBrake,								//俯仰轴抱闸输出 同上
+			B06:=Axis3Status.bBrake,								//倾斜轴抱闸输出 同上
+			B05:=FALSE,										//方位风扇输出	B05=1为风扇运行，B05=0为风扇未运行
+			B04:=FALSE,										//俯仰风扇输出	同上
+			B03:=FALSE,										//倾斜风扇输出	同上
+			B02:=Axis2Status.bServo_Enable,									//方位轴供电
+			B01:=Axis1Status.bServo_Enable,									//俯仰轴供电
+			B00:=Axis3Status.bServo_Enable,									//倾斜轴供电
+			W=>DO1_word);
+	DO2_Union(B15:=Axis2Status.bServo_Enable,//NOT(Axis1Status.Disabled),						//方位主电机使能状态
+			B14:=Axis2Status.bServo_Enable,//NOT(Axis1Status.Disabled),							//方位从电机使能状态
+			B13:=Axis1Status.bServo_Enable,//NOT(Axis2Status.Disabled),							//俯仰主电机使能状态		
+			B12:=Axis1Status.bServo_Enable,//NOT(Axis2Status.Disabled),							//俯仰从电机使能状态
+			B11:=Axis3Status.bServo_Enable,		//倾斜主电机使能状态
+	 		B10:=Axis3Status.bServo_Enable,		//倾斜从电机使能状态
+			B09:=Az_ctrl_1.bStop_2,			//方位轴主电机停止标识符
+	 		B08:=Az_ctrl_1.bStop_2,					  //方位轴从电机停止标识符
+	 		B07:=El_ctrl_1.bStop_1,		    //俯仰轴主电机停止标识符
+			B06:=El_ctrl_1.bStop_1,				//俯仰轴从电机停止标识符
+	 		B05:=Ti_ctrl_1.bStop_3,							//倾斜轴主电机停止标识符
+			B04:=Ti_ctrl_1.bStop_3,							//倾斜轴从电机停止标识符
+	 		B03:=0,
+	 		B02:=0,
+			B01:=0,
+			B00:=0,
+			W=>DO2_word	);
+	
+	//命令角与实际角偏差
+	IF bLocalCtrl THEN
+		IF  Axis1Local.iMode=4 THEN
+			BiasSub1_Union.Apart_dword[1]:=DINT_TO_DWORD( REAL_TO_DINT((Axis1Local.rPosCmd-rFctPosReal_1)*100000.0));//读取位置
+		ELSE
+			BiasSub1_Union.Apart_dword[1]:=0;//读取位置
+		END_IF
+	ELSE
+		IF Axis1Remote.iMode=2  THEN 
+			BiasSub1_Union.Apart_dword[1]:=DINT_TO_DWORD( REAL_TO_DINT((Axis1Remote.rPosCmd-rFctPosReal_1)*100000.0));//读取位置
+		ELSIF Axis1Remote.iMode=4 THEN
+			BiasSub1_Union.Apart_dword[1]:=DINT_TO_DWORD( REAL_TO_DINT((RealTimePosCal.rInterElPos-rFctPosReal_1)*100000.0));//读取位置
+		ELSE
+			BiasSub1_Union.Apart_dword[1]:=0;//读取位置
+		END_IF
+	END_IF
+	
+	IF bLocalCtrl THEN
+		IF Axis2Local.iMode=4 THEN
+			BiasSub2_Union.Apart_dword[1]:=DINT_TO_DWORD( REAL_TO_DINT((Axis2Local.rPosCmd-rFctPosReal_2)*100000.0));//读取位置
+		ELSE
+			BiasSub2_Union.Apart_dword[1]:=0;//读取位置
+		END_IF
+	ELSE
+		IF Axis2Remote.iMode=2 THEN
+			BiasSub2_Union.Apart_dword[1]:=DINT_TO_DWORD( REAL_TO_DINT((Axis2Remote.rPosCmd-rFctPosReal_2)*100000.0));//读取位置
+		ELSIF Axis2Remote.iMode=4 THEN
+			BiasSub2_Union.Apart_dword[1]:=DINT_TO_DWORD( REAL_TO_DINT((rFctPosReal_2-RealTimePosCal.rInterAzPos)*100000.0));//读取位置
+		ELSE
+			BiasSub2_Union.Apart_dword[1]:=0;//读取位置
+		END_IF
+	END_IF
+	
+	IF bLocalCtrl THEN
+		IF Axis3Local.iMode=4 THEN
+			BiasSub3_Union.Apart_dword[1]:=DINT_TO_DWORD( REAL_TO_DINT((Axis3Local.rPosCmd-rFctPosReal_3)*100000.0));//读取位置
+		ELSE
+			BiasSub3_Union.Apart_dword[1]:=0;//读取位置
+		END_IF
+	ELSE
+		IF Axis3Remote.iMode=2 THEN
+			BiasSub3_Union.Apart_dword[1]:=DINT_TO_DWORD( REAL_TO_DINT((Axis3Remote.rPosCmd-rFctPosReal_3)*100000.0));//读取位置
+		ELSIF Axis2Remote.iMode=4 THEN
+			BiasSub3_Union.Apart_dword[1]:=DINT_TO_DWORD( REAL_TO_DINT((Axis3Remote.rPIDCmdPos-rFctPosReal_3)*100000.0));//读取位置
+		ELSE
+			BiasSub3_Union.Apart_dword[1]:=0;//读取位置
+		END_IF
+	END_IF
+	
+	// uPTPTime_Union.Apart_ulint:=TO_ULINT(GVL.dPTPCSTTime/1000000);
+	uPTPTime_Union.Apart_ulint:=TO_ULINT((GVL.dRealTime - 8 * 3600 * 1000) * 1000000);
+	modbusInputRegs[0]:=uPTPTime_Union.Apart_word[4];
+	modbusInputRegs[1]:=uPTPTime_Union.Apart_word[3];
+	modbusInputRegs[2]:=uPTPTime_Union.Apart_word[2];
+	modbusInputRegs[3]:=uPTPTime_Union.Apart_word[1];
+	modbusInputRegs[4]:=INT_TO_WORD( icount);
+	modbusInputRegs[5]:=INT_TO_WORD(Error_code);//错误代码
+	modbusInputRegs[6]:=DI1_word;
+	modbusInputRegs[7]:=DI2_word;
+	modbusInputRegs[8]:=DO1_word;
+	modbusInputRegs[9]:=DO2_word;
+	
+	
+	PosSub1_Union.Apart_dword[1]:=DINT_TO_DWORD( REAL_TO_DINT((rFctPosReal_1-90)*100000.0));//读取俯仰位置
+	
+	PosSub2_Union.Apart_dword[1]:=DINT_TO_DWORD( REAL_TO_DINT((rFctPosReal_2*-1)*100000.0));//读取方位位置
+	
+	PosSub3_Union.Apart_dword[1]:=DINT_TO_DWORD( REAL_TO_DINT((rFctPosReal_3*-1)*100000.0));//读取倾斜位置
+	
+	
+	//方位轴状态
+	modbusInputRegs[10]:=INT_TO_WORD(Axis2Remote.iMode);
+	
+	modbusInputRegs[13]:=PosSub2_Union.Apart_word[2];
+	modbusInputRegs[14]:=PosSub2_Union.Apart_word[1];
+	
+	modbusInputRegs[17]:=INT_TO_WORD(REAL_TO_INT(rFctVelReal_2*1000.0));							//速度
+	
+	modbusInputRegs[19]:=REAL_TO_UINT(Axis2Remote.rP*1000);
+	modbusInputRegs[20]:=REAL_TO_UINT(Axis2Remote.rI*1000);
+	modbusInputRegs[21]:=REAL_TO_UINT(Axis2Remote.rD*1000);
+	modbusInputRegs[22]:=REAL_TO_UINT(Axis2Remote.rPIDThre*1000);
+	modbusInputRegs[23]:=INT_TO_WORD(REAL_TO_INT(securitycheck.rAzCurrent*100.0));
+	
+	
+	//俯仰轴状态
+	modbusInputRegs[27]:=INT_TO_WORD(Axis1Remote.iMode);
+	
+	modbusInputRegs[30]:=PosSub1_Union.Apart_word[2];
+	modbusInputRegs[31]:=PosSub1_Union.Apart_word[1];
+	
+	modbusInputRegs[34]:=INT_TO_WORD(REAL_TO_INT(rFctVelReal_1*1000));							     //速度
+	
+	modbusInputRegs[36]:=REAL_TO_UINT(Axis1Remote.rP*1000);
+	modbusInputRegs[37]:=REAL_TO_UINT(Axis1Remote.rI*1000);
+	modbusInputRegs[38]:=REAL_TO_UINT(Axis1Remote.rD*1000);
+	modbusInputRegs[39]:=REAL_TO_UINT(Axis1Remote.rPIDThre*1000);
+	modbusInputRegs[40]:=INT_TO_WORD(REAL_TO_INT(securitycheck.rElCurrent*100.0));
+	//倾斜轴状态
+	modbusInputRegs[44]:=INT_TO_WORD(Axis3Remote.iMode);
+	
+	modbusInputRegs[47]:=PosSub3_Union.Apart_word[2];
+	modbusInputRegs[48]:=PosSub3_Union.Apart_word[1];
+	
+	modbusInputRegs[51]:=INT_TO_WORD(REAL_TO_INT(rFctVelReal_3*1000.0));							//速度
+	
+	modbusInputRegs[53]:=REAL_TO_UINT(Axis3Remote.rP*1000);
+	modbusInputRegs[54]:=REAL_TO_UINT(Axis3Remote.rI*1000);
+	modbusInputRegs[55]:=REAL_TO_UINT(Axis3Remote.rD*1000);
+	modbusInputRegs[56]:=REAL_TO_UINT(Axis3Remote.rPIDThre*1000);
+	modbusInputRegs[57]:=INT_TO_WORD(REAL_TO_INT(securitycheck.rTlCurrent*100.0));
+	//跟踪接收机预留
+	
+	modbusInputRegs[69]:=BiasSub2_Union.Apart_word[2];
+	modbusInputRegs[70]:=BiasSub2_Union.Apart_word[1];
+	modbusInputRegs[71]:=BiasSub1_Union.Apart_word[2];
+	modbusInputRegs[72]:=BiasSub1_Union.Apart_word[1];
+	modbusInputRegs[73]:=BiasSub3_Union.Apart_word[2];
+	modbusInputRegs[74]:=BiasSub3_Union.Apart_word[1];
+	//上报用于校相的方位俯仰轴理论值 （插值位置加当前拉偏位置）
+	rAzTheory:=RealTimePosCal.rInterAzPos*(-1);
+	rAzTheory_Union.Apart_dword[1]:=DINT_TO_DWORD(LREAL_TO_DINT(rAzTheory*100000.0));
+	rEltheory:=RealTimePosCal.rInterElPos-90;
+	rEltheory_Union.Apart_dword[1]:=DINT_TO_DWORD(LREAL_TO_DINT(rEltheory*100000.0));
+	modbusInputRegs[75]:=rAzTheory_Union.Apart_word[2];
+	modbusInputRegs[76]:=rAzTheory_Union.Apart_word[1];
+	modbusInputRegs[77]:=rEltheory_Union.Apart_word[2];
+	modbusInputRegs[78]:=rEltheory_Union.Apart_word[1];
+
+	//跟踪接收机状态字上报
+	Chan_Union(B15:=GVL.Chan1Lock,
+			  B14:=GVL.Chan1Online,
+			  B13:=GVL.Chan2Lock,
+			  B12:=GVL.Chan2Online,
+			  //B11:=GVL.bStartTrack,
+			  B11:=Read_485.bEBN0Lock,
+			  B10:=0,
+			  B09:=0,
+			  B08:=0,
+			  B07:=0,
+			  B06:=0,
+			  B05:=0,
+			  B04:=0,
+			  B03:=0,
+			  B02:=0,
+			  B01:=0,
+			  B00:=0,
+			  w=>Chan_word);
+			  (*
+	IF GVL.Chan1AGC >= GVL.Chanthreshold THEN
+		GVL.Chan1Lock:=TRUE;
+	ELSE
+		GVL.Chan1Lock:=FALSE;	
+	END_IF
+	*)
+	//跟踪接收机数据上报
+	// IF Ether_Cat.EL6022State=8 THEN
+	IF TRUE THEN
+			modbusInputRegs[59]:=Chan_word;
+			modbusInputRegs[60]:=REAL_TO_WORD(GVL.Chan1AGC*1000);
+			
+	   IF GVL.Chan1Ua>0 THEN
+			modbusInputRegs[61]:=REAL_TO_WORD(GVL.Chan1Ua*1000);
+	   ELSE
+			modbusInputRegs[61]:=(-1)*REAL_TO_WORD(65536-GVL.Chan1Ua*1000);	
+			
+	   END_IF
+	   
+	   IF GVL.Chan1Ue>0 THEN
+			modbusInputRegs[62]:=REAL_TO_WORD(GVL.Chan1Ue*1000);
+	   ELSE
+			modbusInputRegs[62]:=(-1)*REAL_TO_WORD(65536-GVL.Chan1Ue*1000);	
+			
+	   END_IF
+	   
+			modbusInputRegs[63]:=REAL_TO_WORD(GVL.Chan2AGC*1000);
+			modbusInputRegs[64]:=REAL_TO_WORD(GVL.Chan2Ua*1000);
+			modbusInputRegs[65]:=REAL_TO_WORD(GVL.Chan2Ue*1000);
+	ELSE
+			modbusInputRegs[59]:=0;
+			modbusInputRegs[60]:=0;
+			modbusInputRegs[61]:=0;
+			modbusInputRegs[62]:=0;
+			modbusInputRegs[63]:=0;
+			modbusInputRegs[64]:=0;
+			modbusInputRegs[65]:=0;
+	END_IF
+	// =============================================================================
+	// 段 E: 多项式程引系数 HR 解析（UnionLREAL_WORD，当前 RealTimePosCal 中已注释不用）
+	// HR[71+] 各段 LREAL 系数，HR[335+] 节点时间；供 Get_AZ 备用路径
+	// =============================================================================
+	//IF GVL.AzCtrl.iMode = 11 AND GVL.ElCtrl.iMode = 11 THEN
+	iCountPolyGet:=iCountPolyGet+1;
+	//IF iCountPolyGet=10 THEN
+		iCountPolyGet:=0;
+	IF TRUE THEN
+		FOR i := 0 TO 10 DO
+			unionFun1_az[i].words[1] := modbusdata[74 + 4 * i];
+			unionFun1_az[i].words[2] := modbusdata[73 + 4 * i];
+			unionFun1_az[i].words[3] := modbusdata[72 + 4 * i];
+			unionFun1_az[i].words[4] := modbusdata[71 + 4 * i];
+			lrFun1_az[i] := unionFun1_az[i].lrealValue;
+			
+			unionFun2_az[i].words[1] := modbusdata[118 + 4 * i];
+			unionFun2_az[i].words[2] := modbusdata[117 + 4 * i];
+			unionFun2_az[i].words[3] := modbusdata[116 + 4 * i];
+			unionFun2_az[i].words[4] := modbusdata[115 + 4 * i];
+			lrFun2_az[i] := unionFun2_az[i].lrealValue;
+			
+			unionFun3_az[i].words[1] := modbusdata[162 + 4 * i];
+			unionFun3_az[i].words[2] := modbusdata[161 + 4 * i];
+			unionFun3_az[i].words[3] := modbusdata[160 + 4 * i];
+			unionFun3_az[i].words[4] := modbusdata[159 + 4 * i];
+			lrFun3_az[i] := unionFun3_az[i].lrealValue;
+			
+			unionFun4_az[i].words[1] := modbusdata[206 + 4 * i];
+			unionFun4_az[i].words[2] := modbusdata[205 + 4 * i];
+			unionFun4_az[i].words[3] := modbusdata[204 + 4 * i];
+			unionFun4_az[i].words[4] := modbusdata[203 + 4 * i];
+			lrFun4_az[i] := unionFun4_az[i].lrealValue;
+			
+			unionFun5_az[i].words[1] := modbusdata[250 + 4 * i];
+			unionFun5_az[i].words[2] := modbusdata[249 + 4 * i];
+			unionFun5_az[i].words[3] := modbusdata[248 + 4 * i];
+			unionFun5_az[i].words[4] := modbusdata[247 + 4 * i];
+			lrFun5_az[i] := unionFun5_az[i].lrealValue;
+			
+			unionFun6_az[i].words[1] := modbusdata[294 + 4 * i];
+			unionFun6_az[i].words[2] := modbusdata[293 + 4 * i];
+			unionFun6_az[i].words[3] := modbusdata[292 + 4 * i];
+			unionFun6_az[i].words[4] := modbusdata[291 + 4 * i];
+			lrFun6_az[i] := unionFun6_az[i].lrealValue;
+			
+			unionFun3_el[i].words[1] := modbusdata[450 + 4 * i];
+			unionFun3_el[i].words[2] := modbusdata[449 + 4 * i];
+			unionFun3_el[i].words[3] := modbusdata[448 + 4 * i];
+			unionFun3_el[i].words[4] := modbusdata[447 + 4 * i];
+			lrFun3_el[i] := unionFun3_el[i].lrealValue;
+			
+			unionFun4_el[i].words[1] := modbusdata[494 + 4 * i];
+			unionFun4_el[i].words[2] := modbusdata[493 + 4 * i];
+			unionFun4_el[i].words[3] := modbusdata[492 + 4 * i];
+			unionFun4_el[i].words[4] := modbusdata[491 + 4 * i];
+			lrFun4_el[i] := unionFun4_el[i].lrealValue;
+			
+			unionFun1_el[i].words[1] := modbusdata[362 + 4 * i];
+			unionFun1_el[i].words[2] := modbusdata[361 + 4 * i];
+			unionFun1_el[i].words[3] := modbusdata[360 + 4 * i];
+			unionFun1_el[i].words[4] := modbusdata[359 + 4 * i];
+			lrFun1_el[i] := unionFun1_el[i].lrealValue;
+			
+			unionFun2_el[i].words[1] := modbusdata[406 + 4 * i];
+			unionFun2_el[i].words[2] := modbusdata[405 + 4 * i];
+			unionFun2_el[i].words[3] := modbusdata[404 + 4 * i];
+			unionFun2_el[i].words[4] := modbusdata[403 + 4 * i];
+			lrFun2_el[i] := unionFun2_el[i].lrealValue;
+			
+			unionFun5_el[i].words[1] := modbusdata[538 + 4 * i];
+			unionFun5_el[i].words[2] := modbusdata[537 + 4 * i];
+			unionFun5_el[i].words[3] := modbusdata[536 + 4 * i];
+			unionFun5_el[i].words[4] := modbusdata[535 + 4 * i];
+			lrFun5_el[i] := unionFun5_el[i].lrealValue;
+			
+			unionFun6_el[i].words[1] := modbusdata[582 + 4 * i];
+			unionFun6_el[i].words[2] := modbusdata[581 + 4 * i];
+			unionFun6_el[i].words[3] := modbusdata[580 + 4 * i];
+			unionFun6_el[i].words[4] := modbusdata[579 + 4 * i];
+			lrFun6_el[i] := unionFun6_el[i].lrealValue;
+		END_FOR
+		i:=0;
+		unionNodeTime1_az.words[1] := modbusdata[338];
+		unionNodeTime1_az.words[2] := modbusdata[337];
+		unionNodeTime1_az.words[3] := modbusdata[336];
+		unionNodeTime1_az.words[4] := modbusdata[335];
+		rNodeTime1_az := unionNodeTime1_az.lrealValue;
+		
+		unionNodeTime2_az.words[1] := modbusdata[342];
+		unionNodeTime2_az.words[2] := modbusdata[341];
+		unionNodeTime2_az.words[3] := modbusdata[340];
+		unionNodeTime2_az.words[4] := modbusdata[339];
+		rNodeTime2_az := unionNodeTime2_az.lrealValue;
+		
+		unionNodeTime3_az.words[1] := modbusdata[346];
+		unionNodeTime3_az.words[2] := modbusdata[345];
+		unionNodeTime3_az.words[3] := modbusdata[344];
+		unionNodeTime3_az.words[4] := modbusdata[343];
+		rNodeTime3_az := unionNodeTime3_az.lrealValue;
+		
+		unionNodeTime4_az.words[1] := modbusdata[350];
+		unionNodeTime4_az.words[2] := modbusdata[349];
+		unionNodeTime4_az.words[3] := modbusdata[348];
+		unionNodeTime4_az.words[4] := modbusdata[347];
+		rNodeTime4_az := unionNodeTime4_az.lrealValue;
+		
+		unionNodeTime5_az.words[1] := modbusdata[354];
+		unionNodeTime5_az.words[2] := modbusdata[353];
+		unionNodeTime5_az.words[3] := modbusdata[352];
+		unionNodeTime5_az.words[4] := modbusdata[351];
+		rNodeTime5_az := unionNodeTime5_az.lrealValue;
+
+		unionStartTime.words[1]:=modbusdata[646];
+		unionStartTime.words[2]:=modbusdata[645];
+		unionStartTime.words[3]:=modbusdata[644];
+		unionStartTime.words[4]:=modbusdata[643];
+		starttime:=unionStartTime.lrealValue;
+		unionEndTime.words[1] := modbusdata[358];
+		unionEndTime.words[2] := modbusdata[357];
+		unionEndTime.words[3] := modbusdata[356];
+		unionEndTime.words[4] := modbusdata[355];
+		rEndTime := unionEndTime.lrealValue;
+		
+		//FOR i := 0 TO 5 DO
+			
+		//END_FOR
+		
+		unionNodeTime1_el.words[1] := modbusdata[626];
+		unionNodeTime1_el.words[2] := modbusdata[625];
+		unionNodeTime1_el.words[3] := modbusdata[624];
+		unionNodeTime1_el.words[4] := modbusdata[623];
+		rNodeTime1_el := unionNodeTime1_el.lrealValue;
+		
+		unionNodeTime2_el.words[1] := modbusdata[630];
+		unionNodeTime2_el.words[2] := modbusdata[629];
+		unionNodeTime2_el.words[3] := modbusdata[628];
+		unionNodeTime2_el.words[4] := modbusdata[627];
+		rNodeTime2_el := unionNodeTime2_el.lrealValue;
+		
+		unionNodeTime3_el.words[1] := modbusdata[634];
+		unionNodeTime3_el.words[2] := modbusdata[633];
+		unionNodeTime3_el.words[3] := modbusdata[632];
+		unionNodeTime3_el.words[4] := modbusdata[631];
+		rNodeTime3_el := unionNodeTime3_el.lrealValue;
+		
+		unionNodeTime4_el.words[1] := modbusdata[638];
+		unionNodeTime4_el.words[2] := modbusdata[637];
+		unionNodeTime4_el.words[3] := modbusdata[636];
+		unionNodeTime4_el.words[4] := modbusdata[635];
+		rNodeTime4_el := unionNodeTime4_el.lrealValue;
+		
+		unionNodeTime5_el.words[1] := modbusdata[642];
+		unionNodeTime5_el.words[2] := modbusdata[641];
+		unionNodeTime5_el.words[3] := modbusdata[640];
+		unionNodeTime5_el.words[4] := modbusdata[639];
+		rNodeTime5_el := unionNodeTime5_el.lrealValue;
+		
+		(*
+		//验证上位机下发数据
+		unionSum.words[1]:=modbusdata[650];
+		unionSum.words[2]:=modbusdata[649];
+		unionSum.words[3]:=modbusdata[648];
+		unionSum.words[4]:=modbusdata[647];
+		lrSum:=unionSum.lrealValue;
+		
+		lrSumlocal:=lrFun1_az[10]+lrFun2_az[10]+lrFun3_az[10]+lrFun4_az[10]+lrFun5_az[10]+lrFun6_az[10]
+					+lrFun1_el[10]+lrFun2_el[10]+lrFun3_el[10]+lrFun4_el[10]+lrFun5_el[10]+lrFun6_el[10];
+		*)
+		
+		IF NOT bNotFirst THEN
+			bCheck := TRUE; // 接收系数完成 开始检测 检测一次
+		END_IF
+		bNotFirst := TRUE;
+	ELSE // 多项式相关变量清零
+		bCheck := FALSE;
+		bNotFirst := FALSE;
+		rNodeTime1_az := 0.0;
+		rNodeTime2_az := 0.0;
+		rNodeTime3_az := 0.0;
+		rNodeTime4_az := 0.0;
+		rNodeTime5_az := 0.0;
+		rEndTime := 0.0;
+		
+		FOR i := 0 TO 10 DO
+			lrFun1_az[i] := 0;
+			lrFun2_az[i] := 0;
+			lrFun3_az[i] := 0;
+			lrFun4_az[i] := 0;
+			lrFun5_az[i] := 0;
+			lrFun6_az[i] := 0;
+			lrFun3_el[i] := 0;
+			lrFun4_el[i] := 0;
+		END_FOR
+		
+		rNodeTime1_el := 0;
+		rNodeTime2_el := 0;
+		rNodeTime3_el := 0;
+		rNodeTime4_el := 0;
+		rNodeTime5_el := 0;
+		
+		FOR i := 0 TO 5 DO
+			lrFun1_el[i] := 0;
+			lrFun2_el[i] := 0;
+			lrFun5_el[i] := 0;
+			lrFun6_el[i] := 0;
+		END_FOR
+	END_IF
+	
+END_IF

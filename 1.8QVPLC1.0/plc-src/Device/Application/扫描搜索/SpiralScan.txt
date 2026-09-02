@@ -1,0 +1,215 @@
+# kind=functionBlock
+# name=SpiralScan
+# objectId=6fc58782-b739-42b8-933a-169e9b52e654
+
+VAR_INPUT
+    enable : BOOL;
+    delta : REAL;
+    delta1 : REAL;
+    n_steps : REAL;
+    agc : REAL;
+    locked : BOOL;
+    AzError : REAL;
+    ELError : REAL;
+    bTrackState : BOOL;
+END_VAR
+
+VAR_OUTPUT
+    azimuth : REAL;
+    elevation : REAL;
+    done : BOOL;
+    bType : BOOL;
+END_VAR
+
+VAR
+    lock_count : INT;
+    best_agc : REAL;
+    best_az : REAL;
+    best_el : REAL;
+    bInit : BOOL;
+    icount0 : INT;
+    icount1 : INT;
+    x : REAL;
+    y : REAL;
+    dx : REAL;
+    dy : REAL;
+    step_len : REAL;
+    step_count : REAL;
+    segment_progress : REAL;
+    move_count : REAL;
+    state : INT;
+    az0 : REAL;
+    el0 : REAL;
+    az1 : REAL;
+    el1 : REAL;
+    segment_az_step : REAL;
+    segment_el_step : REAL;
+    side_repeat : REAL;
+    icountInit : INT;
+    iSearchMax : INT;
+    iCountSearch : INT;
+    rTemp : REAL;
+END_VAR
+
+// --- implementation (ST) ---
+(*==============================================================================
+  FB: SpiralScan（捕获扫描：矩形/十字格点扫描）
+  调用者: `SecurityCheck`（段 11），当双轴程引 mode4 且未自跟踪时，用于“捕获目标”
+
+  输入:
+    enable      — 扫描使能（由 SecurityCheck 组合条件给出）
+    delta       — 方位扫描半幅（deg）
+    delta1      — 俯仰扫描半幅（deg），通过 rTemp=delta1/delta 与方位步进联动
+    n_steps     — 单步步长（deg）
+    agc         — 当前 AGC（越大越好）
+    locked      — 锁定判定（Chan1EB_N0/误差电压门限等）
+    AzError/ElError — 当前误差（用于记录 best_az/best_el，输出为 -Error）
+    bTrackState — 已经进入自跟踪时为 TRUE，则直接 done
+
+  	输出:
+    azimuth/elevation — 给 `SecurityCheck.az_out/el_out` 的修正量
+    done             — 扫描结束（提前锁定或扫描完毕）
+    bType            — TRUE: 提前结束/锁定路径；FALSE: 扫描完毕输出最佳格点
+
+  	状态机:
+    state=0 等待锁定采样（避免瞬时锁定误触发）
+    state=1 扫描：按 4 个象限依次走格点（iCountSearch 1..4*iSearchMax）
+    state=2 提前锁定完成（保持 best_* 或 -Error）
+    state=3 扫描完毕（输出 best_*）
+==============================================================================*)
+
+
+
+
+IF NOT enable THEN
+    state := 0;
+    azimuth := 0.0;
+    elevation := 0.0;
+    done := FALSE;
+	lock_count := 0;
+	icount0 := 0;
+	segment_progress := 0.0;
+	bInit := FALSE;
+	best_agc := 0.0;
+    best_az := 0.0;
+    best_el := 0.0;
+	icountInit := 0;
+	iCountSearch := 0;
+	
+ELSE
+    CASE state OF
+        // --- 状态0：判断是否已锁定 ---
+        0:
+			IF NOT bTrackState THEN
+				icountInit := icountInit + 1;
+				IF icountInit >= 100 THEN
+					icountInit := 101;
+					icount0 := icount0 + 1;
+					IF locked THEN
+						lock_count := lock_count + 1;
+					END_IF;
+					IF icount0 >= 100 THEN
+						IF lock_count >= 10 THEN
+							done := TRUE;
+							state := 2;   // 提前结束
+							lock_count := 0;
+						ELSE
+							state := 1;   // 转入扫描
+							lock_count := 0;
+						END_IF;
+					END_IF
+				END_IF
+			ELSE
+				done := TRUE;
+				state := 2;   // 提前结束
+				lock_count := 0;
+			END_IF
+        1:
+            IF NOT bTrackState THEN
+				IF NOT bInit THEN
+					x := 0.0; y := 0.0;
+					dx := 1.0; dy := 0.0;
+					step_len := 1.0;
+					step_count := 0.0;
+					move_count := 1.0;
+					side_repeat := 0.0;
+					az0 := 0.0; el0 := 0.0;
+					az1 := delta * x;
+					el1 := delta * y;
+					segment_progress := 0.0;
+					bInit := TRUE;
+					iSearchMax := TO_INT(delta / n_steps);
+					IF ABS(delta) < 1E-5 THEN
+						rTemp := 0;
+					ELSE
+						rTemp := delta1 / delta;
+					END_IF
+				ELSE
+					iCountSearch := iCountSearch + 1;
+					IF iCountSearch <= iSearchMax THEN
+						azimuth := n_steps * iCountSearch;
+						elevation := n_steps * iCountSearch * rTemp;
+					ELSIF iCountSearch <= 2 * iSearchMax THEN
+						azimuth := delta - n_steps * (iCountSearch - iSearchMax);
+						elevation := (delta - n_steps * (iCountSearch - iSearchMax)) * rTemp;
+					ELSIF iCountSearch <= 3 * iSearchMax THEN
+						azimuth := -1*n_steps * (iCountSearch - 2*iSearchMax);
+						elevation := (-1*n_steps * (iCountSearch - 2*iSearchMax)) * rTemp;
+					ELSIF iCountSearch < 4 * iSearchMax THEN
+						azimuth := n_steps * (iCountSearch - 3*iSearchMax) - delta;
+						elevation := (n_steps * (iCountSearch - 3*iSearchMax) - delta) * rTemp;
+					END_IF
+					
+					
+					IF agc > best_agc THEN
+						best_agc := agc;
+						best_az := -Azerror;
+						best_el := -elError;
+					END_IF;
+					
+					IF iCountSearch >= 4 * iSearchMax THEN
+						state := 3;
+					ELSE
+						IF locked THEN
+						   lock_count := lock_count + 1;
+						ELSE
+						   lock_count := 0;
+						END_IF
+						IF lock_count >= 10 THEN
+						   done := TRUE;
+						   state := 2;   // 提前结束
+						   azimuth := best_az;
+						   elevation := best_el;
+						END_IF
+					END_IF
+				END_IF
+			ELSE
+				done := TRUE;
+				state := 2;   // 提前结束
+				azimuth := -Azerror;
+				elevation := -elError;
+			END_IF
+        // --- 状态2：提前锁定完成 ---
+        2:
+            // 保持当前位置即可
+            done := TRUE;
+			
+
+        // --- 状态3：完成，输出最佳格点 ---
+        3:
+            azimuth := best_az;
+            elevation := best_el;
+            done := TRUE;
+
+    END_CASE
+	
+	IF state = 3 THEN
+		bType := FALSE;
+	ELSE
+		bType := TRUE;
+	END_IF
+	
+	IF ABS(delta1) < 1E-4 THEN
+		elevation := 0; 
+	END_IF
+END_IF;

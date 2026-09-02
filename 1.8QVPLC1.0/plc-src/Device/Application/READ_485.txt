@@ -1,0 +1,146 @@
+# kind=program
+# name=READ_485
+# objectId=bf0b9152-755b-4529-9d6a-65e584178361
+
+VAR
+    com_init : gcan.FB_Com_Init;
+    com_read : gcan.FB_Com_Read;
+    com_write : gcan.FB_Com_Write;
+    m_uiError : UINT;
+    m_out : BOOL;
+    isFirst : BOOL;
+    mPort : BYTE;
+    recSize : UINT;
+    recBuf : ARRAY[0..19] OF BYTE;
+    recData : ARRAY[0..8] OF BYTE;
+    wAGC : WORD;
+    iUa : INT;
+    iUe : INT;
+    iChan1DataLen : UINT;
+    chan1_i : INT;
+    chan1_j : INT;
+    Word2Bit1 : Word2Bit;
+    Word2Bit2 : Word2Bit;
+    Word2Bit3 : Word2Bit;
+    rUagcTemp : REAL;
+    rUaTemp : REAL;
+    rUeTemp : REAL;
+    btest : BOOL;
+    btest2 : BOOL;
+    rSData : REAL;
+    rQData : REAL;
+    Dword2Bit1 : Dword2Bit;
+    Dword2Bit2 : Dword2Bit;
+    Chan1EB_N0 : REAL;
+    bEBN0Lock : BOOL;
+    icount0 : INT;
+END_VAR
+
+// --- implementation (ST) ---
+(*==============================================================================
+  PRG: READ_485（跟踪接收机 RS485 通信）
+  任务: SerialCom 5ms（与 GPRMC_1 同任务，端口不同）
+  硬件: GCAN 串口 mPort=2（485），19200 8N1
+  作用:
+    - 读跟踪接收机上报帧 → 解析 AGC、Ua、Ue、锁定、Eb/N0
+    - 写入 GVL.Chan1AGC / Chan1Ua / Chan1Ue / Chan1Lock
+    - 输出 Chan1EB_N0、recBuf[1]、bEBN0Lock 供 SecurityCheck / 捕获扫描
+  帧布局（当前简化协议，非 0x7E 定界）:
+    recBuf[1]     — 锁定标志 (1=锁定)
+    recBuf[2..3]  — AGC 原始 WORD
+    recBuf[4..5]  — 方位误差 Ua 原始 INT
+    recBuf[6..7]  — 俯仰误差 Ue 原始 INT
+    recBuf[8..15] — Eb/N0 用两路 DWORD 算信噪比
+==============================================================================*)
+
+mPort:=2;								//串口端口号设定
+
+// ----- 首次上电：485 初始化 19200 -----
+IF isFirst THEN
+	com_init(
+	EN_IN:=TRUE,
+	xEnable:=TRUE,
+	bPort:=mPort,
+	uiBaudrate:=19200,
+	bParity:=0,
+	bDatabits:=8,
+	bStopbits:=1,
+	EN_OUT=>m_out,
+	uiError=>m_uiError);
+	isfirst:=FALSE;
+
+ELSE
+	com_read(
+	EN_in:=TRUE,
+	bPort:=mPort,
+	p_brxdata:=ADR(recBuf),
+	uiMaxsize:=20,
+	EN_out=>m_out,
+	uiRecSize=>recSize,
+	uierror=>m_uierror);
+	
+	// ----- 段 1: 锁定标志 → GVL.Chan1Lock -----
+	//GVL.Chan1Lock := BYTE_TO_BOOL(recBuf[1]);
+	IF recBuf[1] = 1 AND GVL.Chan1AGC >= GVL.Chanthreshold THEN
+		GVL.Chan1Lock := TRUE;
+	ELSE
+		GVL.Chan1Lock := FALSE;
+	END_IF
+
+	// ----- 段 2: 按字节拼接 WORD/INT（Word2Bit UNION）-----
+	Word2Bit1.Apart_Byte[1] := recBuf[2];
+	Word2Bit1.Apart_Byte[2] := recBuf[3];
+	wAGC:=Word2Bit1.Apart_Word;
+	
+	Word2Bit2.Apart_Byte[1] := recBuf[4];
+	Word2Bit2.Apart_Byte[2] := recBuf[5];
+	iUa:=Word2Bit2.Apart_INT;
+	
+	Word2Bit3.Apart_Byte[1] := recBuf[6];
+	Word2Bit3.Apart_Byte[2] := recBuf[7];
+	iUe:=Word2Bit3.Apart_INT;
+
+	// ----- 段 3: 换算为物理量并限幅后写 GVL -----
+	// Ua/Ue: ±5V 满量程对应 INT±2048；AGC: 5 - (raw×5/76) 越大信号越强
+	IF ABS(INT_TO_REAL(iUa) * 5 / 2048) <= 5 AND ABS(INT_TO_REAL(iUe) * 5 / 2048) <= 5 AND ABS((WORD_TO_REAL(wAGC) * 5 / 76)) <=5 THEN
+		GVL.Chan1Ua := INT_TO_REAL(iUa) * 5 / 2048;
+		GVL.Chan1Ue := INT_TO_REAL(iUe) * 5 / 2048;
+		GVL.Chan1AGC := 5 - (WORD_TO_REAL(wAGC) * 5 / 76);
+	END_IF
+	
+	// ----- 段 4: Eb/N0 估算（两 DWORD，字节序见 Dword2Bit 填入顺序）-----
+	Dword2Bit1.Apart_Byte[3] := recBuf[8];
+	Dword2Bit1.Apart_Byte[4] := recBuf[9];
+	Dword2Bit1.Apart_Byte[1] := recBuf[10];
+	Dword2Bit1.Apart_Byte[2] := recBuf[11];	
+	
+	Dword2Bit2.Apart_Byte[3] := recBuf[12];
+	Dword2Bit2.Apart_Byte[4] := recBuf[13];
+	Dword2Bit2.Apart_Byte[1] := recBuf[14];
+	Dword2Bit2.Apart_Byte[2] := recBuf[15];	
+	
+	rQData:=DWORD_TO_REAL(Dword2Bit2.Apart_DWORD);
+	rSData:=DWORD_TO_REAL(Dword2Bit1.Apart_DWORD)-rQData;
+	
+	IF rSData<>0  AND rQData<>0  THEN
+		Chan1EB_N0 := 10*LOG(ABS(rSData/rQData))+3.8;
+	ELSE
+		Chan1EB_N0 := 0;
+	END_IF
+	
+	// ----- 段 5: bEBN0Lock — 程引/指向且 Eb/N0≥29 或 ACU 请求自跟踪 -----
+	IF ((GVL.Axis1Remote.iMode = 2 OR GVL.Axis1Remote.iMode = 4) AND Chan1EB_N0 >= 29)AND READ_485.recBuf[1] = 1 OR Modbus_Slave.bStartTrackAcu THEN
+		icount0:=0;
+		bEBN0Lock := TRUE;
+	END_IF
+	// 锁定字节为 0 时累计；超 400 拍或下电则清 bEBN0Lock
+	IF ( GVL.Axis1Remote.iMode = 4 or GVL.Axis1Remote.iMode =2 ) AND recBuf[1] = 0 THEN
+		icount0:=icount0+1;
+	END_IF
+	IF icount0 > 400 OR (GVL.Axis1Remote.iMode = 0 OR GVL.Axis1Remote.iMode = 0) THEN
+		icount0 := 401;
+		bEBN0Lock := FALSE;
+	END_IF
+END_IF
+
+(* 旧版 0x7E 定界帧解析整段已注释 *)

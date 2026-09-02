@@ -1,0 +1,371 @@
+# kind=program
+# name=SecurityCheck
+# objectId=01e0f185-d49a-4d6d-9268-6e70a0d1342e
+
+VAR
+    bPrelimit_Positive_1 : BOOL;
+    bPrelimit_Negative_1 : BOOL;
+    bPrelimit_Positive_2 : BOOL;
+    bPrelimit_Negative_2 : BOOL;
+    bPrelimit_1 : BOOL;
+    bPrelimit_2 : BOOL;
+    bFinallimit_1 : BOOL;
+    bFinallimit_2 : BOOL;
+    AzError : REAL;
+    ElError : REAL;
+    rELCurrent : REAL;
+    rAzCurrent : REAL;
+    rTlCurrent : REAL;
+    rAz_realpos : REAL;
+    rEL_realpos : REAL;
+    fbScan : SpiralScan;
+    fbScan1 : SpiralScan_1;
+    fbScantest : SpiralScan;
+    enabletest : BOOL;
+    aztest : REAL;
+    eltest : REAL;
+    enable : BOOL;
+    delta : REAL;
+    n_steps : REAL;
+    agc_sim : REAL;
+    lock_sim : BOOL;
+    cycle_cnt : INT;
+    sim_done : BOOL;
+    az_out : REAL;
+    el_out : REAL;
+    done_out : BOOL;
+    bLockSearch : BOOL;
+    rSearchThre : REAL;
+    rSearchThreTemp : REAL;
+    bStartTrackTemp : BOOL;
+    RiseEdge : R_TRIG;
+    FallEdge : F_TRIG;
+    bAcuTrackInhibit : BOOL;
+    icountLostLocking : INT;
+    bErrorLock : BOOL;
+    icountLostLocking1 : INT;
+    bType_out : BOOL;
+    iconutwait : INT;
+    rdelta : REAL;
+    rStep : REAL;
+    bFinish : BOOL;
+    rAzErrorReal : REAL;
+    rElErrorReal : REAL;
+    rAlpha : REAL;
+END_VAR
+
+// --- implementation (ST) ---
+(*==============================================================================
+  PRG: SecurityCheck（远控汇总 / 安全联锁 / 捕获扫描 / 自跟踪启停）
+  任务: Canopen 10ms（与 *_ctrl_1 同周期，先于或并行执行需注意调用顺序）
+
+  主要职责:
+    1. Modbus_Slave → Axis1/2/3Remote 远控命令统一赋值（阶段5 中 *_ctrl_1 注释块已移至此）
+    2. 伺服电流监测（%IW10/20/30 × %ID4/9/14）
+    3. 俯仰/方位跟踪误差 AzError、ElError（供螺旋/直线扫描 FB）
+    4. 预限位 → GVL.Error_code 201/202，状态上报 Modbus DI1
+    5. 捕获扫描 SpiralScan：输出 az_out / el_out → 叠加到 rPIDCmdPos
+    6. 根据 AGC/锁相/扫描完成 自动置位 GVL.bStartTrack
+
+  与 *_ctrl_1 关系:
+    El:  rPIDCmdPos += SecurityCheck.el_out
+    Az:  rPIDCmdPos -= SecurityCheck.az_out
+==============================================================================*)
+
+// =============================================================================
+// 段 1: 安全逻辑用位置（与显示用 rFctPosReal 可能差符号/零点）
+// =============================================================================
+rAz_realpos := -1 * GVL.rFctPosReal_2;
+rEl_realpos := GVL.rFctPosReal_1 - 90;
+
+// =============================================================================
+// 段 2: 三轴伺服电流监测（仅使能时读 AD，%IW×%ID/1e6）
+// %IW10/%ID4=俯仰, %IW20/%ID9=方位, %IW30/%ID14=倾斜
+// =============================================================================
+IF Axis1Status.bServo_Enable THEN
+	rELCurrent:=DINT_TO_REAL((INT_TO_DINT(%IW10)* %ID4))/1000000.0;  //俯仰轴电流监测
+ELSE
+	rELCurrent:=0;
+END_IF
+
+IF Axis2Status.bServo_Enable THEN
+	rAzCurrent:=DINT_TO_REAL((INT_TO_DINT(%IW20)* %ID9))/1000000.0;  //方位轴电流监测
+ELSE
+	rAzCurrent:=0;
+END_IF
+
+IF Axis3Status.bServo_Enable THEN
+	rTlCurrent:=DINT_TO_REAL((INT_TO_DINT(%IW30)* %ID14))/1000000.0;  //倾斜轴电流监测
+ELSE
+	rTlCurrent:=0;
+END_IF
+
+// =============================================================================
+// 段 3: 跟踪误差（供 SpiralScan 判断扫描方向与完成度）
+// mode2 指向: 命令位置 vs 实际位置
+// mode4 程引: 插值目标+偏置 vs 实际位置（含手动/自跟踪偏置）
+// =============================================================================
+IF Axis2Remote.iMode = 2 THEN
+	AzError:=(-1) * (Axis2Remote.rPosCmd-rFctPosReal_2);
+	ElError:=Axis1Remote.rPosCmd-rFctPosReal_1;	
+END_IF
+
+IF Axis2Remote.iMode = 4 THEN
+	AzError:=rFctPosReal_2-RealTimePosCal.rInterazPos-(az_ctrl_1.rStepBias+az_ctrl_1.rAuToStepBias);
+	ElError:=RealTimePosCal.rInterElPos-rFctPosReal_1+ (El_ctrl_1.rStepBias+EL_ctrl_1.rAuToStepBias);
+END_IF
+(*
+rAzErrorReal := rAzErrorReal + rAlpha * (AzError - rAzErrorReal);
+rElErrorReal := rElErrorReal + rAlpha * (ElError - rElErrorReal);
+*)
+
+// =============================================================================
+// 段 4: 远控故障复位（Modbus bCommReset → GVL.bError_Reset）
+// =============================================================================
+IF NOT GVL.bLocalCtrl THEN
+	IF Modbus_Slave.bCommReset THEN
+		GVL.bError_Reset:=TRUE;
+	ELSE
+		GVL.bError_Reset:=FALSE;
+	END_IF
+END_IF
+
+// =============================================================================
+// 段 5: 远控 rPosCmd 赋值（含 AGC 搜索偏置或测试扫描偏置）
+// 非 bSearch: Modbus 目标 + eltest/aztest
+// bSearch:   Modbus 目标 + *_ctrl_1 的 rSearchNextStepTarget_tb
+// =============================================================================
+IF NOT modbus_slave.bSearch THEN
+	Axis1Remote.rPosCmd:=Modbus_Slave.rPosCmd_1 + eltest;
+	Axis2Remote.rPosCmd:=Modbus_Slave.rPosCmd_2 - aztest;
+ELSE
+	Axis1Remote.rPosCmd:=Modbus_Slave.rPosCmd_1 + El_ctrl_1.rSearchNextStepTarget_tb;
+	Axis2Remote.rPosCmd:=Modbus_Slave.rPosCmd_2 + Az_ctrl_1.rSearchNextStepTarget_tb;
+END_IF
+
+// =============================================================================
+// 段 6: 远控三轴命令参量 — Modbus_Slave → AxisXRemote（核心汇总）
+// 俯仰/方位 rPosCmd 已在段 5 赋值；此处写 mode/速度/PID/加减速等
+// =============================================================================
+Axis1Remote.iMode:=Modbus_Slave.iMode_1;
+Axis1Remote.rVelCmd:=Modbus_Slave.rVelcmd_1;
+//Axis1Remote.rPosCmd:=Modbus_Slave.rPosCmd_1;
+Axis1Remote.rP:=Modbus_Slave.rP_1;
+Axis1Remote.rI:=Modbus_Slave.rI_1;
+Axis1Remote.rD:=Modbus_Slave.rD_1;
+Axis1Remote.rPIDThre:=Modbus_Slave.rThreshold_1;
+Axis1Remote.rAcceleration:=Modbus_Slave.rAcceleration_1;
+Axis1Remote.rDeceleration:=Modbus_Slave.rDeceleration_1;
+Axis1Remote.rVel_Limit:=Modbus_Slave.rVelLim_1;
+
+Axis2Remote.iMode:=Modbus_Slave.iMode_2;
+Axis2Remote.rVelCmd:=Modbus_Slave.rVelcmd_2;
+//Axis2Remote.rPosCmd:=Modbus_Slave.rPosCmd_2;
+Axis2Remote.rP:=Modbus_Slave.rP_2;
+Axis2Remote.rI:=Modbus_Slave.rI_2;
+Axis2Remote.rD:=Modbus_Slave.rD_2;
+Axis2Remote.rPIDThre:=Modbus_Slave.rThreshold_2;
+Axis2Remote.rAcceleration:=Modbus_Slave.rAcceleration_2;
+Axis2Remote.rDeceleration:=Modbus_Slave.rDeceleration_2;
+Axis2Remote.rVel_Limit:=Modbus_Slave.rVelLim_2;
+
+Axis3Remote.iMode:=Modbus_Slave.iMode_3;
+Axis3Remote.rVelCmd:=Modbus_Slave.rVelcmd_3;
+Axis3Remote.rPosCmd:=Modbus_Slave.rPosCmd_3;
+Axis3Remote.rP:=Modbus_Slave.rP_3;
+Axis3Remote.rI:=Modbus_Slave.rI_3;
+Axis3Remote.rD:=Modbus_Slave.rD_3;
+Axis3Remote.rPIDThre:=Modbus_Slave.rThreshold_3;
+Axis3Remote.rAcceleration:=Modbus_Slave.rAcceleration_3;
+Axis3Remote.rDeceleration:=Modbus_Slave.rDeceleration_3;
+
+(* 本控 HMI 赋值块已注释，本控参数由其他 POU 写入 AxisXLocal *)
+
+// =============================================================================
+// 段 7: 俯仰预限位 → Error_code 201(正)/202(负)，置位上报标志
+// bPrelimit_1 由硬件 IO 映射；触发后根据当前位置方向区分正负限位
+// =============================================================================
+IF bPrelimit_1 THEN
+	IF rFctPosReal_1>0 THEN
+		bPrelimit_Positive_1:=TRUE;
+		Error_code:=201;
+	ELSE
+		bPrelimit_Negative_1:=TRUE;
+		Error_code:=202;
+	END_IF;
+ELSE
+	bPrelimit_Negative_1:=FALSE;
+	bPrelimit_Positive_1:=FALSE;
+	;
+END_IF
+
+// =============================================================================
+// 段 8: 方位预限位（仅置标志，Error_code 203/204 已注释）
+// =============================================================================
+IF bPrelimit_2 THEN
+	IF rFctPosReal_2>0 THEN
+		//Error_code:=203;
+		bPrelimit_Positive_2:=TRUE;;
+	ELSE
+		//Error_code:=204;
+		bPrelimit_Negative_2:=TRUE;;
+	END_IF;
+ELSE
+	bPrelimit_Negative_2:=FALSE;
+	bPrelimit_Positive_2:=FALSE;
+	;
+END_IF
+
+// =============================================================================
+// 段 9: 锁定判定 — 信噪比 EB_N0≥28 或 (AGC≥门限 且 误差电压≤rErrorThre)
+// bErrorLock: 仅误差电压小（适合进入跟踪）
+// =============================================================================
+bLockSearch := READ_485.Chan1EB_N0 >= 28 OR ((GVL.Chan1AGC >= GVL.Chanthreshold) AND (SQRT(GVL.Chan1Ua * GVL.Chan1Ua + GVL.Chan1Ue * GVL.Chan1Ue) <= PersistentVars.rErrorThre));
+bErrorLock  := (SQRT(GVL.Chan1Ua * GVL.Chan1Ua + GVL.Chan1Ue * GVL.Chan1Ue) <= PersistentVars.rErrorThre);
+
+// =============================================================================
+// 段 10: 捕获扫描使能 — 双轴均为程引(4)、AGC 达标或接收机锁定、且尚未自跟踪
+// =============================================================================
+IF Axis1Remote.iMode = 4 AND Axis2Remote.iMode = 4 AND (gvl.Chan1AGC > PersistentVars.rStartThre OR READ_485.recBuf[1] = 1) AND NOT GVL.bStartTrack THEN
+	enable := TRUE;
+ELSIF Axis1Remote.iMode <> 4 THEN
+	enable := FALSE;
+END_IF
+
+// =============================================================================
+// 段 11: 调用扫描 FB — 直线(SpiralScan) 或 螺旋(SpiralScan_1)
+// 输出 az_out / el_out 在 *_ctrl_1 中叠加到 rPIDCmdPos
+// =============================================================================
+IF NOT PersistentVars.bSearchType THEN
+	// ===== 调用直线扫描 =====
+	fbScan(
+		enable      := enable,
+		delta       := PersistentVars.rAzScanRange,
+		delta1      := PersistentVars.rElScanRange,
+		n_steps     := PersistentVars.rStep,
+		agc      := GVL.Chan1AGC,
+		locked     := bLockSearch,
+		AzError := AzError,
+		elError := elError,
+		bTrackState := GVL.bStartTrack,
+		azimuth     => az_out,
+		elevation   => el_out,
+		done        => done_out,
+		bType  =>bType_out
+	);
+ELSE
+	// ===== 调用螺旋扫描====
+	fbScan1(
+		enable      := enable,
+		delta       := rdelta,
+		n_steps     := rStep,
+		agc      := GVL.Chan1AGC,
+		locked     := bLockSearch,
+		AzError := AzError,
+		elError := elError,
+		azimuth     => az_out,
+		elevation   => el_out,
+		done        => done_out,
+		bType  =>bType_out
+	);
+END_IF
+
+// =============================================================================
+// 段 12: 自跟踪启停状态机（仅双轴程引 mode4）
+// 扫描完成+锁定 → 置 GVL.bStartTrack
+// 失锁持续计数超阈值 → 清 GVL.bStartTrack
+// PersistentVars.bTrackingMode: TRUE=自动开跟踪, FALSE=需 ACU 上升沿 bStartTrackAcu
+// ACU HR[7].B10 下降沿 → 清自跟踪，并置 bAcuTrackInhibit 防止同周期/后续自动再开
+// ACU B10 再上升沿 → 清除 inhibit，允许重新开跟踪
+// =============================================================================
+IF Axis1Remote.iMode = 4 AND Axis2Remote.iMode = 4 THEN
+	bFinish := done_out AND (ABS(AzError + az_out) <= 0.08) AND (ABS(ElError + el_out) <= 0.08);//扫描到位
+	// ACU B10 上升沿：允许开跟踪；下降沿：强制退出自跟踪
+	RiseEdge(CLK := Modbus_Slave.bStartTrackAcu);
+	FallEdge(CLK := Modbus_Slave.bStartTrackAcu);
+	
+	IF RiseEdge.Q THEN
+		bStartTrackTemp := TRUE;
+		bAcuTrackInhibit := FALSE;
+	END_IF;
+	IF FallEdge.Q THEN
+		bStartTrackTemp := FALSE;
+		GVL.bStartTrack := FALSE;
+		bAcuTrackInhibit := TRUE;
+	END_IF;
+	
+	IF PersistentVars.bTrackingMode THEN
+		IF bType_out THEN
+			IF done_out AND bLockSearch THEN
+				GVL.bStartTrack := TRUE;
+				icountLostLocking := 0;
+			ELSIF done_out AND NOT (SQRT(GVL.Chan1Ua * GVL.Chan1Ua + GVL.Chan1Ue * GVL.Chan1Ue) <= PersistentVars.rErrorThre) THEN
+				icountLostLocking := icountLostLocking + 1;
+				IF icountLostLocking >= 1000 THEN //失锁持续5秒退出自跟踪
+					icountLostLocking := 1001;
+					GVL.bStartTrack := FALSE;
+				END_IF
+			END_IF
+		ELSE
+			IF done_out THEN
+				iconutwait := iconutwait + 1;
+			END_IF
+			IF iconutwait >= 500 THEN
+				Iconutwait := 501;
+			END_IF
+			IF iconutwait >= 100 AND bErrorLock AND (bFinish OR iconutwait >= 500) THEN
+				GVL.bStartTrack := TRUE;
+				icountLostLocking1 := 0;
+			ELSIF iconutwait >= 100 AND NOT bErrorLock THEN
+				icountLostLocking1 := icountLostLocking1 + 1;
+				IF icountLostLocking1 >= 300 THEN //失锁持续5秒退出自跟踪
+					icountLostLocking1 := 301;
+					GVL.bStartTrack := FALSE;
+				END_IF
+			END_IF
+		END_IF
+	ELSE
+		IF bType_out THEN
+			IF done_out AND bLockSearch THEN
+				GVL.bStartTrack := bStartTrackTemp;
+				icountLostLocking := 0;
+			ELSIF done_out AND NOT (SQRT(GVL.Chan1Ua * GVL.Chan1Ua + GVL.Chan1Ue * GVL.Chan1Ue) <= PersistentVars.rErrorThre) THEN
+				icountLostLocking := icountLostLocking + 1;
+				IF icountLostLocking >= 1000 THEN //失锁持续5秒退出自跟踪
+					icountLostLocking := 1001;
+					GVL.bStartTrack := FALSE;
+				END_IF
+			END_IF
+		ELSE
+			IF done_out THEN
+				iconutwait := iconutwait + 1;
+			END_IF
+			IF iconutwait >= 500 THEN
+				Iconutwait := 501;
+			END_IF
+			IF iconutwait >= 100 AND bErrorLock AND (bFinish OR iconutwait >= 500) THEN
+				GVL.bStartTrack := bStartTrackTemp;
+				icountLostLocking1 := 0;
+			ELSIF iconutwait >= 100 AND NOT bErrorLock THEN
+				icountLostLocking1 := icountLostLocking1 + 1;
+				IF icountLostLocking1 >= 300 THEN //失锁持续5秒退出自跟踪
+					icountLostLocking1 := 301;
+					GVL.bStartTrack := FALSE;
+				END_IF
+			END_IF
+		END_IF
+	END_IF
+	// ACU 已下令退出时，禁止扫描逻辑再次把自跟踪打开
+	IF bAcuTrackInhibit THEN
+		GVL.bStartTrack := FALSE;
+	END_IF
+ELSE
+	bStartTrackTemp := FALSE;
+	bAcuTrackInhibit := FALSE;
+	GVL.bStartTrack := Modbus_Slave.bStartTrackAcu;
+	icountLostLocking := 0;
+	icountLostLocking1 := 0;
+	Iconutwait := 0;
+END_IF
+
+(* fbScantest 测试块已注释 *)

@@ -1,0 +1,149 @@
+# kind=functionBlock
+# name=vpid
+# objectId=7c72a0b3-617e-4a04-be4b-ecd1af0fd60f
+
+VAR_INPUT
+    rTarget : REAL;
+    rFeedback : REAL;
+    rPosLimPositive : LREAL;
+    rPosLimNegitive : LREAL;
+    rKpBase : REAL;
+    rKiBase : REAL;
+    rVelThreshold : LREAL;
+    rKpScale : REAL;
+    rKiScale : REAL;
+    iThrehold : INT;
+    bPIDEnable : BOOL;
+    rVelLim : LREAL;
+    rKpMax : REAL;
+    rKiMax : REAL;
+    rElPos : REAL;
+END_VAR
+
+VAR_OUTPUT
+    rPIDOutput : LREAL;
+    rPIDOutDir : LREAL;
+END_VAR
+
+VAR
+    rLastFeedback : LREAL;
+    rErrorNow : LREAL;
+    rIntegralNew : LREAL;
+    rDelta : LREAL;
+    rProportionNew : LREAL;
+    rSpeed : REAL;
+    rKp : REAL;
+    rKi : REAL;
+    rInterValueNow : LREAL;
+    rInterValueLast : LREAL;
+    rStep : LREAL;
+    rKpTarget : REAL;
+    rKiTarget : REAL;
+END_VAR
+
+// --- implementation (ST) ---
+(*==============================================================================
+  FB: vpid（变增益自适应 PID）
+  任务: Canopen 10ms（由 El_Ctrl_FB / Az_Ctrl_FB 在 programBootMode 下调用）
+  作用: 与 PID 相似，但 Kp/Ki 根据当前俯仰角（rElPos）动态调整
+        俯仰角越大（天线仰角越高），摩擦力和惯量变化大，需更高增益
+  与 PID 的区别:
+    - 输入参数带 Kp/Ki 基础值、缩放因子、最大值
+    - 内部按 rElPos > rVelThreshold 时线性增加 Kp/Ki
+    - 输出走 rPIDOutDir（方向输出）而非 rPIDOutput
+  来源参数: PersistentVars.rXxKpBase/rXxKiBase 等（掉电保持，可由 HMI/Modbus 标定）
+==============================================================================*)
+
+// ----- 段：PID 使能入口 -----
+IF (bPIDEnable) THEN // 如果PID使能
+    IF rTarget = rFeedback THEN
+        rPIDOutDir := 0;    
+    ELSE
+        rErrorNow := rTarget - rFeedback; // 计算当前误差
+        rProportionNew := rErrorNow;      // 比例项
+		
+		// ----- 段：根据俯仰角动态计算目标 Kp/Ki -----
+		// rElPos = 当前俯仰角 - 90，即相对水平的仰角
+		// 当仰角 > rVelThreshold 时，增益线性增加
+		IF rElPos > rVelThreshold THEN
+			rKpTarget := rKpBase + rKpScale * (rElPos - rVelThreshold);
+			rKiTarget := rKiBase + rKiScale * (rElPos - rVelThreshold);
+		ELSE
+			rKpTarget := rKpBase;
+			rKiTarget := rKiBase;
+		END_IF
+        // ----- 段：Kp/Ki 上限保护 -----
+        IF rKpTarget > rKpMax THEN
+			rKpTarget := rKpMax;
+		END_IF
+		IF rKiTarget > rKiMax THEN
+			rKiTarget := rKiMax;
+		END_IF
+		
+		// ----- 段：Kp/Ki 平滑追踪目标值（rStep 步进，防增益突变抖动）-----
+		IF rKp<=rKpTarget THEN
+			rKp:=rKp+rStep;
+		ELSE
+			rKp:=rKp-rStep;
+		END_IF
+		IF rKi<=rKiTarget THEN
+			rKi:=rKi+(rKiScale/rKpScale)*rStep;
+		ELSE
+			rKi:=rKi-(rKiScale/rKpScale)*rStep;
+		END_IF
+	END_IF
+
+        // ----- 段：条件积分（与 PID 相同逻辑）-----
+        IF rFeedback > rPosLimNegitive AND rFeedback < rPosLimPositive THEN // 若在软限位之内，工作时开启积分项
+            IF (ABS(rTarget - rFeedback) < iThrehold) THEN // 位置差小于积分阈值
+                rIntegralNew := rIntegralNew + rErrorNow;  // 积分项
+            ELSE
+                rIntegralNew := rIntegralNew;  // 积分项
+            END_IF;
+        ELSE // 不在软限位范围内，则积分项为0
+            rIntegralNew := 0;
+        END_IF
+        (*
+        // 防止目标位置与当前位置偏差过大，导致比例项输出太大，引起震动
+        IF rKp * rProportionNew > 2 THEN
+            rPIDOutput := 2;
+        ELSIF rKp * rProportionNew < -2 THEN
+            rPIDOutput := -2;
+        ELSE
+            rPIDOutput := rKp * rProportionNew + rKi * rIntegralNew / 1000.0; // 由于需求积分项过小，因此积分系数在接口数据上除1000
+        END_IF
+        *)
+		rPIDOutput := rKp * rProportionNew + rKi * rIntegralNew; // 由于需求积分项过小，因此积分系数在接口数据上除1000
+        // 根据方向设置输出
+        IF rPIDOutput < 0 THEN
+            rPIDOutDir := rPIDOutput;
+        ELSE
+            rPIDOutDir := rPIDOutput;
+        END_IF
+        
+        // ----- 段：速度限幅 -----
+        IF (ABS(rPIDOutDir) > rVelLim) THEN
+            IF rPIDOutDir < (-rVelLim) THEN
+                rPIDOutDir := -rVelLim;
+            ELSIF rPIDOutDir > rVelLim THEN
+                rPIDOutDir := rVelLim;
+            END_IF
+        END_IF
+        
+        // ----- 段：超软限位时强制输出清零 -----
+        IF rFeedback > rPosLimPositive AND rPIDOutDir > 0  THEN
+            rPIDOutDir := 0;
+        END_IF
+        IF rFeedback < rPosLimNegitive AND rPIDOutDir <= 0 THEN
+            rPIDOutDir := 0;
+        END_IF
+        
+        //rLastFeedback := rFeedback; // 将当前反馈值赋值给上一次反馈值
+		//rInterValueLast := rInterValueNow; // 将当前插值位置值赋值给上一次
+
+ELSE // 非使能清零PID各项
+    rProportionNew := 0.0;
+    rIntegralNew := 0.0;
+    rPIDOutDir := 0.0;
+    rPIDOutput := 0.0;
+END_IF

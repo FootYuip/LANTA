@@ -1,0 +1,18 @@
+# kind=enum
+# name=MODES
+# objectId=78e1d870-9efd-4a7e-a28c-f7264eb38c9c
+
+TYPE MODES : (
+    powerOff := 0,
+    powerOn := 1,
+    positionMode := 2,
+    velocityMode := 3,
+    programBootMode := 4,
+    reset := 6,
+    halt := 7,
+    stop := 8,
+    jog := 9,
+    edge := 10,
+    test1 := 11
+);
+END_TYPE

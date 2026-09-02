@@ -1,0 +1,276 @@
+# kind=program
+# name=Az_ctrl_1
+# objectId=2724b75a-ca36-4465-9d9a-601104553947
+
+VAR
+    Axis2_Ctrl : Az_Ctrl_FB;
+    bRemote2LocalStop : BOOL;
+    bLocal2RemoteStop : BOOL;
+    Error : INT;
+    Axis2Limit_pos : REAL;
+    Axis2Limit_Neg : REAL;
+    bRTriger : Standard.R_TRIG;
+    bFTriger : Standard.F_TRIG;
+    Stop2_Count : INT;
+    bStop_2 : BOOL;
+    rPosModeStepBias : LREAL;
+    rPosModeStep : LREAL;
+    rStepBiasMax : LREAL;
+    rStepBias : LREAL;
+    rStep : LREAL;
+    rAuToStepBias : LREAL;
+    rAuToStepBiasTemp : LREAL;
+    rAutoStep : LREAL;
+    TbAutoTrigger : Standard.F_TRIG;
+    RbAutoTrigger : Standard.R_TRIG;
+    rAutoTrackingBiasMax : LREAL;
+    rLocalInitPosModeSpeed : REAL;
+    rRemoteInitPosModeSpeed : REAL;
+    iCountOffAuto : INT;
+    iCasePBAutoTrack : INT;
+    rKAuToStepBias : LREAL;
+    bVisError : BOOL;
+    a : INT;
+    agcmaxsearch_tb : agcmaxsearch_pb_1;
+    rSearchNextStepTarget_tb : REAL;
+    agcmaxsearch_pb : agcmaxsearch_pb_1;
+    rElthreshold : REAL;
+    toN1 : Standard.Ton;
+    ttime1 : TIME;
+    bstartagcmaxsearch : BOOL;
+    rSearchNextStepTarget : REAL;
+    rMaxPosTest : REAL;
+    iCountSearch : UINT;
+    iCountn : UINT;
+    bstartSearchAz : BOOL;
+    bstartSearchEl : BOOL;
+    iCircly : INT;
+    rAZSearchThr : REAL;
+    rElSearchThr : REAL;
+END_VAR
+
+// --- implementation (ST) ---
+(*==============================================================================
+  PRG: Az_ctrl_1（方位轴 Az 顶层程序）
+  任务: Canopen 10ms
+  作用: 与 El_ctrl_1 对称，负责方位轴反馈、状态、自跟踪、AGC 搜索及 Az_Ctrl_FB 调用
+  特点:
+    - 软限位 ±275°；程引目标 rInterAzPos
+    - 自跟踪用 AutoTrackingCal.rChanUa（方位误差，符号与俯仰相反）
+    - 含螺旋/联合搜索触发: bstartSearchAz, bstartSearchEl（供俯仰 AGC 搜索联动）
+    - rPIDCmdPos 中 SECURITYCHECK.AZ_out 为减号（与俯仰 el_out 加号不同）
+==============================================================================*)
+
+
+a := 2;  // 无业务含义，保持原逻辑
+IF GVL.Error_code <> 0 THEN
+	bVisError := TRUE;
+ELSE
+	bVisError := FALSE;
+END_IF
+
+(* 远控参量曾在此直赋，现由 Modbus_Slave 统一写入 Axis2Remote *)
+
+// =============================================================================
+// 段 1: 驱动状态 → Axis2Status
+// =============================================================================
+Axis2Status.Error := GVL.bAzStsBit3;
+Axis2Status.ErrorID := GVL.eAzErrorcode;
+Axis2Status.bServo_Enable := GVL.bAzStsBit0 AND GVL.bAzStsBit1 AND GVL.bAzStsBit2;
+Axis2Status.bBrake := NOT (GVL.bAzStsBit0 AND GVL.bAzStsBit1 AND GVL.bAzStsBit2);
+Axis2Status.Disabled := NOT (GVL.bAzStsBit0 AND GVL.bAzStsBit1 AND GVL.bAzStsBit2);
+Axis2Remote.rSoft_limit_Negative:=-275;Axis2Remote.rSoft_limit_Postive:=275;
+Axis2Local.rSoft_limit_Negative:=-275;Axis2Local.rSoft_limit_Postive:=275;
+
+// =============================================================================
+// 段 2: CANopen 反馈 → rFctVelReal_2 / rFctPosReal_2（方位无额外偏移）
+// =============================================================================
+rFctVelReal_2:=DINT_TO_REAL(diAzActVel)/524288.0*360.0;
+rFctPosReal_2:=DINT_TO_REAL(diAzActPos)/524288.0*360.0;
+
+// =============================================================================
+// 段 3: rPosCmd 硬限位 ±275°
+// =============================================================================
+Axis2Limit_pos:=275;
+Axis2Limit_Neg:=-275;
+IF Axis2Remote.rPosCmd>Axis2Limit_pos THEN
+	Axis2Remote.rPosCmd:=275;
+ELSIF Axis2Remote.rPosCmd<Axis2Limit_Neg THEN
+	 Axis2Remote.rPosCmd:=-275;  
+END_IF
+
+IF Axis2Local.rPosCmd>Axis2Limit_pos THEN
+	Axis2Local.rPosCmd:=275;
+ELSIF Axis2Local.rPosCmd<Axis2Limit_Neg THEN
+	 Axis2Local.rPosCmd:=-275;  
+END_IF
+
+// =============================================================================
+// 段 4: 停稳判定 → Axis2Status.Moving
+// =============================================================================
+IF  ABS(rFctVelReal_2)<0.035 THEN
+	Stop2_Count:=Stop2_Count+1;
+	IF Stop2_Count>100 THEN
+		Stop2_Count:=101;
+		bStop_2:=TRUE;;
+	END_IF
+ELSE
+	Stop2_Count:=0;
+	bStop_2:=FALSE;
+END_IF
+Axis2Status.Moving := NOT bStop_2;
+
+// =============================================================================
+// 段 5: PID 使能（mode 2 / 4）
+// =============================================================================
+IF Axis2Remote.iMode=2 OR Axis2Remote.iMode=4 THEN
+	Axis2Remote.bPIDEnable:=TRUE;
+ELSE
+	Axis2Remote.bPIDEnable:=FALSE;
+END_IF
+
+// =============================================================================
+// 段 6: 远控 ↔ 本控 切换保护（与 El 相同，halt=7 → 停稳 → powerOff=0）
+// =============================================================================
+bRTriger(CLK:=GVL.bLocalCtrl);
+bFTriger(CLK:=GVL.bLocalCtrl);
+
+IF Axis2Status.bServo_Enable AND (bRTriger.Q ) THEN//如果速度不为0且本控发生切换，则减速停止标识为True
+	bRemote2LocalStop:=TRUE;
+END_IF
+IF bRemote2LocalStop  THEN //若减速停止标识符为True 
+	
+	IF  bStop_2=TRUE THEN//且电机速度不为0 开始减速 减速完成后下使能，下使能完成后复位标识符复位
+		Axis2Local.iMode:=0;
+		Axis2Remote.iMode:=0;
+		IF Axis2Status.bServo_Enable=FALSE THEN
+			bRemote2LocalStop:=FALSE;
+		END_IF
+	ELSE
+		Axis2Local.iMode:=7;
+		Axis2Remote.iMode:=7;
+	END_IF
+END_IF
+
+IF Axis2Status.bServo_Enable AND (bFTriger.Q ) THEN//如果速度不为0且本控发生切换，则减速停止标识为True
+	bLocal2RemoteStop:=TRUE;
+END_IF
+IF bLocal2RemoteStop  THEN //若减速停止标识符为True 
+	
+	IF  bStop_2=TRUE THEN//且电机速度不为0 开始减速 减速完成后下使能，下使能完成后复位标识符复位
+		Axis2Local.iMode:=0;
+		Axis2Remote.iMode:=0;
+		IF Axis2Status.bServo_Enable=FALSE THEN
+			bLocal2RemoteStop:=FALSE;
+		END_IF
+	ELSE
+		Axis2Remote.iMode:=7;
+		Axis2Local.iMode:=7;
+	END_IF
+END_IF
+
+// =============================================================================
+// 段 7: AGC 峰值搜索（bstart 来自 Modbus_slave.bSearch）
+// mode2: rPosCmd；mode4: RealTimePosCal.rInterAzPos；需俯仰 El-90°>rElthreshold
+// =============================================================================
+IF Axis2Remote.iMode=2 THEN
+			bstartagcmaxsearch:=Modbus_slave.bSearch;
+			IF GVL.Chan1AGC>=(GVL.Chanthreshold-0.1) THEN
+					agcmaxsearch_tb(bstart:=bstartagcmaxsearch,rAGCNow:=GVL.Chan1AGC,btrig:=bstartSearchAz,
+				rinterPos:=Axis2Remote.rPosCmd,rcurrentpos:=GVL.rFctPosReal_2,
+				rStepBiasNow:=0,bAutoTracking:=GVL.bStartTrack,bStop:=FALSE,
+				rStepBias=>rSearchNextStepTarget_tb,rAGCMaxBias=>rMaxPosTest,bSucess=>);
+			ELSE
+				bstartagcmaxsearch:=FALSE;
+				agcmaxsearch_tb(bstart:=bstartagcmaxsearch,rAGCNow:=GVL.Chan1AGC,btrig:=bstartSearchAz,
+				rinterPos:=Axis2Remote.rPosCmd,rcurrentpos:=GVL.rFctPosReal_2,
+				rStepBiasNow:=0,bAutoTracking:=GVL.bStartTrack,bStop:=FALSE,
+				rStepBias=>rSearchNextStepTarget_tb,rAGCMaxBias=>rMaxPosTest,bSucess=>);
+			END_IF
+		ELSIF Axis2Remote.iMode=4 AND (GVL.rFctPosReal_1 - 90)>rElthreshold  THEN
+			bstartagcmaxsearch:=Modbus_slave.bSearch;
+			IF GVL.Chan1AGC>=(GVL.Chanthreshold-0.1) THEN
+					agcmaxsearch_pb(bstart:=bstartagcmaxsearch,rAGCNow:=GVL.Chan1AGC,btrig:=bstartSearchAz,
+				rinterPos:=RealTimeposcal.rInterAzPos,rcurrentpos:=GVL.rFctPosReal_2,
+				rStepBiasNow:=rStepBias,bAutoTracking:=GVL.bStartTrack,bStop:=FALSE,
+				rStepBias=>rSearchNextStepTarget,rAGCMaxBias=>rMaxPosTest,bSucess=>);
+			ELSE
+				bstartagcmaxsearch:=FALSE;
+				agcmaxsearch_pb(bstart:=bstartagcmaxsearch,rAGCNow:=GVL.Chan1AGC,btrig:=bstartSearchAz,
+				rinterPos:=RealTimeposcal.rInterAzPos,rcurrentpos:=GVL.rFctPosReal_2,
+				rStepBiasNow:=rStepBias,bAutoTracking:=GVL.bStartTrack,bStop:=FALSE,
+				rStepBias=>rSearchNextStepTarget,rAGCMaxBias=>rMaxPosTest,bSucess=>);
+			END_IF
+		ELSIF Axis2Remote.iMode =0  OR Axis2Remote.iMode =7 THEN
+			bstartagcmaxsearch:=FALSE;
+			iCountSearch:=0;
+			agcmaxsearch_pb(bstart:=bstartagcmaxsearch,rAGCNow:=GVL.Chan1AGC,btrig:=bstartSearchAz,
+			rinterPos:=RealTimeposcal.rInterAzPos,rcurrentpos:=GVL.rFctPosReal_2,
+			rStepBiasNow:=rStepBias,bAutoTracking:=GVL.bStartTrack,bStop:=FALSE,
+			rStepBias=>rSearchNextStepTarget,rAGCMaxBias=>rMaxPosTest,bSucess=>);
+		END_IF
+		
+// =============================================================================
+// 段 8: 自跟踪拉偏（远控）— 方位用 rChanUa，程引时符号与俯仰相反
+// =============================================================================
+IF GVL.bStartTrack AND Axis2Remote.iMode=4 THEN
+	Axis2Remote.bStartAutoTrack := TRUE;
+	IF rAuToStepBias > rAutoTrackingBiasMax THEN
+		rAuToStepBias := rAutoTrackingBiasMax;
+	ELSIF rAuToStepBias < -rAutoTrackingBiasMax THEN
+		rAuToStepBias := -rAutoTrackingBiasMax;
+	ELSE
+		rAuToStepBiasTemp:=(-0.04)*AutoTrackingCal.rDirSenFac*AutoTrackingCal.rChanUa;
+		rAuToStepBias:=rAuToStepBias-AutoTrackingCal.rDirSenFac*rKAuToStepBias*AutoTrackingCal.rChanUa/1000.0;
+	END_IF
+ELSIF NOT GVL.bStartTrack AND Axis2Remote.iMode=4 THEN
+	IF 	rAuToStepBias>0 THEN//关闭自跟踪后自跟踪拉偏量逐渐归0
+		rAuToStepBias:=rAuToStepBias-rAutoStep;
+	ELSIF rAuToStepBias<0 THEN
+		rAuToStepBias:=rAuToStepBias+rAutoStep;
+	ELSE
+		rAuToStepBias:=0;
+	END_IF
+	
+	IF Modbus_Slave.rBias_2>rStepBias THEN
+		rStepBias:=rStepBias+rStep;
+		IF rStepBias>=Modbus_Slave.rBias_2 THEN
+			rStepBias:=Modbus_Slave.rBias_2;
+		END_IF
+	ELSIF Modbus_Slave.rBias_2<rStepBias THEN
+		rStepBias:=rStepBias-rStep;
+		IF rStepBias<=Modbus_Slave.rBias_2 THEN
+			rStepBias:=Modbus_Slave.rBias_2;
+		END_IF
+	END_IF
+	rAuToStepBiasTemp:=0;
+ELSIF GVL.bStartTrack AND Axis2Remote.iMode=2 THEN
+	Axis2Remote.bStartAutoTrack := TRUE;
+	Axis2Remote.rChanU := -AutoTrackingCal.rChanUa;
+ELSE
+	Axis2Remote.bStartAutoTrack := FALSE;	
+	rAuToStepBias:=0;
+	rStepBias:=0;
+	rAuToStepBiasTemp:=0;
+END_IF
+
+// 本控自跟踪
+IF GVL.bStartLocalAutoTrack AND Axis2Local.iMode = 4 THEN
+	Axis2Local.bStartAutoTrack := TRUE;
+	Axis2Local.rChanU := -AutoTrackingCal.rChanUaLocal;
+ELSE
+	Axis2Local.bStartAutoTrack := FALSE;
+END_IF
+
+// =============================================================================
+// 段 9: 合成 rPIDCmdPos（注意 AZ_out 为减）→ Az_Ctrl_FB
+// =============================================================================
+Axis2Remote.rPIDCmdPos:=RealTimePosCal.rInterAzPos+rStepBias+rAuToStepBias+rSearchNextStepTarget-SECURITYCHECK.AZ_out+rAuToStepBiasTemp;
+
+IF Axis2Remote.rPIDCmdPos<-275 THEN
+	Axis2Remote.rPIDCmdPos:=-275;
+ELSIF Axis2Remote.rPIDCmdPos>275 THEN
+	Axis2Remote.rPIDCmdPos:=275;
+END_IF
+
+Axis2_Ctrl(sLocal:=Axis2Local, sCtrl:=Axis2Remote, sStatus:=Axis2Status, sVisible:=Axis2Visible, rRealPos:=rFctPosReal_2, rPosLimK:=0.34);

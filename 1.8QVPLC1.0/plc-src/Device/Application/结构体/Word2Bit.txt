@@ -1,0 +1,12 @@
+# kind=union
+# name=Word2Bit
+# objectId=fb167d7f-ecdb-4734-91ae-00e252401442
+
+TYPE Word2Bit :
+UNION
+    Apart_Word : WORD;
+    Apart_Byte : ARRAY[1..2] OF BYTE;
+    Apart_Real : REAL;
+    Apart_Int : INT;
+END_UNION
+END_TYPE

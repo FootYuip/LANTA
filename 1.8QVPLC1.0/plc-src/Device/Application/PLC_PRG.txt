@@ -1,0 +1,11 @@
+# kind=program
+# name=PLC_PRG
+# objectId=782b9028-c073-45d5-9c79-e0eeee37da47
+
+VAR
+    a : DINT;
+    b : REAL;
+END_VAR
+
+// --- implementation (ST) ---
+a := REAL_TO_DINT(b * 524288 / 360);

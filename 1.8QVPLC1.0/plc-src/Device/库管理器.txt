@@ -1,0 +1,6 @@
+# kind=device_node
+# name=库管理器
+# source=projectstructure_only
+# objectId=4ff89d69-7536-4d2e-a994-e030e11ca800
+
+# note=库管理器节点；引用库列表见 README.txt / Application 库配置。

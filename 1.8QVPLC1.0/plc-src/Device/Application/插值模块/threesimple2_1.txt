@@ -1,0 +1,169 @@
+# kind=functionBlock
+# name=threesimple2_1
+# objectId=cc69e4be-c04e-434c-b2cf-309f5108d715
+
+VAR_INPUT
+    XModbusUL : ARRAY[1..10] OF ULINT;
+    XModbus : ARRAY[1..10] OF LREAL;
+    YModbus : ARRAY[1..10] OF LREAL;
+    y0 : REAL;
+    yn : REAL;
+    xt : LREAL;
+END_VAR
+
+VAR_OUTPUT
+    sout : REAL;
+    nout : INT;
+    ErrCode : INT;
+    bSetZero : BOOL;
+END_VAR
+
+VAR
+    Three : three2;
+    X : ARRAY[1..5] OF LREAL;
+    Y : ARRAY[1..5] OF LREAL;
+    M : ARRAY[1..5] OF LREAL;
+    A : ARRAY[1..5] OF LREAL;
+    D : ARRAY[1..3] OF LREAL;
+    g : ARRAY[1..3] OF LREAL;
+    h : ARRAY[1..4] OF LREAL;
+    n : INT;
+    p1 : ARRAY[1..4] OF REAL;
+    p2 : ARRAY[1..4] OF REAL;
+    p3 : ARRAY[1..4] OF REAL;
+    p4 : ARRAY[1..4] OF REAL;
+    i : INT;
+    ii : INT;
+    j : INT;
+    k : INT;
+    iCountOutMaxRange : INT;
+    iCountOutMinRange : INT;
+    nn : INT;
+    mm : INT;
+END_VAR
+
+// --- implementation (ST) ---
+FOR nn:=1 TO 10 DO
+	//XModbus[nn]:=ULINT_TO_LREAL(XModbusUL[nn])*1000000/1000.0;
+	XModbus[nn]:=ULINT_TO_LREAL(XModbusUL[nn]-XModbusUL[1])+1.0;
+END_FOR
+	xt:=xt-ULINT_TO_LREAL(XModbusUL[1])+1.0;
+IF ErrCode>0 THEN
+	ErrCode:=0;
+END_IF
+
+
+FOR mm:=2 TO 8 DO
+	IF XModbus[mm] = XModbus[mm + 1] THEN
+		// 找到相等的两个数，进行线性插值
+		XModbus[mm + 1] := (XModbus[mm] + XModbus[mm + 2]) / 2.0;
+	END_IF;
+END_FOR
+IF XModbus[1] = XModbus[2] THEN
+	// 找到相等的两个数，进行线性插值
+	XModbus[1] := XModbus[2]-(XModbus[3]-XModbus[2]);
+END_IF;
+IF XModbus[9] = XModbus[10] THEN
+	// 找到相等的两个数，进行线性插值
+	XModbus[10] := XModbus[9]+(XModbus[9]-XModbus[8]);
+END_IF;
+
+IF ErrCode <> 0 THEN
+	iCountOutMaxRange:=0;
+	iCountOutMinRange:=0;
+END_IF
+
+
+//在何处清空序列呢
+//bSetZero:=FALSE; //默认不清空
+
+IF  XModbus[10]=0 THEN
+	//报错
+	ErrCode:=107;//序列为空
+ELSE
+	IF XModbus[10]-XModbus[1]>2000000 THEN
+		sout:=YModbus[10];
+	ELSE
+		IF xt<XModbus[1] THEN
+			sout:=YModbus[1];
+			//报故障 累计超时报错
+			iCountOutMinRange:=iCountOutMinRange+1;
+			IF iCountOutMinRange>5000 THEN
+				iCountOutMaxRange:=5001;
+				//ErrCode:=108;//偏小超时报错
+			END_IF
+		ELSIF xt>XModbus[10]  THEN
+			sout:=YModbus[10];
+			//报故障 累计超时报错
+			iCountOutMaxRange:=iCountOutMaxRange+1;
+			IF iCountOutMaxRange>5000 THEN
+				iCountOutMaxRange:=5001;
+				//ErrCode:=109;//偏大超时报错
+			END_IF
+		ELSE //若所求目标位置在Modbus中间
+			iCountOutMaxRange:=0;
+			iCountOutMinRange:=0;
+			//若不满五个点
+			IF XModbus[6]=0 THEN
+				sout:=XModbus[10];
+			ELSE
+				//若满五个点
+				//寻找当前插值区间
+				FOR j:=2 TO 10 DO
+					IF xt<XModbus[j] THEN
+						k:=j;
+						EXIT;
+					END_IF
+				END_FOR
+				
+				IF k=2 THEN
+					X[1]:=XModbus[k-1];X[2]:=XModbus[k];X[3]:=XModbus[k+1];X[4]:=XModbus[k+2];X[5]:=XModbus[k+3];
+					y[1]:=YModbus[k-1];Y[2]:=YModbus[k];Y[3]:=YModbus[k+1];Y[4]:=YModbus[k+2];Y[5]:=YModbus[k+3];
+				ELSIF k>2 AND k<=8 THEN
+					X[1]:=XModbus[k-2];X[2]:=XModbus[k-1];X[3]:=XModbus[k];X[4]:=XModbus[k+1];X[5]:=XModbus[k+2];
+					Y[1]:=YModbus[k-2];Y[2]:=YModbus[k-1];Y[3]:=YModbus[k];Y[4]:=YModbus[k+1];Y[5]:=YModbus[k+2];
+				ELSIF k=9 THEN
+					X[1]:=XModbus[k-3];X[2]:=XModbus[k-2];X[3]:=XModbus[k-1];X[4]:=XModbus[k];X[5]:=XModbus[k+1];
+					Y[1]:=YModbus[k-3];Y[2]:=YModbus[k-2];Y[3]:=YModbus[k-1];Y[4]:=YModbus[k];Y[5]:=YModbus[k+1];
+				ELSIF k=10 THEN
+					X[1]:=XModbus[k-4];X[2]:=XModbus[k-3];X[3]:=XModbus[k-2];X[4]:=XModbus[k-1];X[5]:=XModbus[k];
+					Y[1]:=YModbus[k-4];Y[2]:=YModbus[k-3];Y[3]:=YModbus[k-2];Y[4]:=YModbus[k-1];Y[5]:=YModbus[k];
+				END_IF
+				
+				
+				//开始解算
+				Three(X:=X,Y:=Y,y0:=y0,yn:=yn,D=>D,h=>h,A=>A,g=>g,M=>M);
+				FOR i:=1 TO (n-1) DO
+					p1[i]:=M[i]*(X[i+1]-xt)*(X[i+1]-xt)*(X[i+1]-xt)/(6*h[i]);
+					p2[i]:=M[i+1]*(xt-X[i])*(xt-X[i])*(xt-X[i])/(6*h[i]);
+					p3[i]:=(A[i,1]-M[i]/6*(h[i])*(h[i]))*(X[i+1]-xt)/h[i];
+					p4[i]:=(A[i+1,1]-M[i+1]/6*(h[i])*(h[i]))*(xt-X[i])/h[i];
+				END_FOR
+				FOR i:=1 TO (n-1) DO
+					IF (xt<=X[i+1])AND (xt>=X[i]) THEN
+						nout:=i;
+						sout:=p1[nout]+p2[nout]+p3[nout]+p4[nout]; 
+					ELSIF xt>X[5] THEN
+						nout:=4;
+					ELSIF xt<X[1]THEN
+						nout:=1;
+					END_IF
+				END_FOR
+				sout:=p1[nout]+p2[nout]+p3[nout]+p4[nout]; 
+				(*
+				IF xt>X[5] THEN
+					nout:=4;
+					sout:=p1[nout]+p2[nout]+p3[nout]+p4[nout]; 
+				ELSIF xt<X[1] THEN
+					nout:=1;
+					sout:=p1[nout]+p2[nout]+p3[nout]+p4[nout]; 
+				END_IF
+				*)
+				END_IF
+			END_IF
+			
+		END_IF
+
+//修正输入量为长度为10的数组
+
+END_IF

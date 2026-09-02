@@ -1,0 +1,9 @@
+# kind=task
+# name=MainTask
+# interval=PT0.05S
+# priority=10
+# intervalSetting=50ms
+# objectId=4989733a-f046-4857-9aa6-be884af15bb6
+
+# bound POUs:
+#   - Modbus_Slave

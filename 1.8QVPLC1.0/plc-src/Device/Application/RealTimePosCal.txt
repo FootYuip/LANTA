@@ -1,0 +1,91 @@
+# kind=program
+# name=RealTimePosCal
+# objectId=d1d353e9-b6ba-4daf-a75d-684630ba06ac
+
+VAR
+    dtReal : DT;
+    sRealTime : UNKNOWN;
+    btestTimeInit : BOOL;
+    AzCubicInter : threesimple2_1;
+    ElCubicInter : threesimple2_1;
+    iErrcode : INT;
+    rInterAzPos : REAL;
+    rInterElPos : REAL;
+    rInterAzPostest : REAL;
+    rInterElPostest : REAL;
+    rPolyAzPos : REAL;
+    rPolyElPos : REAL;
+    AzPoly : Get_AZ;
+    ElPoly : Get_AZ_1;
+    dRTime : ULINT;
+    dLastRTime : ULINT;
+    icount : INT;
+END_VAR
+
+// --- implementation (ST) ---
+(*==============================================================================
+  PRG: RealTimePosCal（程引实时位置计算）
+  任务: Canopen 10ms
+  作用:
+    1. 合成 GVL.dRealTime（毫秒时间轴，供插值用 xt）
+    2. 双轴程引(mode4)时，按时间对 Modbus 轨道表做三次样条插值
+    3. 输出 rInterAzPos / rInterElPos → *_ctrl_1 合成 rPIDCmdPos
+  时间源（GVL.bTimeSwich）:
+    FALSE — GNSS: stGNSS_Timestap + 10×TimeAdd.icount
+    TRUE  — 上位机 UTC: Modbus_Slave.UTC_New + 8h + 10×本地 icount
+  插值输入:
+    X = Modbus_Slave.aUTC_TIME[1..10]（时间结点，相对首点归一化）
+    Y = Modbus_Slave.aPosCmd_1/2（俯仰/方位角度结点）
+    xt = dRealTime - 8×3600×1000（转为与轨道表一致的 UTC 毫秒）
+==============================================================================*)
+
+// =============================================================================
+// 段 1: 合成 GVL.dRealTime（全局毫秒时钟）
+// =============================================================================
+
+//直接从上位机拿数（UTC_New 一般为 UTC 毫秒，+8h 对齐北京时）
+dRTime := modbus_slave.UTC_New + 8 * 3600 * 1000;
+IF dRTime <> dLastRTime THEN
+	icount := 0;
+ELSE 
+	icount := icount + 1;
+END_IF
+dLastRTime:=dRTime;
+
+IF not GVL.bTimeSwich THEN
+	GVL.dRealTime:=GVL.stGNSS_Timestap + 10*timeadd.icount;   // GNSS + 插值
+ELSE
+	GVL.dRealTime:=dRTime + 10*icount;                        // 上位机 UTC + 插值
+END_IF
+IF icount > 5000 THEN
+	icount := 0;
+END_IF
+(*
+GVL.dRealTime:=GVL.stGNSS_Timestap + 10*timeadd.icount;
+*)
+dtReal := TO_DT(GVL.dRealTime / 1000);
+sRealTime := TO_STRING(dtReal);
+
+// =============================================================================
+// 段 2: 双轴均为程引 mode4 时 — 三次样条插值求当前俯仰/方位
+// xt 减去 8×3600×1000 与轨道表 aUTC_TIME 时间基准对齐
+// =============================================================================
+IF Axis1Remote.iMode=4 AND Axis2Remote.iMode=4 THEN//若PTP时间锁定 且时间模式为PTP时间
+		//三次样条插值
+
+		//GVL.dRealTime:= TimeCase.stSYS_Timestamp + GVL.dDelTime + 1000 + 56; // 矫正后的时间 单位毫秒
+		IF NOT GVL.bTimeSwich THEN
+			GVL.dRealTime:=GVL.stGNSS_Timestap + 10*timeadd.icount;
+		ELSE
+			GVL.dRealTime:=dRTime + 10*icount;
+		END_IF
+		AzCubicInter(XModbusUL:=Modbus_Slave.aUTC_TIME,YModbus:=Modbus_Slave.aPosCmd_2,y0:=0,yn:=0,xt:=(ULINT_TO_LREAL(GVL.dRealTime) - 8 * 3600 *1000),sout=>rInterAzPos,ErrCode=>iErrcode);
+		ElCubicInter(XModbusUL:=Modbus_Slave.aUTC_TIME,YModbus:=Modbus_Slave.aPosCmd_1,y0:=0,yn:=0,xt:=(ULINT_TO_LREAL(GVL.dRealTime) - 8 * 3600 *1000),sout=>rInterElPos,ErrCode=>iErrcode);
+		IF iErrcode>0 THEN //模块内错误代码清0 外部维持
+			Error_code:=iErrcode;
+		END_IF
+END_IF
+
+(* 段 3: 多项式拟合程引（Get_AZ / Get_AZ_1）整段已注释，当前未使用
+   若启用: rInterAzPos = -rPolyAzPos, rInterElPos = rPolyElPos + 90
+*)

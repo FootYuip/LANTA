@@ -1,0 +1,6 @@
+# kind=device_node
+# name=eDriver_Ti
+# source=projectstructure_only
+# objectId=2074d89f-c6ae-487b-ab0f-3210d0b5117b
+
+# note=CANopen 从站 eDriver_Ti（倾斜轴）设备配置。

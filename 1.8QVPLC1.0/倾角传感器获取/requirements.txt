@@ -1,0 +1,4 @@
+# read_inclinometer: 标准库即可
+# auto_tilt_survey 另需:
+pymodbus>=3.0
+flask>=3.0

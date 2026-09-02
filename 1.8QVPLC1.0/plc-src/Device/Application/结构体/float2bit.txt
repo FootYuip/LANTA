@@ -1,0 +1,14 @@
+# kind=union
+# name=float2bit
+# objectId=fb1975a4-30ce-4fc5-8a4a-17f31b1eac5f
+
+TYPE float2bit :
+UNION
+    Apart_ulint : ULINT;
+    Apart_dword : ARRAY[1..2] OF DWORD;
+    Apart_word : ARRAY[1..4] OF WORD;
+    Apart_byte : ARRAY[1..8] OF BYTE;
+    Apart_real : ARRAY[1..2] OF REAL;
+    Apart_int : ARRAY[1..4] OF INT;
+END_UNION
+END_TYPE

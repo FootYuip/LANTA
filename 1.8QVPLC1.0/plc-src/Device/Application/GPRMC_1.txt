@@ -1,0 +1,143 @@
+# kind=program
+# name=GPRMC_1
+# objectId=6ae6f3b7-856b-408d-a86d-65d2f20bda69
+
+VAR_INPUT
+    EN_in_1 : BOOL;
+END_VAR
+
+VAR
+    com_init : gcan.FB_Com_Init;
+    com_read : gcan.FB_Com_Read;
+    com_write : gcan.FB_Com_Write;
+    m_uiError : UINT;
+    m_out : BOOL;
+    isFirst : BOOL;
+    mPort : BYTE;
+    recSize : UINT;
+    recBuf : ARRAY[0..101] OF BYTE;
+    sum_i : INT;
+    checksum : BYTE;
+    iYear : INT;
+    iMonth : INT;
+    iDay : INT;
+    iHour : INT;
+    iMinute : INT;
+    iSecond : INT;
+    strDateTimeNow : UNKNOWN;
+    gnssTimestamp : ULINT;
+    gnssTimestamplast : ULINT;
+    icount : INT;
+    high4 : BYTE;
+    low4 : BYTE;
+END_VAR
+
+// --- implementation (ST) ---
+(*==============================================================================
+  PRG: GPRMC_1（GNSS 串口接收与 NMEA 时间解析）
+  任务: SerialCom 5ms
+  硬件: GCAN 模块串口 mPort=1（232），115200 8N1
+  作用:
+    - 读 GNSS 模块输出的 NMEA 报文（GPRMC 等，帧头 ASCII '$'=36）
+    - 从固定偏移解析 UTC 日期时间，+8 转为北京时间
+    - 写入 GVL.stGNSS_Timestap（毫秒 ULINT），供 TimeAdd / RealTimePosCal 使用
+  下游:
+    TimeAdd.icount — 秒未变时累加，用于 GNSS 丢帧时的 10ms 插值
+    RealTimePosCal — GVL.dRealTime := stGNSS_Timestap + 10*TimeAdd.icount
+==============================================================================*)
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+//串口接收GPRMC报文解析
+//日期：2024/08/25
+//版本：V1.1
+/////////////////////////////////////////////////////////////////////////////////////////
+
+mPort:=1;								//串口端口号设定，GCAN-PLC-400、GCAN-PLC-510、GCAN-PLC-511，1为232，2为485
+										//GCAN-PLC-324、GCAN-PLC-326，1为第一路485，2为第2路485
+IF isFirst THEN
+	com_init(							//串口初始化功能块
+	EN_IN:=TRUE,						//串口初始化功能块使能
+	xEnable:=TRUE,						//串口功能使能
+	bPort:=mPort,						//串口端口号设定
+	uiBaudrate:=115200,					//串口波特率设定
+	bParity:=0,							//串口奇偶校验设定，0为无校验，1为奇校验，2为偶检验
+	bDatabits:=8,						//数据位设定
+	bStopbits:=1,						//停止位设定
+	EN_OUT=>m_out,						//串口初始化功能块执行完成标志位
+	uiError=>m_uiError);				//串口初始化功能块执行错误信息
+	isfirst:=FALSE;						//执行一次初始化后关闭IF的条件使其之后进入ELSE程序段运行
+
+ELSE
+	
+		com_read(						//串口读取功能块
+		EN_in:=TRUE,					//读取功能块使能，为TRUE执行读取
+		bPort:=mPort,					//串口端口号设定
+		p_brxdata:=ADR(recBuf),			//读取到的串口数据引脚为指针类型，使用ADR()指向自建数组将数据存放到数组中
+		uiMaxsize:=204,					//设定最大读取长度
+		EN_out=>m_out,					//串口读取功能块执行完成标志位******功能块执行完成不代表接收完成********
+		uiRecSize=>recSize,				//串口接收数据长度，单位：字节，大于0时说明接收到数据可用于判断是否接收
+		uierror=>m_uierror);			//串口读取功能块执行错误信息
+										//从数组recBuf里取数据，解析出年、月、日、时、分、秒
+		//有效判定(A)+和校验(hh),前 4bit和后 4bit的 16 进制数分别以 ASCII 码表示(0~9,A~F)，高位在前。
+		IF 	recBuf[0] = 36 THEN
+(*			checksum := 16#00;
+			FOR sum_i:=1 TO 74 BY 1 DO
+				checksum:= checksum XOR recBuf[sum_i];
+			END_FOR
+			high4 := (SHR(checksum, 4) AND 16#0F)+16#30;
+			low4 := (checksum AND 16#0F)+16#30;
+			IF recBuf[76]= high4 AND recBuf[77]= low4 THEN 
+*)		
+
+			iYear:=BYTE_TO_INT(recBuf[23]-48)*1000+BYTE_TO_INT(recBuf[24]-48)*100+BYTE_TO_INT(recBuf[25]-48)*10+BYTE_TO_INT(recBuf[26]-48);
+			iMonth:=BYTE_TO_INT(recBuf[20]-48)*10+BYTE_TO_INT(recBuf[21]-48);
+			iDay:=BYTE_TO_INT(recBuf[17]-48)*10+BYTE_TO_INT(recBuf[18]-48);
+			iHour:=BYTE_TO_INT(recBuf[7]-48)*10+BYTE_TO_INT(recBuf[8]-48)+8;
+			iMinute:=BYTE_TO_INT(recBuf[9]-48)*10+BYTE_TO_INT(recBuf[10]-48);
+			iSecond:=BYTE_TO_INT(recBuf[11]-48)*10+BYTE_TO_INT(recBuf[12]-48);
+			
+			// 计算时间戳		
+			
+			strDateTimeNow := CONCAT(STR1 := 'DT#', STR2 := INT_TO_STRING(iYear));
+			strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := '-');
+			strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := INT_TO_STRING(iMonth));
+			strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := '-');
+			strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := INT_TO_STRING(iDay));
+			strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := '-');
+			strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := INT_TO_STRING(iHour));
+			strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := ':');
+			strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := INT_TO_STRING(iMinute));
+			strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := ':');
+			strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := INT_TO_STRING(iSecond));
+			(*
+			gnssTimestamplast:=gnssTimestamp;
+			
+			
+			*)
+			gnssTimestamp := DT_TO_ULINT(TO_DT(strDateTimeNow)) * 1000;
+			GVL.stGNSS_Timestap := gnssTimestamp;
+		END_IF
+		(*
+		IF gnssTimestamplast<>gnssTimestamp THEN
+			icount:=0;
+		ELSE
+			icount:=icount+1;
+		END_IF
+		*)
+		
+
+
+(*	IF recsize>0 THEN					//如果接收到串口数据
+		
+		com_write(						//串口发送功能块
+		EN_IN:=TRUE,					//串口发送功能块使能，发送机制：当使能为TRUE时，PLC程序每周期运行到此处就执行一次发送
+		bPort:=mPort,					//串口端口号设定
+		p_bTxdata:=ADR(recbuf),			//将接收存放到数组中的数据发送出去******若发送其它数据，自建另一数组用于存放发送数据即可
+		uiTxsize:=recsize,				//发送长度为接收到的数据长度******若发送其它长度，自行填写所需长度即可
+		EN_OUT=>m_out,					//串口发送功能块执行完成标志位
+		uierror=>m_uierror);			//串口发送功能块执行错误信息
+			
+	END_IF
+*)	
+END_IF

@@ -1,0 +1,87 @@
+# kind=functionBlock
+# name=PID
+# objectId=b5e79cdc-cc76-4950-ba1b-cf91b66aab2b
+
+VAR_INPUT
+    rTarget : REAL;
+    rFeedback : REAL;
+    rPosLimPositive : LREAL;
+    rPosLimNegative : LREAL;
+    rKp : REAL;
+    rKi : REAL;
+    rKd : REAL;
+    iThreshold : INT;
+    bPIDEnable : BOOL;
+    rVelLim : LREAL;
+END_VAR
+
+VAR_OUTPUT
+    rPIDOutput : LREAL;
+    rPIDtrace : LREAL;
+END_VAR
+
+VAR
+    rLastError : LREAL;
+    rErrorNow : LREAL;
+    rIntegralNew : LREAL;
+    rDerivativeNew : LREAL;
+    rDelta : LREAL;
+    rProportionNew : LREAL;
+END_VAR
+
+// --- implementation (ST) ---
+(*==============================================================================
+  FB: PID（位置环速度输出 PID）
+  任务: Canopen 10ms（由 *_Ctrl_FB 调用）
+  作用: 输入目标位置与实际位置，输出速度指令（deg/s）
+  算法: 比例 + 条件积分（误差小于阈值才累积），无微分
+  使用者: El_Ctrl_FB / Az_Ctrl_FB / Ti_Ctrl_FB 中的 VelPID_1/2/3
+==============================================================================*)
+
+// ----- 段：PID 使能入口 -----
+IF (bPIDEnable>0) THEN //如果PID使能
+	IF rTarget=rFeedback THEN
+		rPIDOutput:=0;	               // 目标=反馈，输出为 0
+	ELSE
+	
+		rErrorNow:=rTarget-rFeedback;  //计算当前误差 en
+		rProportionNew:=rErrorNow;     //比例项
+
+		// ----- 段：条件积分（仅在软限位内、误差小于阈值时才累积）-----
+		IF rFeedback>rPosLimNegative AND rFeedback<rPosLimPositive THEN //若在软限位之内，工作时开启积分项
+			IF (ABS(rTarget-rFeedback)<iThreshold) THEN//位置差小于积分阈值
+				rIntegralNew:= rIntegralNew+rErrorNow; //积分项
+			ELSE
+				rIntegralNew:=0;
+			END_IF;
+		ELSE //不在软限位范围内,则积分项为0
+			rIntegralNew:=0;
+		END_IF
+
+		// ----- 段：PID 求和输出 -----
+		rPIDOutPut:=rKp*rProportionNew+rKi*rIntegralNew;
+		rPIDtrace:=rKp*rProportionNew+rKi*rIntegralNew;
+
+		// ----- 段：速度限幅（双向） -----
+		IF rPIDOutput<(-rVelLim) THEN
+			rPIDOutput:=-rVelLim;
+		ELSIF rPIDOutput>rVelLim THEN
+			rPIDOutput:=rVelLim;
+		END_IF
+		
+		// ----- 段：超软限位时强制输出清零，防止继续向限位方向运动 -----
+		IF rFeedback>rPosLimPositive AND rPIDOutput>0 THEN 
+			rPIDOutput:=0;
+		END_IF
+		IF rFeedback<rPosLimNegative AND rPIDOutput<0 THEN
+			rPIDOutput:=0;
+		END_IF
+		
+		rLastError:=rErrorNow;//将当前误差赋值给上一次误差
+		
+	END_IF
+ELSE//非使能清零PID各项
+	rProportionNew:=0.0;
+	rIntegralNew:=0.0;
+	rPIDOutput:=0.0;
+END_IF

@@ -1,0 +1,72 @@
+# kind=functionBlock
+# name=Get_AZ_1
+# objectId=b79e8dce-8bb9-4681-a1d7-0c5420f8d7d9
+
+VAR_INPUT
+    uliRealTime : LREAL;
+    lrStartTime : LREAL;
+    rNodeTime1 : REAL;
+    rNodeTime2 : REAL;
+    rNodeTime3 : REAL;
+    rNodeTime4 : REAL;
+    rNodeTime5 : REAL;
+    rEndTime : REAL;
+    lrFun1 : ARRAY[0..10] OF LREAL;
+    lrFun2 : ARRAY[0..10] OF LREAL;
+    lrFun3 : ARRAY[0..10] OF LREAL;
+    lrFun4 : ARRAY[0..10] OF LREAL;
+    lrFun5 : ARRAY[0..10] OF LREAL;
+    lrFun6 : ARRAY[0..10] OF LREAL;
+END_VAR
+
+VAR_OUTPUT
+    lrFitResult : LREAL;
+END_VAR
+
+VAR
+    rDelTime : REAL;
+    rRealTime : LREAL;
+END_VAR
+
+// --- implementation (ST) ---
+rRealTime := uliRealTime / 1000.0 - lrStartTime/1000.0;
+
+
+IF rRealTime <= 0.0 THEN
+	rDelTime := 0.0;
+	lrFitResult := lrFun1[10];
+ELSIF rRealTime <= rNodeTime1 THEN
+    rDelTime := rRealTime - 0.0;
+	lrFitResult := lrFun1[0] * EXPT(rDelTime,10) + lrFun1[1] * EXPT(rDelTime,9) + lrFun1[2] * EXPT(rDelTime,8) + lrFun1[3] * EXPT(rDelTime,7) + lrFun1[4] * EXPT(rDelTime,6) + lrFun1[5] * EXPT(rDelTime,5)
+    + lrFun1[6] * EXPT(rDelTime,4) + lrFun1[7] * EXPT(rDelTime,3) + lrFun1[8] * EXPT(rDelTime,2) + lrFun1[9] * rDelTime + lrFun1[10];
+ELSIF rRealTime <= rNodeTime2 THEN
+    rDelTime := rRealTime - rNodeTime1;
+    lrFitResult := lrFun2[0] * EXPT(rDelTime,10) + lrFun2[1] * EXPT(rDelTime,9) + lrFun2[2] * EXPT(rDelTime,8) + lrFun2[3] * EXPT(rDelTime,7) + lrFun2[4] * EXPT(rDelTime,6) + lrFun2[5] * EXPT(rDelTime,5)
+    + lrFun2[6] * EXPT(rDelTime,4) + lrFun2[7] * EXPT(rDelTime,3) + lrFun2[8] * EXPT(rDelTime,2) + lrFun2[9] * rDelTime + lrFun2[10];
+ELSIF rRealTime <= rNodeTime3 THEN
+    rDelTime := rRealTime - rNodeTime2;
+    lrFitResult := lrFun3[0] * EXPT(rDelTime,10) + lrFun3[1] * EXPT(rDelTime,9) + lrFun3[2] * EXPT(rDelTime,8) + lrFun3[3] * EXPT(rDelTime,7) + lrFun3[4] * EXPT(rDelTime,6) + lrFun3[5] * EXPT(rDelTime,5)
+    + lrFun3[6] * EXPT(rDelTime,4) + lrFun3[7] * EXPT(rDelTime,3) + lrFun3[8] * EXPT(rDelTime,2) + lrFun3[9] * rDelTime + lrFun3[10];
+ELSIF rRealTime <= rNodeTime4 THEN
+    rDelTime := rRealTime - rNodeTime3;
+    lrFitResult := lrFun4[0] * EXPT(rDelTime,10) + lrFun4[1] * EXPT(rDelTime,9) + lrFun4[2] * EXPT(rDelTime,8) + lrFun4[3] * EXPT(rDelTime,7) + lrFun4[4] * EXPT(rDelTime,6) + lrFun4[5] * EXPT(rDelTime,5)
+    + lrFun4[6] * EXPT(rDelTime,4) + lrFun4[7] * EXPT(rDelTime,3) + lrFun4[8] * EXPT(rDelTime,2) + lrFun4[9] * rDelTime + lrFun4[10];
+ELSIF rRealTime <= rNodeTime5 THEN
+    rDelTime := rRealTime - rNodeTime4;
+    lrFitResult := lrFun5[0] * EXPT(rDelTime,10) + lrFun5[1] * EXPT(rDelTime,9) + lrFun5[2] * EXPT(rDelTime,8) + lrFun5[3] * EXPT(rDelTime,7) + lrFun5[4] * EXPT(rDelTime,6) + lrFun5[5] * EXPT(rDelTime,5)
+    + lrFun5[6] * EXPT(rDelTime,4) + lrFun5[7] * EXPT(rDelTime,3) + lrFun5[8] * EXPT(rDelTime,2) + lrFun5[9] * rDelTime + lrFun5[10];
+ELSIF rRealTime <= rEndTime THEN
+    rDelTime := rRealTime - rNodeTime5;
+    lrFitResult := lrFun6[0] * EXPT(rDelTime,10) + lrFun6[1] * EXPT(rDelTime,9) + lrFun6[2] * EXPT(rDelTime,8) + lrFun6[3] * EXPT(rDelTime,7) + lrFun6[4] * EXPT(rDelTime,6) + lrFun6[5] * EXPT(rDelTime,5)
+    + lrFun6[6] * EXPT(rDelTime,4) + lrFun6[7] * EXPT(rDelTime,3) + lrFun6[8] * EXPT(rDelTime,2) + lrFun6[9] * rDelTime + lrFun6[10];
+ELSE
+    rDelTime := rEndTime - rNodeTime5;
+    lrFitResult := lrFun6[0] * EXPT(rDelTime,10) + lrFun6[1] * EXPT(rDelTime,9) + lrFun6[2] * EXPT(rDelTime,8) + lrFun6[3] * EXPT(rDelTime,7) + lrFun6[4] * EXPT(rDelTime,6) + lrFun6[5] * EXPT(rDelTime,5)
+    + lrFun6[6] * EXPT(rDelTime,4) + lrFun6[7] * EXPT(rDelTime,3) + lrFun6[8] * EXPT(rDelTime,2) + lrFun6[9] * rDelTime + lrFun6[10];
+END_IF
+
+IF lrFitResult>90 THEN
+	lrFitResult:=90;
+ELSIF lrFitResult<3 THEN
+	lrFitResult:=3;
+END_IF

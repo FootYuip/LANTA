@@ -1,0 +1,74 @@
+# kind=functionBlock
+# name=InterDataProcess
+# objectId=eaa4dd33-a415-4c10-a261-8fdc73e2db65
+
+VAR_INPUT
+    ulRealTime : ULINT;
+    Arr : ARRAY[1..5] OF ULINT;
+END_VAR
+
+VAR_OUTPUT
+    MaxVal : ULINT;
+    MinVal : ULINT;
+    MaxIndex : INT;
+    MinIndex : INT;
+    ulInterRealTime : ULINT;
+END_VAR
+
+VAR
+    i : INT;
+    j : INT;
+END_VAR
+
+// --- implementation (ST) ---
+//该功能块查找到轨道时间数组内最大最小值以及索引位置
+//找出最大最小值
+MaxVal := 0; // 初始化最大值
+MinVal := 0; // 初始化最小值
+MaxIndex := 0; // 初始化最大值的索引
+MinIndex := 0; // 初始化最小值的索引
+
+FOR i := 1 TO 5 DO
+    IF Arr[i] <> 0 THEN
+        IF MaxVal = 0 THEN
+            MaxVal := Arr[i];
+            MaxIndex := i;
+        ELSIF Arr[i] > MaxVal THEN
+            MaxVal := Arr[i];
+            MaxIndex := i;
+        END_IF
+
+        IF MinVal = 0 THEN
+            MinVal := Arr[i];
+            MinIndex := i;
+        ELSIF Arr[i] < MinVal THEN
+            MinVal := Arr[i];
+            MinIndex := i;
+        END_IF
+    END_IF
+END_FOR
+
+// MaxVal 和 MinVal 包含了最大值和最小值，不考虑值为0的元素
+// MaxIndex 和 MinIndex 包含了最大值和最小值的索引
+
+
+//当前时间和最大最小比较 
+IF ulRealTime<MinVal*1000000 THEN //小于插值范围 取最小时间
+	//
+	ulInterRealTime:=MinVal*1000000; //应该修改插值位置 而不是时间
+ELSIF ulRealTime>MaxVal*1000000THEN //大于插值范围 取最大时间
+	//
+	ulInterRealTime:=MaxVal*1000000;//应该修改插值位置 而不是时间
+ELSE
+	//如果内部有0 则不插值选取最新的数据
+	FOR j:=1 TO 5 DO
+		IF (Arr[i]=0) AND (j<5) THEN
+			ulInterRealTime:=Arr[5];//应该修改插值位置 而不是时间
+			MaxIndex:=5;
+			EXIT;
+		ELSIF (Arr[i]=0) AND (j=5) THEN
+			//没有输入数据 需要报错吗？
+		END_IF
+	END_FOR
+	//
+END_IF

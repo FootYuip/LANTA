@@ -1,0 +1,6 @@
+# kind=device_node
+# name=GC5016_Digital_Input_Output
+# source=projectstructure_only
+# objectId=b02ae4dd-f14f-4475-a6fd-ee4b233bd8f0
+
+# note=GC5016 数字量 IO 模块配置占位。

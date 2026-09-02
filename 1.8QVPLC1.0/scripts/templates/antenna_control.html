@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>三轴 Modbus 控制</title>
+  <style>
+    :root {
+      --bg: #0f1419; --panel: #1a2332; --border: #2d3a4f;
+      --text: #e7ecf3; --muted: #8b9cb3;
+      --accent: #3b82f6; --ok: #22c55e; --warn: #f59e0b; --danger: #ef4444;
+      --az: #60a5fa; --el: #34d399; --ti: #c084fc;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 40px; }
+    h1 { font-size: 1.4rem; margin: 0 0 4px; }
+    .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 20px; }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; }
+    .card h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 0 0 12px; }
+    .grid3 { display: grid; gap: 14px; }
+    @media (min-width: 800px) { .grid3 { grid-template-columns: repeat(3, 1fr); } }
+    .axis-card { border-top: 3px solid var(--border); }
+    .axis-card.az { border-top-color: var(--az); }
+    .axis-card.el { border-top-color: var(--el); }
+    .axis-card.ti { border-top-color: var(--ti); }
+    .axis-title { font-size: 1rem; font-weight: 600; margin-bottom: 2px; }
+    .axis-meta { font-size: 0.7rem; color: var(--muted); margin-bottom: 12px; line-height: 1.4; }
+    label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 3px; }
+    input { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: #0d1117; color: var(--text); margin-bottom: 8px; }
+    input:focus { outline: 2px solid var(--accent); }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; }
+    button { padding: 8px 12px; border: none; border-radius: 6px; font-size: 0.82rem; cursor: pointer; font-weight: 500; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-p { background: var(--accent); color: #fff; }
+    .btn-s { background: #334155; color: var(--text); }
+    .btn-ok { background: #15803d; color: #fff; }
+    .btn-w { background: #b45309; color: #fff; }
+    .btn-d { background: var(--danger); color: #fff; }
+    .btn-busy { opacity: 0.6; pointer-events: none; }
+    .pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; }
+    .pill.off { background: #374151; color: var(--muted); }
+    .pill.on { background: rgba(34,197,94,0.2); color: var(--ok); }
+    .fb { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; font-size: 0.78rem; }
+    .fb div { background: #0d1117; padding: 6px 8px; border-radius: 6px; }
+    .fb .k { color: var(--muted); font-size: 0.65rem; }
+    .fb .v { font-variant-numeric: tabular-nums; font-weight: 600; }
+    .log { margin-top: 10px; padding: 10px; background: #0d1117; border-radius: 8px; font-size: 0.8rem; color: var(--muted); min-height: 2em; }
+    .log.err { color: #fca5a5; }
+    .hint { color: var(--warn); font-size: 0.78rem; margin-top: 6px; }
+    .global-row { margin-bottom: 10px; }
+    .survey-log { max-height: 160px; overflow-y: auto; font-family: ui-monospace, monospace; font-size: 0.72rem; line-height: 1.45; white-space: pre-wrap; }
+    .progress-bar { height: 6px; background: #0d1117; border-radius: 3px; margin: 10px 0 6px; overflow: hidden; }
+    .progress-bar > span { display: block; height: 100%; background: var(--ti); width: 0%; transition: width 0.3s; }
+    .survey-status { font-size: 0.82rem; color: var(--muted); margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>三轴 Modbus 控制</h1>
+    <p class="sub">方位 Axis2 · 俯仰 Axis1 · 倾斜 Axis3 — 每轴独立 iMode / 角度 / PID</p>
+
+    <section class="card">
+      <h2>连接</h2>
+      <div class="row">
+        <div style="flex:1;min-width:140px">
+          <label>PLC IP</label>
+          <input id="plcHost" value="{{ default_host }}" />
+        </div>
+        <div style="width:90px">
+          <label>端口</label>
+          <input id="plcPort" type="number" value="502" />
+        </div>
+        <div class="row" style="align-items:flex-end;padding-bottom:8px">
+          <button id="btnConnect" class="btn-p" type="button">连接</button>
+          <button id="btnDisconnect" class="btn-s" type="button" disabled>断开</button>
+          <span id="connPill" class="pill off">未连接</span>
+        </div>
+      </div>
+      <p id="connHint" class="hint">请先连接 PLC。CODESYS: GVL.bLocalCtrl=FALSE</p>
+    </section>
+
+    <section class="card global-row">
+      <h2>整机</h2>
+      <div class="row">
+        <button id="btnAllOn" class="btn-ok" type="button">三轴上电</button>
+        <button id="btnAllOff" class="btn-d" type="button">三轴下电</button>
+        <button id="btnAllHalt" class="btn-w" type="button">三轴 Halt</button>
+        <button id="btnStopHold" class="btn-w" type="button">停止持续下发</button>
+      </div>
+    </section>
+
+    <div class="grid3" id="axisPanels"></div>
+
+    <section class="card">
+      <h2>倾斜轴一键扫描（倾角传感器）</h2>
+      <p class="hint" style="margin-top:0">仅操作倾斜轴 Ti，不对方位/俯仰上电或写 HR；每点 |实际−目标| &lt; 0.05° 后采集</p>
+      <div class="row">
+        <div style="flex:1;min-width:140px">
+          <label>传感器 IP</label>
+          <input id="sensorHost" value="192.168.1.168" />
+        </div>
+        <div style="width:90px">
+          <label>端口</label>
+          <input id="sensorPort" type="number" value="10123" />
+        </div>
+        <div style="width:80px">
+          <label>步距 (°)</label>
+          <input id="surveyStep" type="number" value="15" />
+        </div>
+        <div style="width:90px">
+          <label>停驻 (s)</label>
+          <input id="surveyDwell" type="number" step="0.5" value="10" />
+        </div>
+        <div style="width:90px">
+          <label>Ti 速度</label>
+          <input id="surveyTiVel" type="number" step="0.1" value="2" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:4px">
+        <button id="btnTiltSurvey" class="btn-p" type="button">一键倾斜扫描</button>
+        <button id="btnTiltSurveyStop" class="btn-d" type="button" disabled>停止扫描</button>
+      </div>
+      <div class="progress-bar"><span id="surveyProgress"></span></div>
+      <div id="surveyStatus" class="survey-status">未运行</div>
+      <div id="surveyLog" class="log survey-log">扫描日志将显示在此</div>
+    </section>
+
+    <section class="card">
+      <div id="msg" class="log">就绪</div>
+    </section>
+  </div>
+
+  <script>
+    const AXES = [
+      { id: "az", name: "方位", plc: "Axis2", hr: "HR[8]", cls: "az", defaultPos: 0, defaultVel: 4 },
+      { id: "el", name: "俯仰", plc: "Axis1", hr: "HR[19]", cls: "el", defaultPos: 120, defaultVel: 4, note: "软限位约 93°~180°" },
+      { id: "ti", name: "倾斜", plc: "Axis3", hr: "HR[30]", cls: "ti", defaultPos: 0, defaultVel: 2 },
+    ];
+
+    let connected = false;
+    let pollTimer = null;
+    let surveyPollTimer = null;
+    let surveyRunning = false;
+
+    const $ = (id) => document.getElementById(id);
+
+    function buildPanels() {
+      const root = $("axisPanels");
+      root.innerHTML = AXES.map((a) => `
+        <section class="card axis-card ${a.cls}" data-axis="${a.id}">
+          <div class="axis-title">${a.name}</div>
+          <div class="axis-meta">${a.plc} · ${a.hr}${a.note ? " · " + a.note : ""}</div>
+          <label>目标角度 (°)</label>
+          <input id="pos_${a.id}" type="number" step="0.001" value="${a.defaultPos}" />
+          <label>指向速度上限 (°/s)</label>
+          <input id="vel_${a.id}" type="number" step="0.1" value="${a.defaultVel}" />
+          <label class="row" style="align-items:center;gap:6px;margin:6px 0 8px">
+            <input type="checkbox" id="pid_${a.id}" checked style="width:auto;margin:0" />
+            <span style="font-size:0.78rem;color:var(--muted)">PID 使能 (HR[7])</span>
+          </label>
+          <div class="row">
+            <button class="btn-ok btn-on" type="button" data-axis="${a.id}">上电</button>
+            <button class="btn-p btn-point" type="button" data-axis="${a.id}">指向</button>
+            <button class="btn-w btn-halt" type="button" data-axis="${a.id}">Halt</button>
+            <button class="btn-d btn-off" type="button" data-axis="${a.id}">下电</button>
+          </div>
+          <div class="fb">
+            <div><div class="k">实际位置</div><div class="v" id="fb_pos_${a.id}">—</div></div>
+            <div><div class="k">iMode</div><div class="v" id="fb_mode_${a.id}">—</div></div>
+            <div><div class="k">速度</div><div class="v" id="fb_vel_${a.id}">—</div></div>
+            <div><div class="k">—</div><div class="v">—</div></div>
+          </div>
+        </section>
+      `).join("");
+
+      root.querySelectorAll(".btn-on").forEach((b) => b.onclick = () => axisPowerOn(b.dataset.axis));
+      root.querySelectorAll(".btn-point").forEach((b) => b.onclick = () => axisPoint(b.dataset.axis));
+      root.querySelectorAll(".btn-halt").forEach((b) => b.onclick = () => axisHalt(b.dataset.axis));
+      root.querySelectorAll(".btn-off").forEach((b) => b.onclick = () => axisPowerOff(b.dataset.axis));
+    }
+
+    function axisPayload(axis) {
+      return {
+        axis,
+        pos: parseFloat($("pos_" + axis).value),
+        vel: parseFloat($("vel_" + axis).value),
+        no_pid: !$("pid_" + axis).checked,
+      };
+    }
+
+    function allPayload() {
+      const p = { wait: 3 };
+      AXES.forEach((a) => {
+        p[a.id + "_pos"] = parseFloat($("pos_" + a.id).value);
+      });
+      return p;
+    }
+
+    function setMsg(t, err) {
+      const el = $("msg");
+      el.textContent = t;
+      el.className = err ? "log err" : "log";
+    }
+
+    function setConnected(on) {
+      connected = on;
+      $("connPill").className = on ? "pill on" : "pill off";
+      $("connPill").textContent = on ? "已连接" : "未连接";
+      $("btnConnect").disabled = on;
+      $("btnDisconnect").disabled = !on;
+      $("connHint").style.display = on ? "none" : "block";
+      if (!on) AXES.forEach((a) => {
+        $("fb_pos_" + a.id).textContent = "—";
+        $("fb_mode_" + a.id).textContent = "—";
+        $("fb_vel_" + a.id).textContent = "—";
+      });
+    }
+
+    function applyStatus(st) {
+      if (!st) return;
+      const map = {
+        az: { pos: st.az_deg, mode: st.az_mode, vel: st.az_vel_deg_s },
+        el: { pos: st.el_deg, mode: st.el_mode, vel: st.el_vel_deg_s },
+        ti: { pos: st.ti_deg, mode: st.ti_mode, vel: st.ti_vel_deg_s },
+      };
+      AXES.forEach((a) => {
+        const m = map[a.id];
+        $("fb_pos_" + a.id).textContent = fmt(m.pos);
+        $("fb_mode_" + a.id).textContent = m.mode ?? "—";
+        $("fb_vel_" + a.id).textContent = fmt(m.vel, 2);
+      });
+    }
+
+    function fmt(v, d = 3) {
+      return v == null || Number.isNaN(v) ? "—" : Number(v).toFixed(d);
+    }
+
+    function requireConn() {
+      if (!connected) {
+        setMsg("请先连接 PLC（http://127.0.0.1:8765 打开）", true);
+        return false;
+      }
+      return true;
+    }
+
+    async function api(path, method, body) {
+      const opt = { method: method || "GET", headers: { "Content-Type": "application/json" } };
+      if (body) opt.body = JSON.stringify(body);
+      let res;
+      try { res = await fetch(path, opt); }
+      catch (e) { throw new Error("请运行 python scripts/modbus_web_app.py"); }
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "失败");
+      return data;
+    }
+
+    async function refreshStatus() {
+      if (!connected) return;
+      try {
+        const d = await api("/api/status");
+        if (d.status) applyStatus(d.status);
+      } catch (e) { setMsg("状态: " + e.message, true); }
+    }
+
+    $("btnConnect").onclick = async () => {
+      try {
+        const d = await api("/api/connect", "POST", {
+          host: $("plcHost").value.trim(),
+          port: parseInt($("plcPort").value, 10) || 502,
+        });
+        setConnected(true);
+        applyStatus(d.status);
+        setMsg("已连接");
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = setInterval(refreshStatus, 1000);
+      } catch (e) { setMsg(e.message, true); }
+    };
+
+    $("btnDisconnect").onclick = async () => {
+      await api("/api/disconnect", "POST");
+      setConnected(false);
+      if (pollTimer) clearInterval(pollTimer);
+      setMsg("已断开");
+    };
+
+    async function axisPowerOn(axis) {
+      if (!requireConn()) return;
+      setMsg(AXES.find(a => a.id === axis).name + " 上电中…约 3s");
+      try {
+        const d = await api("/api/axis/power-on", "POST", { ...axisPayload(axis), wait: 3 });
+        if (d.status) applyStatus(d.status);
+        setMsg(d.message || "上电完成");
+      } catch (e) { setMsg(e.message, true); }
+    }
+
+    async function axisPoint(axis) {
+      if (!requireConn()) return;
+      try {
+        const d = await api("/api/axis/point", "POST", axisPayload(axis));
+        setMsg(d.message || "指向中");
+      } catch (e) { setMsg(e.message, true); }
+    }
+
+    async function axisHalt(axis) {
+      if (!requireConn()) return;
+      setMsg("Halt…");
+      try {
+        const d = await api("/api/axis/halt", "POST", { axis });
+        if (d.status) applyStatus(d.status);
+        setMsg(d.message || "Halt 完成");
+      } catch (e) { setMsg(e.message, true); }
+    }
+
+    async function axisPowerOff(axis) {
+      if (!requireConn()) return;
+      try {
+        const d = await api("/api/axis/power-off", "POST", { axis });
+        setMsg(d.message || "下电");
+        await refreshStatus();
+      } catch (e) { setMsg(e.message, true); }
+    }
+
+    $("btnAllOn").onclick = async () => {
+      if (!requireConn()) return;
+      setMsg("三轴上电中…约 3s");
+      try {
+        const d = await api("/api/power-on-all", "POST", allPayload());
+        if (d.status) applyStatus(d.status);
+        setMsg(d.message || "三轴上电完成");
+      } catch (e) { setMsg(e.message, true); }
+    };
+
+    $("btnAllOff").onclick = async () => {
+      if (!requireConn()) return;
+      try {
+        const d = await api("/api/power-off-all", "POST");
+        setMsg(d.message || "三轴下电");
+        await refreshStatus();
+      } catch (e) { setMsg(e.message, true); }
+    };
+
+    $("btnAllHalt").onclick = async () => {
+      if (!requireConn()) return;
+      try {
+        const d = await api("/api/axis/halt", "POST", { all: true });
+        if (d.status) applyStatus(d.status);
+        setMsg(d.message || "三轴 Halt");
+      } catch (e) { setMsg(e.message, true); }
+    };
+
+    $("btnStopHold").onclick = async () => {
+      if (!requireConn()) return;
+      try {
+        const d = await api("/api/stop-hold", "POST");
+        setMsg(d.message || "已停止");
+      } catch (e) { setMsg(e.message, true); }
+    };
+
+    function setSurveyRunning(on) {
+      surveyRunning = on;
+      $("btnTiltSurvey").disabled = on;
+      $("btnTiltSurveyStop").disabled = !on;
+      $("btnTiltSurvey").classList.toggle("btn-busy", on);
+    }
+
+    function applySurveyStatus(s) {
+      if (!s) return;
+      const prog = s.progress || {};
+      const total = s.total || prog.total || 0;
+      const seg = prog.segment || s.collected || 0;
+      const pct = total ? Math.min(100, Math.round((seg / total) * 100)) : 0;
+      $("surveyProgress").style.width = s.running ? pct + "%" : (s.phase === "done" ? "100%" : "0%");
+
+      const phaseMap = {
+        idle: "未运行",
+        starting: "启动中…",
+        power_on: "倾斜轴上电…",
+        moving: "运动中",
+        collecting: "采集中",
+        segment_done: "本点完成",
+        settle_timeout: "到位超时（已跳过）",
+        running: "扫描中",
+        done: "已完成",
+        cancelled: "已取消",
+        error: "出错",
+      };
+      let line = phaseMap[s.phase] || s.phase || "—";
+      if (prog.target_ti != null) {
+        line += ` · 目标 Ti=${Number(prog.target_ti).toFixed(1)}°`;
+        if (prog.actual_ti != null) line += ` 实际=${Number(prog.actual_ti).toFixed(3)}°`;
+      }
+      if (total) line += ` · ${s.collected ?? prog.collected ?? 0}/${total} 点已采`;
+      if (s.error) line += " · " + s.error;
+      if (s.result && s.result.csv_path) line += " · 已保存 CSV";
+      $("surveyStatus").textContent = line;
+
+      const logs = s.log || [];
+      if (logs.length) $("surveyLog").textContent = logs.join("\n");
+      $("surveyLog").scrollTop = $("surveyLog").scrollHeight;
+
+      setSurveyRunning(!!s.running);
+    }
+
+    async function refreshSurveyStatus() {
+      try {
+        const d = await api("/api/tilt-survey/status");
+        if (d.survey) applySurveyStatus(d.survey);
+      } catch (e) { /* ignore when app not ready */ }
+    }
+
+    $("btnTiltSurvey").onclick = async () => {
+      const plcHost = $("plcHost").value.trim();
+      if (!plcHost) {
+        setMsg("请填写 PLC IP", true);
+        return;
+      }
+      setMsg("启动倾斜扫描…");
+      try {
+        const d = await api("/api/tilt-survey/start", "POST", {
+          plc_host: plcHost,
+          plc_port: parseInt($("plcPort").value, 10) || 502,
+          sensor_host: $("sensorHost").value.trim(),
+          sensor_port: parseInt($("sensorPort").value, 10) || 10123,
+          step: parseInt($("surveyStep").value, 10) || 15,
+          dwell: parseFloat($("surveyDwell").value) || 10,
+          ti_vel: parseFloat($("surveyTiVel").value) || 2,
+        });
+        setSurveyRunning(true);
+        setMsg(d.message || "扫描已启动");
+        if (surveyPollTimer) clearInterval(surveyPollTimer);
+        surveyPollTimer = setInterval(refreshSurveyStatus, 800);
+        refreshSurveyStatus();
+      } catch (e) { setMsg(e.message, true); }
+    };
+
+    $("btnTiltSurveyStop").onclick = async () => {
+      try {
+        const d = await api("/api/tilt-survey/stop", "POST");
+        setMsg(d.message || "正在停止");
+        refreshSurveyStatus();
+      } catch (e) { setMsg(e.message, true); }
+    };
+
+    buildPanels();
+    refreshSurveyStatus();
+    setInterval(refreshSurveyStatus, 3000);
+  </script>
+</body>
+</html>

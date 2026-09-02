@@ -1,0 +1,164 @@
+# kind=program
+# name=Ti_ctrl_1
+# objectId=e86aacd1-719d-4a98-a0f2-ae7fae70687c
+
+VAR
+    Axis3_Ctrl : Ti_Ctrl_FB;
+    bRemote2LocalStop : BOOL;
+    bLocal2RemoteStop : BOOL;
+    Error : INT;
+    Axis3Limit_pos : REAL;
+    Axis3Limit_Neg : REAL;
+    bRTriger : Standard.R_TRIG;
+    bFTriger : Standard.F_TRIG;
+    Stop3_Count : INT;
+    bStop_3 : BOOL;
+    rPosModeStepBias : LREAL;
+    rPosModeStep : LREAL;
+    rStepBiasMax : LREAL;
+    rStepBias : LREAL;
+    rStep : LREAL;
+    rAuToStepBias : LREAL;
+    rAutoStep : LREAL;
+    TbAutoTrigger : Standard.F_TRIG;
+    RbAutoTrigger : Standard.R_TRIG;
+    rAutoTrackingBiasMax : LREAL;
+    rLocalInitPosModeSpeed : REAL;
+    rRemoteInitPosModeSpeed : REAL;
+    iCountOffAuto : INT;
+    iCasePBAutoTrack : INT;
+    rKAuToStepBias : LREAL;
+    bVisError : BOOL;
+END_VAR
+
+// --- implementation (ST) ---
+(*==============================================================================
+  PRG: Ti_ctrl_1（倾斜轴 Ti 顶层程序）
+  任务: Canopen 10ms
+  作用: 倾斜轴反馈、状态、远/本控切换保护，调用 Ti_Ctrl_FB
+  与 El/Az 差异:
+    - 无 AGC 搜索、无自跟踪拉偏（相关代码已注释）
+    - 未在此程序内赋值 rPIDCmdPos（由 Modbus/其他模块写入后仅做限位）
+    - 远控→本控切换时仅强制 Axis3Remote.iMode:=7（本控 mode 未同步置 7）
+    - 本控上限钳位有一处写 Axis2Local（原工程保留，勿改）
+  软限位: ±190°
+==============================================================================*)
+IF GVL.Error_code <> 0 THEN
+	bVisError := TRUE;
+ELSE
+	bVisError := FALSE;
+END_IF
+
+(* 远控参量注释块为历史 Az 轴拷贝，倾斜轴参数由 Modbus_Slave 写入 Axis3Remote *)
+
+// =============================================================================
+// 段 1: 驱动状态 → Axis3Status
+// =============================================================================
+Axis3Status.Error := GVL.bTiStsBit3;
+Axis3Status.ErrorID := GVL.eTiErrorcode;
+Axis3Status.bServo_Enable := GVL.bTiStsBit0 AND GVL.bTiStsBit1 AND GVL.bTiStsBit2;
+Axis3Status.bBrake := NOT (GVL.bTiStsBit0 AND GVL.bTiStsBit1 AND GVL.bTiStsBit2);
+Axis3Status.Disabled := NOT (GVL.bTiStsBit0 AND GVL.bTiStsBit1 AND GVL.bTiStsBit2);
+Axis3Remote.rSoft_limit_Negative:=-190;Axis3Remote.rSoft_limit_Postive:=190;
+Axis3Local.rSoft_limit_Negative:=-190;Axis3Local.rSoft_limit_Postive:=190;
+
+// =============================================================================
+// 段 2: CANopen 反馈 → rFctVelReal_3 / rFctPosReal_3
+// =============================================================================
+rFctVelReal_3:=DINT_TO_REAL(diTiActVel)/524288.0*360.0;
+rFctPosReal_3:=DINT_TO_REAL(diTiActPos)/524288.0*360.0;
+
+// =============================================================================
+// 段 3: rPosCmd 硬限位 ±190°
+// 注意: 上限分支写的是 Axis2Local（原代码），与 Axis3Local 不一致，保持不改
+// =============================================================================
+Axis3Limit_pos:=190;
+Axis3Limit_Neg:=-190;
+IF Axis3Remote.rPosCmd>Axis3Limit_pos THEN
+	Axis3Remote.rPosCmd:=190;
+ELSIF Axis3Remote.rPosCmd<Axis3Limit_Neg THEN
+	 Axis3Remote.rPosCmd:=-190;  
+END_IF
+
+IF Axis3Local.rPosCmd>Axis3Limit_pos THEN
+	Axis2Local.rPosCmd:=190;
+ELSIF Axis3Local.rPosCmd<Axis3Limit_Neg THEN
+	 Axis3Local.rPosCmd:=-190;  
+END_IF
+
+// =============================================================================
+// 段 4: 停稳判定 → Axis3Status.Moving
+// =============================================================================
+IF  ABS(rFctVelReal_3)<0.035 THEN
+	Stop3_Count:=Stop3_Count+1;
+	IF Stop3_Count>100 THEN
+		Stop3_Count:=101;
+		bStop_3:=TRUE;;
+	END_IF
+ELSE
+	Stop3_Count:=0;
+	bStop_3:=FALSE;
+END_IF
+Axis3Status.Moving := NOT bStop_3;
+
+// =============================================================================
+// 段 5: PID 使能（mode 2 / 4）
+// =============================================================================
+IF Axis3Remote.iMode=2 OR Axis3Remote.iMode=4 THEN
+	Axis3Remote.bPIDEnable:=TRUE;
+ELSE
+	Axis3Remote.bPIDEnable:=FALSE;
+END_IF
+
+// =============================================================================
+// 段 6: 远控 ↔ 本控 切换保护
+// 远→本: 仅 Axis3Remote.iMode:=7（与 El/Az 双轴同步 halt 不同）
+// =============================================================================
+bRTriger(CLK:=GVL.bLocalCtrl);
+bFTriger(CLK:=GVL.bLocalCtrl);
+
+IF Axis3Status.bServo_Enable AND (bRTriger.Q ) THEN//如果速度不为0且本控发生切换，则减速停止标识为True
+	bRemote2LocalStop:=TRUE;
+END_IF
+IF bRemote2LocalStop  THEN //若减速停止标识符为True 
+	
+	IF  bStop_3=TRUE THEN//且电机速度不为0 开始减速 减速完成后下使能，下使能完成后复位标识符复位
+		Axis3Local.iMode:=0;
+		Axis3Remote.iMode:=0;
+		IF Axis3Status.bServo_Enable=FALSE THEN
+			bRemote2LocalStop:=FALSE;
+		END_IF
+	ELSE
+		Axis3Remote.iMode:=7;
+	END_IF
+END_IF
+
+IF Axis3Status.bServo_Enable AND (bFTriger.Q ) THEN//如果速度不为0且本控发生切换，则减速停止标识为True
+	bLocal2RemoteStop:=TRUE;
+END_IF
+IF bLocal2RemoteStop  THEN //若减速停止标识符为True 
+	
+	IF  bStop_3=TRUE THEN//且电机速度不为0 开始减速 减速完成后下使能，下使能完成后复位标识符复位
+		Axis3Local.iMode:=0;
+		Axis3Remote.iMode:=0;
+		IF Axis3Status.bServo_Enable=FALSE THEN
+			bLocal2RemoteStop:=FALSE;
+		END_IF
+	ELSE
+		Axis3Remote.iMode:=7;
+		Axis3Local.iMode:=7;
+	END_IF
+END_IF
+
+(* 自跟踪与 rPIDCmdPos 程引合成在此轴已注释，当前仅对既有 rPIDCmdPos 做限位 *)
+
+// =============================================================================
+// 段 7: rPIDCmdPos 限位（赋值在其他 POU，如 Modbus_Slave / RealTimePosCal）
+// =============================================================================
+IF Axis3Remote.rPIDCmdPos<-190 THEN
+	Axis3Remote.rPIDCmdPos:=-190;
+ELSIF Axis3Remote.rPIDCmdPos>190 THEN
+	Axis3Remote.rPIDCmdPos:=190;
+END_IF
+
+Axis3_Ctrl(sLocal:=Axis3Local, sCtrl:=Axis3Remote, sStatus:=Axis3Status, sVisible:=Axis3Visible, rRealPos:=rFctPosReal_3, rPosLimK:=0.34);

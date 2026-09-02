@@ -1,0 +1,10 @@
+# kind=task
+# name=SerialCom
+# interval=PT0.005S
+# priority=1
+# intervalSetting=5ms
+# objectId=6596ecc1-f432-4441-a323-0f730a93fc62
+
+# bound POUs:
+#   - READ_485
+#   - GPRMC_1

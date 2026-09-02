@@ -1,0 +1,6 @@
+# kind=device_node
+# name=SoftMotion General Axis Pool
+# source=projectstructure_only
+# objectId=2e18e4cd-78e3-4ee8-affb-aaa8ddf0d2bf
+
+# note=SoftMotion 轴池配置占位。

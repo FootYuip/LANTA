@@ -1,0 +1,12 @@
+# kind=union
+# name=Time2Word
+# objectId=88e7e191-4b86-4d8b-a147-f465a151161e
+
+TYPE Time2Word :
+UNION
+    uliData : ULINT;
+    wWords : ARRAY[1..4] OF WORD;
+    lrReal : LREAL;
+    arReal : ARRAY[0..1] OF REAL;
+END_UNION
+END_TYPE

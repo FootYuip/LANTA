@@ -47,18 +47,6 @@ VAR
 END_VAR
 
 // --- implementation (ST) ---
-(*==============================================================================
-  FB: SpiralScan_1（捕获扫描：螺旋扫描）
-  调用者: `SecurityCheck`（段 11），PersistentVars.bSearchType=TRUE 时使用
-
-  与 SpiralScan 区别:
-    - 不做矩形格点，而是在网格上按“右→上→左→下”方向逐圈扩展
-    - 每一段线性分割为 n_steps 步输出（segment_*_step）
-    - 当达到边界条件（az≈4*delta 且 el≈0）或提前锁定即结束
-
-  输出 best_az/best_el:
-    - 每拍若 agc 更大，则记录 best_* = -Error（表示需要反向修正误差）
-==============================================================================*)
 IF NOT enable THEN
     state := 0;
     azimuth := 0.0;
@@ -72,32 +60,12 @@ IF NOT enable THEN
     best_az := 0.0;
     best_el := 0.0;
 	icountInit := 0;
+	bType := FALSE;
 ELSE
     CASE state OF
-        // --- 状态0：判断是否已锁定 ---
         0:
-			
-            
-			icountInit := icountInit + 1;
-			IF icountInit >= 100 THEN
-				icountInit := 101;
-				icount0 := icount0 + 1;
-				IF locked THEN
-					lock_count := lock_count + 1;
-				END_IF;
-				IF icount0 >= 100 THEN
-					IF lock_count >= 10 THEN
-						done := TRUE;
-						state := 2;   // 提前结束
-						lock_count := 0;
-					ELSE
-						state := 1;   // 转入扫描
-						lock_count := 0;
-					END_IF;
-				END_IF
-			END_IF
-
-        // --- 状态1：执行螺旋扫描 ---
+			state := 1;
+			lock_count := 0;
         1:
             IF NOT bInit THEN
 				x := 0.0; y := 0.0;
@@ -114,37 +82,26 @@ ELSE
 				segment_progress := 0.0;
 				bInit := TRUE;
 			ELSE
-				
-				
 				azimuth := az0 + segment_az_step * (segment_progress + 1.0);
 				elevation := el0 + segment_el_step * (segment_progress + 1.0);
 				segment_progress := segment_progress + 1.0;
-				(*
-				IF SQRT(azimuth * azimuth + elevation * elevation) > max_radius THEN
-						state := 2;
-				END_IF
-				*)
-				
+
 				IF segment_progress >= n_steps THEN
 					segment_progress := 0.0;
 					az0 := az1;
 					el0 := el1;
-					// 曼哈顿坐标前进一格
 					x := x + dx;
 					y := y + dy;
 					move_count := move_count + 1.0;
-		
+
 					az1 := delta * x;
 					el1 := delta * y;
 					segment_az_step := (az1 - az0) / n_steps;
 					segment_el_step := (el1 - el0) / n_steps;
-		
-					// 计数并判断是否转弯
+
 					step_count := step_count + 1.0;
 					IF step_count >= step_len THEN
 						step_count := 0.0;
-		
-						// 不使用临时变量交换 dx/dy，改为三步法旋转（右→上→左→下）
 						IF dx = 1.0 AND dy = 0.0 THEN
 							dx := 0.0; dy := 1.0;
 						ELSIF dx = 0.0 AND dy = 1.0 THEN
@@ -154,24 +111,19 @@ ELSE
 						ELSIF dx = 0.0 AND dy = -1.0 THEN
 							dx := 1.0; dy := 0.0;
 						END_IF
-		
+
 						side_repeat := side_repeat + 1.0;
 						IF side_repeat >= 2.0 THEN
 							side_repeat := 0.0;
 							step_len := step_len + 1.0;
 						END_IF
 					END_IF
-					
-					
 				END_IF
-				
-				IF agc > best_agc THEN
-					best_agc := agc;
-					best_az := -Azerror;
-					best_el := -elError;
-				END_IF;
-				
+
 				IF ABS(azimuth - 4 * delta) < 1E-6 AND ABS(elevation) < 1E-6 THEN
+					azimuth := 0.0;
+					elevation := 0.0;
+					done := TRUE;
 					state := 3;
 				ELSE
 					IF locked THEN
@@ -180,31 +132,23 @@ ELSE
 					   lock_count := 0;
 					END_IF
 					IF lock_count >= 10 THEN
+					   azimuth := -Azerror;
+            		   elevation := -elError;
 					   done := TRUE;
-					   state := 2;   // 提前结束
-					   azimuth := best_az;
-            		   elevation := best_el;
+					   state := 2;
 					END_IF
 				END_IF
-				
-				
 			END_IF
-        // --- 状态2：提前锁定完成 ---
         2:
-            // 保持当前位置即可
             done := TRUE;
-			
-
-        // --- 状态3：完成，输出最佳格点 ---
         3:
-            azimuth := best_az;
-            elevation := best_el;
+            azimuth := 0.0;
+            elevation := 0.0;
             done := TRUE;
-
     END_CASE
-	IF state = 3 THEN
-		bType := FALSE;
-	ELSE
+	IF state = 2 THEN
 		bType := TRUE;
+	ELSIF state = 3 THEN
+		bType := FALSE;
 	END_IF
 END_IF;

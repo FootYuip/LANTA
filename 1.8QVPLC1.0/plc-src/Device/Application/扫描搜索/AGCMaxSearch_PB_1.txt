@@ -47,24 +47,6 @@ VAR
 END_VAR
 
 // --- implementation (ST) ---
-(*==============================================================================
-  FB: AGCMaxSearch_PB_1（AGC 峰值搜索：单轴拉偏搜索）
-  调用者: `Az_ctrl_1` / `El_ctrl_1`
-  目标: 在指向(mode2)或程引(mode4)时，沿单轴正/负方向试探移动 rStepBias，
-        找到使 AGC 最大的位置偏置 rAGCMaxBias，并在到位稳定后置 bSucess
-
-  关键变量含义:
-    rStepBias      — 当前偏置输出（逐步累加 rDirection*rStep）
-    rAGCMaxBias    — 历史最大 AGC 对应的偏置
-    rAGCInit       — 启动时 AGC 基线
-    rSensitivity   — 判定“AGC 明显下降/上升”的阈值，用于决定停止/换向
-    iCountDirChange— 换向次数；=2 后进入“回到峰值位置并等待稳定”阶段
-
-  完成判定:
-    - 偏置回到 rAGCMaxBias 后，(rInterPos+rStepBias) 与 rCurrentPos 误差持续小于 0.002
-    - 持续计数超过 iCountBlockEndMax 后，再用 TON(1s) 确认稳定 → bSucess=TRUE
-==============================================================================*)
-
 rTrg(CLK:=bstart,Q=>);
 
 IF rTrg.Q THEN

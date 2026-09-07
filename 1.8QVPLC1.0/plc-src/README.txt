@@ -1,10 +1,10 @@
 plc-src export index
 ====================
 
-Source XML: 1m8QV2026年3月28日 - 信号稳定延长 - 10ms - 副本.xml
-Project: 1m8QV2026年3月28日 - 信号稳定延长 - 10ms - 副本.project
+Source XML: EbN0扫描捕获.xml
+Project: EbN0扫描捕获.project
 CODESYS: CODESYS V3.5 SP18
-Export time (from XML): 2026-06-03T09:30:15.46669
+Export time (from XML): 2026-09-04T15:41:08.1763429
 
 Statistics:
   POUs: 33

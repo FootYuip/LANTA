@@ -19,42 +19,45 @@ VAR
 END_VAR
 
 // --- implementation (ST) ---
-(*==============================================================================
-  PRG: AutoTrackingCal（自跟踪误差电压处理）
-  任务: Canopen 10ms
-  输入: GVL.Chan1Ua/Ue/AGC/Lock（由 READ_485 写入）
-  输出（程序内变量，供 *_ctrl_1 引用）:
-    rChanUa  — 方位误差电压（已÷灵敏度、÷cos(俯仰)）
-    rChanUe  — 俯仰误差电压（已÷灵敏度）
-    rAzSum / rElSum — 累积拉偏量（当前未回写到 GVL）
-  使用:
-    El_ctrl_1: rChanUe → rChanU / rAuToStepBias
-    Az_ctrl_1: -rChanUa → rChanU / rAuToStepBias
-  注意:
-    rDirSenFac、rk 在导出代码中未见赋值，可能来自 Modbus/HMI 或需人工确认
-    rChanUaLocal / rChanUeLocal 未见赋值，本控自跟踪可能依赖未初始化值（原工程保留）
-==============================================================================*)
-(* 旧版按 iState 直接映射 GVL 通道，已注释 *)
+(*
+IF iState=1 THEN
+	rChanUa:=GVL.Chan1Ua;
+	rChanUe:=GVL.Chan1Ue;
+	rChanAGC:=GVL.Chan1AGC;
+	bChanLock:=TRUE;
+ELSIF iState=2 THEN
+	rChanUa:=GVL.Chan2Ua;
+	rChanUe:=GVL.Chan2Ue;
+	rChanAGC:=GVL.Chan2AGC;
+	bChanLock:=TRUE;
+ELSE 
+	bChanLock:=FALSE;
+END_IF
+*)
 
 //iState:=modbusSlave.Trace_Num;//跟踪支路选择
-iState:=1;                             // 固定使用跟踪接收机 1
+iState:=1;
 
 CASE iState OF 
 	1://使用跟踪接收机1 且锁定标识为True
-		// ----- 自跟踪使能且（锁定或 SecurityCheck 误差电压足够小）-----
+		//
+		//bChanLock:=TRUE;
+		//方位
 		IF GVL.bStartTrack AND (GVL.Chan1Lock OR Securitycheck.bErrorLock) THEN
-			// 方位：原始 Ua → ÷灵敏度 → ÷cos(El) 补偿大仰角时方位耦合
+			//根据误差电压正负决定拉偏方向
 			rChanUa:=GVL.Chan1Ua;
+			//rChanUa:=rChanUa/UDINT_TO_REAL(modbusSlave.DirSenFac);
 			rChanUa:=rChanUa/rDirSenFac;
 			rCurentEl:=(rFctPosReal_1-90)*3.1415926535897/180.0;
 			rChanUa:=rChanUa/COS(rCurentEl);
 			
-			// 俯仰：原始 Ue → ÷灵敏度
+			//俯仰
 			rChanUe:=GVL.Chan1Ue;
+			//rChanUe:=rChanUe/UDINT_TO_REAL(modbusSlave.DirSenFac);;
 			rChanUe:=rChanUe/rDirSenFac;
 			rChanAGC:=GVL.Chan1AGC;
 			
-			// 累积量（供扩展；当前 *_ctrl_1 主要用瞬时 rChanUa/Ue）
+			//累积量
 			rAzSum:=rAzSum+rk*rChanUa/1000.0;
 			rElSum:=rElSum+rk*rChanUe/1000.0;
 		ELSE
@@ -65,10 +68,17 @@ CASE iState OF
 		END_IF
 		
 	2://使用跟踪接收机2 且锁定标识为True
+		//
+		//bChanLock:=TRUE;
 		rChanUa:=GVL.Chan2Ua;
 		rChanUe:=GVL.Chan2Ue;
 		rChanAGC:=GVL.Chan2AGC;
-		
+		//跟踪接收机拉偏量
+		(*
+		rChanUa:=GVL.Chan2Ua/modbusSlave.DirSenFac;
+		rChanUe:=GVL.Chan2Ue/modbusSlave.DirSenFac;
+		*)
 	3://锁定标识符为False
+		//
 		//bChanLock:=FALSE;
 END_CASE

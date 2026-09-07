@@ -52,26 +52,16 @@ VAR
     rAzErrorReal : REAL;
     rElErrorReal : REAL;
     rAlpha : REAL;
+    icountBaseLock : INT;
+    bScanRun : BOOL;
+    bScanDoneOnce : BOOL;
+    bScanFound : BOOL;
+    az_latch : REAL;
+    el_latch : REAL;
+    bBaseLock : BOOL;
 END_VAR
 
 // --- implementation (ST) ---
-(*==============================================================================
-  PRG: SecurityCheck（远控汇总 / 安全联锁 / 捕获扫描 / 自跟踪启停）
-  任务: Canopen 10ms（与 *_ctrl_1 同周期，先于或并行执行需注意调用顺序）
-
-  主要职责:
-    1. Modbus_Slave → Axis1/2/3Remote 远控命令统一赋值（阶段5 中 *_ctrl_1 注释块已移至此）
-    2. 伺服电流监测（%IW10/20/30 × %ID4/9/14）
-    3. 俯仰/方位跟踪误差 AzError、ElError（供螺旋/直线扫描 FB）
-    4. 预限位 → GVL.Error_code 201/202，状态上报 Modbus DI1
-    5. 捕获扫描 SpiralScan：输出 az_out / el_out → 叠加到 rPIDCmdPos
-    6. 根据 AGC/锁相/扫描完成 自动置位 GVL.bStartTrack
-
-  与 *_ctrl_1 关系:
-    El:  rPIDCmdPos += SecurityCheck.el_out
-    Az:  rPIDCmdPos -= SecurityCheck.az_out
-==============================================================================*)
-
 // =============================================================================
 // 段 1: 安全逻辑用位置（与显示用 rFctPosReal 可能差符号/零点）
 // =============================================================================
@@ -217,33 +207,60 @@ ELSE
 END_IF
 
 // =============================================================================
-// 段 9: 锁定判定 — 信噪比 EB_N0≥28 或 (AGC≥门限 且 误差电压≤rErrorThre)
-// bErrorLock: 仅误差电压小（适合进入跟踪）
+// 段 9: 扫描合格点 — Eb/N0>28 且基带锁定（recBuf[1]）
 // =============================================================================
-bLockSearch := READ_485.Chan1EB_N0 >= 28 OR ((GVL.Chan1AGC >= GVL.Chanthreshold) AND (SQRT(GVL.Chan1Ua * GVL.Chan1Ua + GVL.Chan1Ue * GVL.Chan1Ue) <= PersistentVars.rErrorThre));
+bBaseLock := (READ_485.recBuf[1] = 1);
+bLockSearch := (READ_485.Chan1EB_N0 > 28.0) AND bBaseLock;
 bErrorLock  := (SQRT(GVL.Chan1Ua * GVL.Chan1Ua + GVL.Chan1Ue * GVL.Chan1Ue) <= PersistentVars.rErrorThre);
 
 // =============================================================================
-// 段 10: 捕获扫描使能 — 双轴均为程引(4)、AGC 达标或接收机锁定、且尚未自跟踪
+// 段 10: 启扫 — 双轴程引、未自跟踪、基带锁连续 2s（200×10ms）触发一次
+// 扫描过程中允许短暂掉锁；找到合格点后本程引周期内不再重扫
+// 退出程引则清锁存
 // =============================================================================
-IF Axis1Remote.iMode = 4 AND Axis2Remote.iMode = 4 AND (gvl.Chan1AGC > PersistentVars.rStartThre OR READ_485.recBuf[1] = 1) AND NOT GVL.bStartTrack THEN
-	enable := TRUE;
-ELSIF Axis1Remote.iMode <> 4 THEN
+IF Axis1Remote.iMode = 4 AND Axis2Remote.iMode = 4 THEN
+	IF NOT GVL.bStartTrack AND NOT bScanRun AND NOT bScanFound THEN
+		IF bBaseLock THEN
+			icountBaseLock := icountBaseLock + 1;
+			IF icountBaseLock >= 200 THEN
+				icountBaseLock := 200;
+				bScanRun := TRUE;
+			END_IF
+		ELSE
+			icountBaseLock := 0;
+		END_IF
+	ELSE
+		icountBaseLock := 0;
+	END_IF
+	enable := bScanRun AND NOT GVL.bStartTrack;
+ELSE
 	enable := FALSE;
+	bScanRun := FALSE;
+	bScanDoneOnce := FALSE;
+	bScanFound := FALSE;
+	az_latch := 0.0;
+	el_latch := 0.0;
+	icountBaseLock := 0;
+END_IF
+
+// 螺旋局部参数（与直线 PersistentVars.rStep 量纲不同：此处为每格周期数）
+IF rdelta < 1.0E-6 THEN
+	rdelta := 0.08;
+END_IF
+IF rStep < 1.0E-6 THEN
+	rStep := 20.0;
 END_IF
 
 // =============================================================================
-// 段 11: 调用扫描 FB — 直线(SpiralScan) 或 螺旋(SpiralScan_1)
-// 输出 az_out / el_out 在 *_ctrl_1 中叠加到 rPIDCmdPos
+// 段 11: 调用扫描 FB — 直线或螺旋；合格点 locked=Eb/N0>28 且基带锁
 // =============================================================================
 IF NOT PersistentVars.bSearchType THEN
-	// ===== 调用直线扫描 =====
 	fbScan(
 		enable      := enable,
 		delta       := PersistentVars.rAzScanRange,
 		delta1      := PersistentVars.rElScanRange,
 		n_steps     := PersistentVars.rStep,
-		agc      := GVL.Chan1AGC,
+		agc      := READ_485.Chan1EB_N0,
 		locked     := bLockSearch,
 		AzError := AzError,
 		elError := elError,
@@ -254,12 +271,11 @@ IF NOT PersistentVars.bSearchType THEN
 		bType  =>bType_out
 	);
 ELSE
-	// ===== 调用螺旋扫描====
 	fbScan1(
 		enable      := enable,
 		delta       := rdelta,
 		n_steps     := rStep,
-		agc      := GVL.Chan1AGC,
+		agc      := READ_485.Chan1EB_N0,
 		locked     := bLockSearch,
 		AzError := AzError,
 		elError := elError,
@@ -270,98 +286,42 @@ ELSE
 	);
 END_IF
 
+// 扫描结束：找到则锁存 -Error；未找到锁存 0。此后 az_out/el_out 用锁存值
+IF bScanRun AND done_out THEN
+	bScanRun := FALSE;
+	bScanDoneOnce := TRUE;
+	IF bType_out THEN
+		az_latch := az_out;
+		el_latch := el_out;
+		bScanFound := TRUE;
+	ELSE
+		az_latch := 0.0;
+		el_latch := 0.0;
+		bScanFound := FALSE;
+	END_IF
+END_IF
+IF GVL.bStartTrack AND bScanRun THEN
+	bScanRun := FALSE;
+	bScanDoneOnce := TRUE;
+END_IF
+IF NOT bScanRun THEN
+	az_out := az_latch;
+	el_out := el_latch;
+END_IF
+
 // =============================================================================
-// 段 12: 自跟踪启停状态机（仅双轴程引 mode4）
-// 扫描完成+锁定 → 置 GVL.bStartTrack
-// 失锁持续计数超阈值 → 清 GVL.bStartTrack
-// PersistentVars.bTrackingMode: TRUE=自动开跟踪, FALSE=需 ACU 上升沿 bStartTrackAcu
-// ACU HR[7].B10 下降沿 → 清自跟踪，并置 bAcuTrackInhibit 防止同周期/后续自动再开
-// ACU B10 再上升沿 → 清除 inhibit，允许重新开跟踪
+// 段 12: 自跟踪只跟 ACU HR[7].B10（上升沿开、下降沿关），扫描结束不置位
 // =============================================================================
 IF Axis1Remote.iMode = 4 AND Axis2Remote.iMode = 4 THEN
-	bFinish := done_out AND (ABS(AzError + az_out) <= 0.08) AND (ABS(ElError + el_out) <= 0.08);//扫描到位
-	// ACU B10 上升沿：允许开跟踪；下降沿：强制退出自跟踪
 	RiseEdge(CLK := Modbus_Slave.bStartTrackAcu);
 	FallEdge(CLK := Modbus_Slave.bStartTrackAcu);
-	
 	IF RiseEdge.Q THEN
-		bStartTrackTemp := TRUE;
-		bAcuTrackInhibit := FALSE;
+		GVL.bStartTrack := TRUE;
 	END_IF;
 	IF FallEdge.Q THEN
-		bStartTrackTemp := FALSE;
 		GVL.bStartTrack := FALSE;
-		bAcuTrackInhibit := TRUE;
 	END_IF;
-	
-	IF PersistentVars.bTrackingMode THEN
-		IF bType_out THEN
-			IF done_out AND bLockSearch THEN
-				GVL.bStartTrack := TRUE;
-				icountLostLocking := 0;
-			ELSIF done_out AND NOT (SQRT(GVL.Chan1Ua * GVL.Chan1Ua + GVL.Chan1Ue * GVL.Chan1Ue) <= PersistentVars.rErrorThre) THEN
-				icountLostLocking := icountLostLocking + 1;
-				IF icountLostLocking >= 1000 THEN //失锁持续5秒退出自跟踪
-					icountLostLocking := 1001;
-					GVL.bStartTrack := FALSE;
-				END_IF
-			END_IF
-		ELSE
-			IF done_out THEN
-				iconutwait := iconutwait + 1;
-			END_IF
-			IF iconutwait >= 500 THEN
-				Iconutwait := 501;
-			END_IF
-			IF iconutwait >= 100 AND bErrorLock AND (bFinish OR iconutwait >= 500) THEN
-				GVL.bStartTrack := TRUE;
-				icountLostLocking1 := 0;
-			ELSIF iconutwait >= 100 AND NOT bErrorLock THEN
-				icountLostLocking1 := icountLostLocking1 + 1;
-				IF icountLostLocking1 >= 300 THEN //失锁持续5秒退出自跟踪
-					icountLostLocking1 := 301;
-					GVL.bStartTrack := FALSE;
-				END_IF
-			END_IF
-		END_IF
-	ELSE
-		IF bType_out THEN
-			IF done_out AND bLockSearch THEN
-				GVL.bStartTrack := bStartTrackTemp;
-				icountLostLocking := 0;
-			ELSIF done_out AND NOT (SQRT(GVL.Chan1Ua * GVL.Chan1Ua + GVL.Chan1Ue * GVL.Chan1Ue) <= PersistentVars.rErrorThre) THEN
-				icountLostLocking := icountLostLocking + 1;
-				IF icountLostLocking >= 1000 THEN //失锁持续5秒退出自跟踪
-					icountLostLocking := 1001;
-					GVL.bStartTrack := FALSE;
-				END_IF
-			END_IF
-		ELSE
-			IF done_out THEN
-				iconutwait := iconutwait + 1;
-			END_IF
-			IF iconutwait >= 500 THEN
-				Iconutwait := 501;
-			END_IF
-			IF iconutwait >= 100 AND bErrorLock AND (bFinish OR iconutwait >= 500) THEN
-				GVL.bStartTrack := bStartTrackTemp;
-				icountLostLocking1 := 0;
-			ELSIF iconutwait >= 100 AND NOT bErrorLock THEN
-				icountLostLocking1 := icountLostLocking1 + 1;
-				IF icountLostLocking1 >= 300 THEN //失锁持续5秒退出自跟踪
-					icountLostLocking1 := 301;
-					GVL.bStartTrack := FALSE;
-				END_IF
-			END_IF
-		END_IF
-	END_IF
-	// ACU 已下令退出时，禁止扫描逻辑再次把自跟踪打开
-	IF bAcuTrackInhibit THEN
-		GVL.bStartTrack := FALSE;
-	END_IF
 ELSE
-	bStartTrackTemp := FALSE;
-	bAcuTrackInhibit := FALSE;
 	GVL.bStartTrack := Modbus_Slave.bStartTrackAcu;
 	icountLostLocking := 0;
 	icountLostLocking1 := 0;

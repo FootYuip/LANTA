@@ -15,6 +15,7 @@ VAR
     modbusData AT %MW0 : ARRAY[0..654] OF WORD;
     modbusInputRegs AT %MW660 : ARRAY[0..79] OF WORD;
     enCtr : BOOL;
+    Remote_time : UNKNOWN;
     dif : ULINT;
     iCount : WORD;
     TypeList1 : DWORD;
@@ -168,25 +169,6 @@ VAR
 END_VAR
 
 // --- implementation (ST) ---
-(*==============================================================================
-  PRG: Modbus_Slave（Modbus TCP 从站网关）
-  任务: MainTask 50ms
-  协议: Modbus TCP 端口 502，GCAN FB_ModbusTCP_Slave_*
-
-  内存映射（与 GVL AT %MW 一致）:
-    modbusData      AT %MW0   — 保持寄存器 HR，上位机读写（下发命令+多项式系数）
-    modbusInputRegs AT %MW660 — 输入寄存器 IR，PLC 写入、上位机只读（状态上报）
-
-  数据流:
-    上位机写 HR → 本程序解析 → iMode_x/rPosCmd_x/aUTC_TIME 等
-                              → SecurityCheck 写 AxisXRemote
-    PLC 状态 → 打包 IR → 上位机读
-
-  扩展自定义寄存器: 在 HR 区 modbusData[n] 增加解析/在 IR 区赋值即可
-==============================================================================*)
-// =============================================================================
-// 段 A: Modbus TCP 从站初始化（端口 502，仅首次）
-// =============================================================================
 IF isInit=FALSE THEN							
 	
 	modtcpslaveinit(en_in:=TRUE,					//Modbus TCP Slave初始化功能块使能
@@ -206,10 +188,7 @@ IF isInit=FALSE THEN
 	
  
 ELSE
-
-// =============================================================================
-// 段 B: 从站周期服务 — 映射 HR/IR 缓冲区，看门狗 2000ms
-// =============================================================================
+	
 	modtcpslavectrl(en_in:=enCtr,					//Modbus TCP Slave执行功能块使能
 	xenable:=TRUE,									//Modbus TCP Slave执行功能使能
 	isocket:=isocket,								//输入创建的socket
@@ -240,18 +219,13 @@ ELSE
 	El_ctrl.rTarPos:=WORD_TO_REAL(modbusData[12])+90.0;
 	*)
 	
-	// =============================================================================
-	// 段 C: 解析 HR 下发（保持寄存器 modbusData → 内部变量）
-	// HR[0..3] UTC  HR[7] 控制字  HR[8..18]Az  HR[19..29]El  HR[30..39]Ti
-	// HR[43] AGC门限  HR[45..48]轨道时间  HR[51..54]拉偏  HR[57..58]俯仰零位
-	// =============================================================================
+	// modbus下发数据
 	UTC_Union.Apart_word[1]:=modbusData[3];
 	UTC_Union.Apart_word[2]:=modbusData[2];
 	UTC_Union.Apart_word[3]:=modbusData[1];
 	UTC_Union.Apart_word[4]:=modbusData[0];
 	UTC_New:=UTC_Union.Apart_ulint;
 	DeltaTimeBetPC := UTC_New - TO_ULINT(GVL.dRealTime);
-	// HR[7] 控制字位定义（WORD_AS_BIT）
 	CtrlBool(W:=modbusData[7],
 			B14=>bCommReset,
 			B13=>Axis2Remote.bPIDEnable,
@@ -336,9 +310,11 @@ ELSE
 	AcuElOffset.Apart_word[1]:=modbusData[58];
 	AcuElOffset.Apart_word[2]:=modbusData[57];
 	lrElOffset:=DINT_TO_LREAL( DWORD_TO_DINT( AcuElOffset.Apart_dword[1]))/100000.0;
-	// ----- 程引轨道表: UTC_Orbit_New 递增时移位写入 aUTC_TIME / aPosCmd_x -----
+	//存储modbus时间序列和位置命令序列
+	//IF UTC_New<>UTC_Last THEN //命令刷新，则更新序列
 	
-	// 指向模式最大速度 HR[61..63] → GVL.AxisXRemote.Pos_Vel
+	
+	//接受位置模式速度下发
 	rAzPosVel:=INT_TO_LREAL(WORD_TO_INT(modbusData[61]))/1000.0;
 	rElPosVel:=INT_TO_LREAL(WORD_TO_INT(modbusData[62]))/1000.0;
 	rTlPosVel:=INT_TO_LREAL(WORD_TO_INT(modbusData[63]))/1000.0;
@@ -386,11 +362,7 @@ ELSE
 		END_FOR
 	END_IF
 	
-	// =============================================================================
-	// 段 D: 打包 IR 上报（modbusInputRegs，上位机只读）
-	// IR[0..3]时间 IR[5]Error IR[6..9]DI/DO IR[10+]三轴状态 IR[59..65]跟踪机
-	// IR[69..74]跟踪偏差 IR[75..78]理论角
-	// =============================================================================
+	// modbus上报数据	
 	IF icount<16#FFFF THEN
 		icount:=icount+1;
 	ELSE
@@ -654,10 +626,7 @@ ELSE
 			modbusInputRegs[64]:=0;
 			modbusInputRegs[65]:=0;
 	END_IF
-	// =============================================================================
-	// 段 E: 多项式程引系数 HR 解析（UnionLREAL_WORD，当前 RealTimePosCal 中已注释不用）
-	// HR[71+] 各段 LREAL 系数，HR[335+] 节点时间；供 Get_AZ 备用路径
-	// =============================================================================
+	//多项式拟合数据接收
 	//IF GVL.AzCtrl.iMode = 11 AND GVL.ElCtrl.iMode = 11 THEN
 	iCountPolyGet:=iCountPolyGet+1;
 	//IF iCountPolyGet=10 THEN

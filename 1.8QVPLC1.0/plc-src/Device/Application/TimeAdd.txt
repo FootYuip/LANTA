@@ -8,16 +8,6 @@ VAR
 END_VAR
 
 // --- implementation (ST) ---
-(*==============================================================================
-  PRG: TimeAdd（GNSS 秒跳变监测 / 毫秒插值计数）
-  任务: Canopen 10ms
-  作用:
-    - 监测 GPRMC_1.iSecond 是否更新；未更新则 icount 每 10ms +1
-    - RealTimePosCal 使用: GVL.dRealTime := GVL.stGNSS_Timestap + 10 * TimeAdd.icount
-      即在两次 GNSS 报文之间用 10ms 步进“补时”，保证程引插值时间连续
-  说明:
-    icount>2000 时清零（约 20s 无新秒则复位，防止溢出跑飞）
-==============================================================================*)
 // 监测时统串口状态，时间插值
 IF iSecondLast <> GPRMC_1.iSecond THEN
 	icount := 0;

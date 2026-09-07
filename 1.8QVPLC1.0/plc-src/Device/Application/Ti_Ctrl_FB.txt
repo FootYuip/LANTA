@@ -31,30 +31,12 @@ VAR
 END_VAR
 
 // --- implementation (ST) ---
-(*==============================================================================
-  FB: Ti_Ctrl_FB（倾斜轴 Tilt 控制功能块）
-  与 El_Ctrl_FB / Az_Ctrl_FB 结构基本相同，主要差异:
-    - 操作的 GVL 变量为 Ti 系列（diTiTargetVel / bTiCtrlBitX / eTiErrorcode 等）
-    - 无 vpid1（Ti 轴不做变增益，programBootMode 远控直接用 VelPID_1）
-    - positionMode 加速度为 10 deg/s²
-    - positionMode bStartAutoTrack 分支注释掉（Ti 无自跟踪需求）
-    - programBootMode 本控用 VelPID_2，参数直接来自 sLocal.rP/rI/rD
-    - programBootMode 远控 bStartAutoTrack=TRUE 时调用 VelPID_1（非 vpid1）
-
-  速度换算公式（通用）:
-    diTiTargetVel [inc/s] = deg/s × 524288 / 360
-==============================================================================*)
-
-// =============================================================================
-// 段 A: 轴停止或下电时清快速停止位 bit8
-// =============================================================================
+// 下电时复位控制字bit8
 IF sStatus.Disabled OR(NOT sStatus.Moving)THEN
 	bTiCtrlBit8 := FALSE;
 END_IF
 
-// =============================================================================
-// 段 B: 全局错误复位
-// =============================================================================
+//	错误复位功能
 IF GVL.bError_Reset THEN
 	sCtrl.iMode:=6;
 	sLocal.iMode:=6;
@@ -64,9 +46,7 @@ IF GVL.Error_code =0 THEN
 	GVL.bError_Reset:=FALSE;
 END_IF
 
-// =============================================================================
-// 段 C: CANopen 心跳超时（0x8130）自动恢复序列
-// =============================================================================
+/////////心跳报错清除/////////
 IF GVL.eTiErrorcode = 16#8130 AND NOT tr THEN
 	GVL.bTiCtrlBit7 := TRUE;
 	tr:=TRUE;
@@ -94,20 +74,15 @@ IF icount2 > 101 THEN
 	bfin1 := FALSE;
 	icount2 := 0;
 END_IF
+/////////////////////////////
 
-// =============================================================================
-// 段 D: 主控制逻辑
-// =============================================================================
 IF GVL.Error_code=0 AND GVL.eTiErrorcode = 0 AND NOT GVL.bTiCtrlBit7  AND NOT tr AND NOT bfin1 AND NOT bfin2 THEN
-
-	// =========== 远控 ===========
 	IF GVL.bLocalCtrl=FALSE THEN //远控
 		IF sCtrl.iMode <> 1 THEN
 			istate:=0;
 			icount:=0;
 		END_IF
 		CASE sCtrl.iMode OF
-
 			MODES.powerOff: // 下电
 				IF NOT sStatus.Disabled THEN
 					IF sStatus.Moving THEN // 运动中，先停止运动
@@ -121,9 +96,9 @@ IF GVL.Error_code=0 AND GVL.eTiErrorcode = 0 AND NOT GVL.bTiCtrlBit7  AND NOT tr
 						GVL.bTiCtrlBit2 := FALSE;
 					END_IF
 				END_IF
-
-			MODES.powerOn:  // 上电（DS402 三步序列）
+			MODES.powerOn:  // 上电
 				IF sStatus.Disabled THEN
+					// 目标速度清零
 					GVL.diTiTargetVel := 0;
 					IF GVL.siTiMode <> 3 THEN // 上电时模式默认为3，速度模式
 						GVL.siTiMode := 3;
@@ -157,12 +132,11 @@ IF GVL.Error_code=0 AND GVL.eTiErrorcode = 0 AND NOT GVL.bTiCtrlBit7  AND NOT tr
 						bTiCtrlBit8 := FALSE;
 					END_IF
 				END_IF
-
-			MODES.positionMode: // 远控指向模式（加速度 10 deg/s²，Kp=0.8）
+			MODES.positionMode: // 远控指向模式
 				IF NOT sStatus.Disabled THEN
 					IF sCtrl.bStartAutoTrack THEN
-						// Ti 轴自跟踪分支已注释掉，实际走 ELSE
 						(*
+						//自跟踪模式下，由误差电压直接驱动
 						VelPID_1(rTarget:=sCtrl.rChanU + rRealPos,
 								rFeedback:=rRealPos,
 								rPosLimPositive:=sCtrl.rSoft_limit_Postive,
@@ -190,10 +164,9 @@ IF GVL.Error_code=0 AND GVL.eTiErrorcode = 0 AND NOT GVL.bTiCtrlBit7  AND NOT tr
 							rPIDOutput=>sCtrl.rPIDCmdVel);
 					END_IF
 					GVL.diTiTargetVel := REAL_TO_DINT(sCtrl.rPIDCmdVel * 524288 / 360);
-					GVL.diTiTargetAcc := REAL_TO_UDINT(10 * 524288 / 360);   //加速度 10 deg/s²
+					GVL.diTiTargetAcc := REAL_TO_UDINT(10 * 524288 / 360);   //加速度
 					GVL.diTiTargetDec := REAL_TO_UDINT(10 * 524288 / 360);   //减速度
 				END_IF
-
 			MODES.velocityMode://手控速度模式-远控模式
 				IF NOT sStatus.Disabled THEN
 					IF ABS(sCtrl.rVelCmd) <= sCtrl.rVel_Limit THEN
@@ -206,11 +179,10 @@ IF GVL.Error_code=0 AND GVL.eTiErrorcode = 0 AND NOT GVL.bTiCtrlBit7  AND NOT tr
 					GVL.diTiTargetAcc := REAL_TO_UDINT(sCtrl.rAcceleration * 524288 / 360);   //加速度
 					GVL.diTiTargetDec := REAL_TO_UDINT(sCtrl.rDeceleration * 524288 / 360);   //减速度
 				END_IF
-
-			MODES.programBootMode://PID速度模式-正常模式 程引（Ti 轴用 VelPID_1，非 vpid）
+			MODES.programBootMode://PID速度模式-正常模式 程引
 				IF NOT sStatus.Disabled THEN
 					IF sCtrl.bStartAutoTrack THEN
-						// 程引+自跟踪：误差电压叠加到插值位置
+						//自跟踪模式下，由误差电压直接驱动
 						VelPID_1(rTarget:=sCtrl.rChanU + rRealPos,
 								rFeedback:=rRealPos,
 								rPosLimPositive:=sCtrl.rSoft_limit_Postive,
@@ -223,7 +195,7 @@ IF GVL.Error_code=0 AND GVL.eTiErrorcode = 0 AND NOT GVL.bTiCtrlBit7  AND NOT tr
 								iThreshold:= -1,
 								rPIDOutput=>sCtrl.rPIDCmdVel);							
 					ELSE
-						//PID计算速度指令（参数来自 sCtrl.rP/rI/rD，由 Modbus/上位机配置）
+						//PID计算速度指令
 						VelPID_1(rTarget:=sCtrl.rPIDCmdPos,
 							rFeedback:=rRealPos,
 							rVelLim:=sCtrl.rVel_Limit,
@@ -240,7 +212,6 @@ IF GVL.Error_code=0 AND GVL.eTiErrorcode = 0 AND NOT GVL.bTiCtrlBit7  AND NOT tr
 					GVL.diTiTargetAcc := REAL_TO_UDINT(sCtrl.rAcceleration * 524288 / 360);   //加速度
 					GVL.diTiTargetDec := REAL_TO_UDINT(sCtrl.rDeceleration * 524288 / 360);   //减速度
 				END_IF
-
 			MODES.reset://重置
 				IF NOT sStatus.Disabled THEN
 					IF sStatus.Moving THEN
@@ -250,7 +221,6 @@ IF GVL.Error_code=0 AND GVL.eTiErrorcode = 0 AND NOT GVL.bTiCtrlBit7  AND NOT tr
 						bTiCtrlBit8 := FALSE;
 					END_IF
 				END_IF
-
 			MODES.halt://待机
 				IF NOT sStatus.Disabled THEN
 					IF sStatus.Moving THEN
@@ -262,15 +232,12 @@ IF GVL.Error_code=0 AND GVL.eTiErrorcode = 0 AND NOT GVL.bTiCtrlBit7  AND NOT tr
 				END_IF
 			
 		END_CASE
-
-	// =========== 本控 ===========
 	ELSE // 本控
 		IF sLocal.iMode <> 1 THEN
 			istate:=0;
 			icount:=0;
 		END_IF
 		CASE sLocal.iMode OF
-
 			MODES.powerOff: // 下电
 				IF NOT sStatus.Disabled THEN
 					IF sStatus.Moving THEN // 运动中，先停止运动
@@ -284,9 +251,9 @@ IF GVL.Error_code=0 AND GVL.eTiErrorcode = 0 AND NOT GVL.bTiCtrlBit7  AND NOT tr
 						GVL.bTiCtrlBit2 := FALSE;
 					END_IF
 				END_IF
-
 			MODES.powerOn:  // 上电
 				IF sStatus.Disabled THEN
+					// 目标速度清零
 					GVL.diTiTargetVel := 0;
 					IF GVL.siTiMode <> 3 THEN // 上电时模式默认为3，速度模式
 						GVL.siTiMode := 3;
@@ -320,7 +287,6 @@ IF GVL.Error_code=0 AND GVL.eTiErrorcode = 0 AND NOT GVL.bTiCtrlBit7  AND NOT tr
 						bTiCtrlBit8 := FALSE;
 					END_IF
 				END_IF
-
 			MODES.velocityMode://手控速度模式-本控模式
 				IF NOT sStatus.Disabled THEN
 					IF ABS(sLocal.rVelCmd) <= sLocal.rVel_Limit THEN
@@ -333,8 +299,7 @@ IF GVL.Error_code=0 AND GVL.eTiErrorcode = 0 AND NOT GVL.bTiCtrlBit7  AND NOT tr
 					GVL.diTiTargetAcc := REAL_TO_UDINT(sLocal.rAcceleration * 524288 / 360);   //加速度
 					GVL.diTiTargetDec := REAL_TO_UDINT(sLocal.rDeceleration * 524288 / 360);   //减速度
 				END_IF
-
-			MODES.programBootMode://本控位置模式（普通 PID，参数来自 sLocal.rP/rI/rD）
+			MODES.programBootMode://本控位置模式
 				IF NOT sStatus.Disabled THEN
 					IF NOT sLocal.bPIDEnable THEN
 						GVL.diTiTargetVel := 0;							
@@ -356,7 +321,6 @@ IF GVL.Error_code=0 AND GVL.eTiErrorcode = 0 AND NOT GVL.bTiCtrlBit7  AND NOT tr
 					GVL.diTiTargetAcc := REAL_TO_UDINT(sLocal.rAcceleration * 524288 / 360);   //加速度
 					GVL.diTiTargetDec := REAL_TO_UDINT(sLocal.rDeceleration * 524288 / 360);   //减速度
 				END_IF
-
 			MODES.reset://重置
 			// 是否需要
 			MODES.halt://待机
@@ -371,10 +335,6 @@ IF GVL.Error_code=0 AND GVL.eTiErrorcode = 0 AND NOT GVL.bTiCtrlBit7  AND NOT tr
 			
 		END_CASE
 	END_IF
-
-// =============================================================================
-// 段 E: 全局错误时强制停轴，超时后强制下电
-// =============================================================================
 ELSIF GVL.Error_code<>0 AND GVL.eTiErrorcode = 0 AND NOT GVL.bTiCtrlBit7  AND NOT tr AND NOT bfin1 AND NOT bfin2 THEN
 	// 出现错误，轴停止运动
 	GVL.diTiTargetVel := 0;

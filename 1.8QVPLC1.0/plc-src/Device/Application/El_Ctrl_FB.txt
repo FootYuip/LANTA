@@ -33,35 +33,12 @@ VAR
 END_VAR
 
 // --- implementation (ST) ---
-(*==============================================================================
-  FB: El_Ctrl_FB（俯仰轴 Elevation 控制功能块）
-  任务: Canopen 10ms（周期调用）
-  作用:
-    - 根据 sCtrl/sLocal 的 iMode，产生对应 CANopen 速度/控制字写入
-    - 封装上/下电序列、软限位保护、CANopen 错误码自动恢复、心跳丢失处理
-    - 内部调用 PID / vpid 进行位置→速度的闭环换算
-  输入: sCtrl（远控命令结构体）、sLocal（本控命令结构体）
-        sStatus（轴状态）、rRealPos（编码器实际角度）
-  输出: 直接写 GVL.diElTargetVel / diElTargetAcc / diElTargetDec 及控制字位
-
-  速度换算公式（通用）:
-    diXxTargetVel [inc/s] = deg/s × 524288 / 360
-    其中 524288 = 2^19（CANopen 电机编码器增量/转，具体由电机参数决定）
-==============================================================================*)
-
-
-// =============================================================================
-// 段 A: 全局复位 — 轴停止或下电时清 bit8（快速停止位）
-// bit8=1 激活快速停止，bit8=0 正常运行
-// =============================================================================
+// 下电时复位控制字bit8
 IF sStatus.Disabled OR (NOT sStatus.Moving) THEN
 	bElCtrlBit8 := FALSE;
 END_IF
 
-// =============================================================================
-// 段 B: 错误复位（由 HMI 或 Modbus 写 bError_Reset）
-// 将两个命令结构体模式设为 reset(6)，清 Error_code
-// =============================================================================
+//	错误复位功能
 IF GVL.bError_Reset THEN
 	sCtrl.iMode:=6;
 	sLocal.iMode:=6;
@@ -71,13 +48,9 @@ IF GVL.Error_code =0 THEN
 	GVL.bError_Reset:=FALSE;
 END_IF
 
-// =============================================================================
-// 段 C: CANopen 心跳超时错误（错误码 0x8130）自动恢复序列
-// 步骤: 设 bit7(故障复位位) → 等 101 拍 → 清 bit7 → 再等 101 拍 → 结束
-// 期间同时下电（清控制字 bit0~3），待驱动自愈后再由上层重新上电
-// =============================================================================
+/////////心跳报错清除/////////
 IF GVL.eElErrorcode = 16#8130 AND NOT tr THEN
-	GVL.bElCtrlBit7 := TRUE;  // 触发驱动故障复位
+	GVL.bElCtrlBit7 := TRUE;
 	tr:=TRUE;
 	istate:=0;
 	icount:=0;
@@ -90,201 +63,28 @@ END_IF
 IF tr THEN
 	icount1 := icount1 + 1;
 END_IF
-IF icount1 > 101 THEN     // 约 1s（10ms × 101）后清故障复位位
+IF icount1 > 101 THEN
 	icount1 := 0;
 	tr := FALSE;
 	GVL.bElCtrlBit7 := FALSE;
 	bfin1 := TRUE;
 END_IF
-IF bfin1 THEN             // 再等 1s 让驱动彻底稳定
+IF bfin1 THEN
 	icount2 := icount2 + 1;
 END_IF
 IF icount2 > 101 THEN
 	bfin1 := FALSE;
 	icount2 := 0;
 END_IF
+//////////////////////////////
 
-// =============================================================================
-// 段 D: 主控制逻辑
-// 条件: 无全局错误 AND 无驱动错误 AND 不在心跳恢复序列中
-// =============================================================================
 IF GVL.Error_code=0 AND GVL.eElErrorcode = 0 AND NOT GVL.bElCtrlBit7  AND NOT tr AND NOT bfin1 AND NOT bfin2 THEN
-
-	// =========== 远控分支（bLocalCtrl=FALSE） ===========
 	IF GVL.bLocalCtrl=FALSE THEN //远控
-		IF sCtrl.iMode <> 1 THEN   // 非上电模式时重置上电状态机
+		IF sCtrl.iMode <> 1 THEN
 			istate:=0;
 			icount:=0;
 		END_IF
 		CASE sCtrl.iMode OF
-
-			// ----- 模式 0: 下电 -----
-			MODES.powerOff: // 下电
-				IF NOT sStatus.Disabled THEN
-					IF sStatus.Moving THEN // 运动中，先停止运动
-						GVL.diElTargetVel := 0;
-						bElCtrlBit8 := TRUE;   // 发快速停止
-					ELSE
-						// 写入下电控制字（bit0~3=0 即断使能）
-						GVL.bElCtrlBit3 := FALSE;
-						GVL.bElCtrlBit0 := FALSE;
-						GVL.bElCtrlBit1 := FALSE;
-						GVL.bElCtrlBit2 := FALSE;
-					END_IF
-				END_IF
-				// 注: 下电模式仍持续运行 vpid1，但输出不写到 diElTargetVel
-				// 目的是让 vpid1 内部积分不要突变（实际速度已通过控制字停掉）
-				vpid1(rKpbase:=1, rKibase:=0.01, rKpMax:=1, rKiMax:=0.01, rVelThreshold:=10,rTarget:=sCtrl.rPIDCmdPos,rFeedback:=rRealPos,rPosLimPositive:=sCtrl.rSoft_limit_Postive,
-							rPosLimNegitive:=sCtrl.rSoft_limit_Negative,
-								bPIDEnable:=sCtrl.bPIDEnable,rVelLim:=sCtrl.rVel_Limit,rKpScale:=0.02,rKiScale:=0.005,rElPos:=GVL.rFctPosReal_1-90,
-								iThrehold:=sCtrl.rPIDThre,rPIDOutDir=>sCtrl.rPIDCmdVel);
-
-			// ----- 模式 1: 上电（三步 CANopen DS402 状态机）-----
-			MODES.powerOn:  // 上电
-				IF sStatus.Disabled THEN
-					GVL.diElTargetVel := 0;
-					IF GVL.siElMode <> 3 THEN // 上电时模式默认为3，速度模式
-						GVL.siElMode := 3;
-					END_IF
-					IF siElMode = 3 THEN
-						// DS402 上电序列: Shutdown → Switch On → Enable Operation
-						// 每步等待 20 拍（200ms）确保驱动应答
-						CASE istate OF
-							0:  // Shutdown: bit1=1, bit2=1（清故障 + 切换允许）
-								GVL.bElCtrlBit1 := TRUE;
-								GVL.bElCtrlBit2 := TRUE;
-								icount := icount + 1;
-								IF icount = 20 THEN
-									icount:=0;
-									istate:=1;
-								END_IF
-							1:  // Switch On: bit0=1
-								GVL.bElCtrlBit0 := TRUE;
-								icount := icount + 1;
-								IF icount = 20 THEN
-									icount:=0;
-									istate:=2;
-								END_IF
-							2:  // Enable Operation: bit3=1
-								GVL.bElCtrlBit3 := TRUE;
-						END_CASE
-					END_IF
-				ELSE
-					// 已上电：若还在运动则发快速停止等待停稳
-					IF sStatus.Moving THEN
-						GVL.diElTargetVel := 0;
-						bElCtrlBit8 := TRUE;
-					ELSE
-						bElCtrlBit8 := FALSE;
-					END_IF
-				END_IF
-
-			// ----- 模式 2: 指向模式（位置 PID 输出速度，远控）-----
-			MODES.positionMode: // 远控指向模式
-				IF NOT sStatus.Disabled THEN
-					IF sCtrl.bStartAutoTrack THEN
-						// 自跟踪模式：误差电压（rChanU）直接作为位置增量指令
-						// 即: 目标 = rChanU（deg，来自跟踪接收机） + 当前位置
-						VelPID_1(rTarget:=sCtrl.rChanU + rRealPos,
-								rFeedback:=rRealPos,
-								rPosLimPositive:=sCtrl.rSoft_limit_Postive,
-								rPosLimNegative:=sCtrl.rSoft_limit_Negative,
-								rVelLim:=sCtrl.rVel_Limit,
-								rKp:=1,//自跟踪PI系数3,0.02
-								rKi:=0,
-								rKd:=0,
-								bPIDEnable:=sCtrl.bPIDEnable,
-								iThreshold:= -1,   // -1=始终开积分
-								rPIDOutput=>sCtrl.rPIDCmdVel);							
-					ELSE
-						// 指向模式：目标为上位机给定的角度
-						VelPID_1(rTarget:=sCtrl.rPosCmd,
-							rFeedback:=rRealPos,
-							rVelLim:=sCtrl.Pos_Vel,
-							rPosLimPositive:=sCtrl.rSoft_limit_Postive,
-							rPosLimNegative:=sCtrl.rSoft_limit_Negative,
-							rKp:=0.7,//程引PI系数地带：1,0.002  高带：3,0.02
-							rKi:=0,
-							rKd:=0,
-							bPIDEnable:=sCtrl.bPIDEnable,
-							iThreshold:=sCtrl.rPIDThre,
-							rPIDOutput=>sCtrl.rPIDCmdVel);
-					END_IF
-					// 将 PID 输出速度(deg/s)换算为 CANopen 速度增量单位写入
-					GVL.diElTargetVel := REAL_TO_DINT(sCtrl.rPIDCmdVel * 524288 / 360);
-					GVL.diElTargetAcc := REAL_TO_UDINT(9 * 524288 / 360);   //加速度 9 deg/s²
-					GVL.diElTargetDec := REAL_TO_UDINT(9 * 524288 / 360);   //减速度
-				END_IF
-
-			// ----- 模式 3: 速度模式（手动点动，远控）-----
-			MODES.velocityMode://手控速度模式-远控模式
-				IF NOT sStatus.Disabled THEN
-					// 限幅处理：超过限速则取限速值
-					IF ABS(sCtrl.rVelCmd) <= sCtrl.rVel_Limit THEN
-						GVL.diElTargetVel := REAL_TO_DINT(sCtrl.rVelCmd * 524288 / 360);
-					ELSIF sCtrl.rVelCmd > sCtrl.rVel_Limit THEN
-						GVL.diElTargetVel := REAL_TO_DINT(sCtrl.rVel_Limit * 524288 / 360);
-					ELSE
-						GVL.diElTargetVel := REAL_TO_DINT(-sCtrl.rVel_Limit * 524288 / 360);
-					END_IF
-					GVL.diElTargetAcc := REAL_TO_UDINT(sCtrl.rAcceleration * 524288 / 360);   //加速度
-					GVL.diElTargetDec := REAL_TO_UDINT(sCtrl.rDeceleration * 524288 / 360);   //减速度
-				END_IF
-
-			// ----- 模式 4: 程引模式（程序引导/插值跟踪，远控）-----
-			// 使用变增益 vpid1，参数来自 PersistentVars（标定可调）
-			MODES.programBootMode://PID速度模式-正常模式 程引
-				IF NOT sStatus.Disabled THEN
-					IF sCtrl.bStartAutoTrack THEN
-						// 程引+自跟踪：误差电压叠加到插值目标位置上
-						vpid1(rKpbase:=Persistentvars.rElKpBase, rKibase:=Persistentvars.rElKiBase, rKpMax:=Persistentvars.rElKpMax, rKiMax:=Persistentvars.rElKiMax, rVelThreshold:=Persistentvars.rElThre,rTarget:=sCtrl.rPIDCmdPos,rFeedback:=rRealPos,rPosLimPositive:=sCtrl.rSoft_limit_Postive,
-							rPosLimNegitive:=sCtrl.rSoft_limit_Negative,
-								bPIDEnable:=sCtrl.bPIDEnable,rVelLim:=sCtrl.rVel_Limit,rKpScale:=Persistentvars.rElKpscale,rKiScale:=Persistentvars.rElKiscale,rElPos:=GVL.rFctPosReal_1-90,
-								iThrehold:=sCtrl.rPIDThre,rPIDOutDir=>sCtrl.rPIDCmdVel);						
-					ELSE
-						// 程引不开自跟踪：纯插值位置跟踪
-						vpid1(rKpbase:=Persistentvars.rElKpBase, rKibase:=Persistentvars.rElKiBase, rKpMax:=Persistentvars.rElKpMax, rKiMax:=Persistentvars.rElKiMax, rVelThreshold:=Persistentvars.rElThre,rTarget:=sCtrl.rPIDCmdPos,rFeedback:=rRealPos,rPosLimPositive:=sCtrl.rSoft_limit_Postive,
-							rPosLimNegitive:=sCtrl.rSoft_limit_Negative,
-								bPIDEnable:=sCtrl.bPIDEnable,rVelLim:=sCtrl.rVel_Limit,rKpScale:=Persistentvars.rElKpscale,rKiScale:=Persistentvars.rElKiscale,rElPos:=GVL.rFctPosReal_1-90,
-								iThrehold:=sCtrl.rPIDThre,rPIDOutDir=>sCtrl.rPIDCmdVel);
-					END_IF
-					GVL.diElTargetVel := REAL_TO_DINT(sCtrl.rPIDCmdVel * 524288 / 360);
-					GVL.diElTargetAcc := REAL_TO_UDINT(sCtrl.rAcceleration * 524288 / 360);   //加速度
-					GVL.diElTargetDec := REAL_TO_UDINT(sCtrl.rDeceleration * 524288 / 360);   //减速度
-				END_IF
-
-			// ----- 模式 6: 重置 -----
-			MODES.reset://重置
-				IF NOT sStatus.Disabled THEN
-					IF sStatus.Moving THEN
-						GVL.diElTargetVel := 0;
-						bElCtrlBit8 := TRUE;
-					ELSE
-						bElCtrlBit8 := FALSE;
-					END_IF
-				END_IF
-
-			// ----- 模式 5: 待机（停止运动，保持上电）-----
-			MODES.halt://待机
-				IF NOT sStatus.Disabled THEN
-					IF sStatus.Moving THEN
-						GVL.diElTargetVel := 0;
-						bElCtrlBit8 := TRUE;
-					ELSE
-						bElCtrlBit8 := FALSE;
-					END_IF
-				END_IF
-			
-		END_CASE
-
-	// =========== 本控分支（bLocalCtrl=TRUE）===========
-	ELSE // 本控
-		IF sLocal.iMode <> 1 THEN
-			istate:=0;
-			icount:=0;
-		END_IF
-		CASE sLocal.iMode OF
-
 			MODES.powerOff: // 下电
 				IF NOT sStatus.Disabled THEN
 					IF sStatus.Moving THEN // 运动中，先停止运动
@@ -298,9 +98,14 @@ IF GVL.Error_code=0 AND GVL.eElErrorcode = 0 AND NOT GVL.bElCtrlBit7  AND NOT tr
 						GVL.bElCtrlBit2 := FALSE;
 					END_IF
 				END_IF
-
-			MODES.powerOn:  // 上电（与远控相同的三步序列）
+				
+				vpid1(rKpbase:=1, rKibase:=0.01, rKpMax:=1, rKiMax:=0.01, rVelThreshold:=10,rTarget:=sCtrl.rPIDCmdPos,rFeedback:=rRealPos,rPosLimPositive:=sCtrl.rSoft_limit_Postive,
+							rPosLimNegitive:=sCtrl.rSoft_limit_Negative,
+								bPIDEnable:=sCtrl.bPIDEnable,rVelLim:=sCtrl.rVel_Limit,rKpScale:=0.02,rKiScale:=0.005,rElPos:=GVL.rFctPosReal_1-90,
+								iThrehold:=sCtrl.rPIDThre,rPIDOutDir=>sCtrl.rPIDCmdVel);
+			MODES.powerOn:  // 上电
 				IF sStatus.Disabled THEN
+					// 目标速度清零
 					GVL.diElTargetVel := 0;
 					IF GVL.siElMode <> 3 THEN // 上电时模式默认为3，速度模式
 						GVL.siElMode := 3;
@@ -334,7 +139,174 @@ IF GVL.Error_code=0 AND GVL.eElErrorcode = 0 AND NOT GVL.bElCtrlBit7  AND NOT tr
 						bElCtrlBit8 := FALSE;
 					END_IF
 				END_IF
-
+			MODES.positionMode: // 远控指向模式
+				IF NOT sStatus.Disabled THEN
+					IF sCtrl.bStartAutoTrack THEN
+						//自跟踪模式下，由误差电压直接驱动
+						VelPID_1(rTarget:=sCtrl.rChanU + rRealPos,
+								rFeedback:=rRealPos,
+								rPosLimPositive:=sCtrl.rSoft_limit_Postive,
+								rPosLimNegative:=sCtrl.rSoft_limit_Negative,
+								rVelLim:=sCtrl.rVel_Limit,
+								rKp:=1,//自跟踪PI系数3,0.02
+								rKi:=0,
+								rKd:=0,
+								bPIDEnable:=sCtrl.bPIDEnable,
+								iThreshold:= -1,
+								rPIDOutput=>sCtrl.rPIDCmdVel);							
+					ELSE
+						//PID计算速度指令
+						VelPID_1(rTarget:=sCtrl.rPosCmd,
+							rFeedback:=rRealPos,
+							rVelLim:=sCtrl.Pos_Vel,
+							rPosLimPositive:=sCtrl.rSoft_limit_Postive,
+							rPosLimNegative:=sCtrl.rSoft_limit_Negative,
+							rKp:=0.7,//程引PI系数地带：1,0.002  高带：3,0.02
+							rKi:=0,
+							rKd:=0,
+							bPIDEnable:=sCtrl.bPIDEnable,
+							iThreshold:=sCtrl.rPIDThre,
+							rPIDOutput=>sCtrl.rPIDCmdVel);
+					END_IF
+					GVL.diElTargetVel := REAL_TO_DINT(sCtrl.rPIDCmdVel * 524288 / 360);
+					GVL.diElTargetAcc := REAL_TO_UDINT(9 * 524288 / 360);   //加速度
+					GVL.diElTargetDec := REAL_TO_UDINT(9 * 524288 / 360);   //减速度
+				END_IF
+			MODES.velocityMode://手控速度模式-远控模式
+				IF NOT sStatus.Disabled THEN
+					IF ABS(sCtrl.rVelCmd) <= sCtrl.rVel_Limit THEN
+						GVL.diElTargetVel := REAL_TO_DINT(sCtrl.rVelCmd * 524288 / 360);
+					ELSIF sCtrl.rVelCmd > sCtrl.rVel_Limit THEN
+						GVL.diElTargetVel := REAL_TO_DINT(sCtrl.rVel_Limit * 524288 / 360);
+					ELSE
+						GVL.diElTargetVel := REAL_TO_DINT(-sCtrl.rVel_Limit * 524288 / 360);
+					END_IF
+					GVL.diElTargetAcc := REAL_TO_UDINT(sCtrl.rAcceleration * 524288 / 360);   //加速度
+					GVL.diElTargetDec := REAL_TO_UDINT(sCtrl.rDeceleration * 524288 / 360);   //减速度
+				END_IF
+			MODES.programBootMode://PID速度模式-正常模式 程引
+				IF NOT sStatus.Disabled THEN
+					IF sCtrl.bStartAutoTrack THEN
+						(*
+						//自跟踪模式下，由误差电压直接驱动
+						VelPID_3(rTarget:=sCtrl.rChanU + rRealPos,
+								rFeedback:=rRealPos,
+								rPosLimPositive:=sCtrl.rSoft_limit_Postive,
+								rPosLimNegative:=sCtrl.rSoft_limit_Negative,
+								rVelLim:=sCtrl.rVel_Limit,
+								rKp:=sCtrl.rP_AutoTrack,//自跟踪PI系数3,0.02
+								rKi:=sCtrl.rI_AutoTrack,
+								rKd:=sCtrl.rD,
+								bPIDEnable:=sCtrl.bPIDEnable,
+								iThreshold:= -1,
+								rPIDOutput=>sCtrl.rPIDCmdVel);	
+								*)
+						vpid1(rKpbase:=Persistentvars.rElKpBase, rKibase:=Persistentvars.rElKiBase, rKpMax:=Persistentvars.rElKpMax, rKiMax:=Persistentvars.rElKiMax, rVelThreshold:=Persistentvars.rElThre,rTarget:=sCtrl.rPIDCmdPos,rFeedback:=rRealPos,rPosLimPositive:=sCtrl.rSoft_limit_Postive,
+							rPosLimNegitive:=sCtrl.rSoft_limit_Negative,
+								bPIDEnable:=sCtrl.bPIDEnable,rVelLim:=sCtrl.rVel_Limit,rKpScale:=Persistentvars.rElKpscale,rKiScale:=Persistentvars.rElKiscale,rElPos:=GVL.rFctPosReal_1-90,
+								iThrehold:=sCtrl.rPIDThre,rPIDOutDir=>sCtrl.rPIDCmdVel);						
+					ELSE
+						//PID计算速度指令
+						(*
+						VelPID_3(rTarget:=sCtrl.rPIDCmdPos,
+							rFeedback:=rRealPos,
+							rVelLim:=sCtrl.rVel_Limit,
+							rPosLimPositive:=sCtrl.rSoft_limit_Postive,
+							rPosLimNegative:=sCtrl.rSoft_limit_Negative,
+							rKp:=sCtrl.rP,//程引PI系数地带：1,0.002  高带：3,0.02
+							rKi:=sCtrl.rI,
+							rKd:=sCtrl.rD,
+							bPIDEnable:=sCtrl.bPIDEnable,
+							iThreshold:=sCtrl.rPIDThre,
+							rPIDOutput=>);
+							*)
+						vpid1(rKpbase:=Persistentvars.rElKpBase, rKibase:=Persistentvars.rElKiBase, rKpMax:=Persistentvars.rElKpMax, rKiMax:=Persistentvars.rElKiMax, rVelThreshold:=Persistentvars.rElThre,rTarget:=sCtrl.rPIDCmdPos,rFeedback:=rRealPos,rPosLimPositive:=sCtrl.rSoft_limit_Postive,
+							rPosLimNegitive:=sCtrl.rSoft_limit_Negative,
+								bPIDEnable:=sCtrl.bPIDEnable,rVelLim:=sCtrl.rVel_Limit,rKpScale:=Persistentvars.rElKpscale,rKiScale:=Persistentvars.rElKiscale,rElPos:=GVL.rFctPosReal_1-90,
+								iThrehold:=sCtrl.rPIDThre,rPIDOutDir=>sCtrl.rPIDCmdVel);
+					END_IF
+					GVL.diElTargetVel := REAL_TO_DINT(sCtrl.rPIDCmdVel * 524288 / 360);
+					GVL.diElTargetAcc := REAL_TO_UDINT(sCtrl.rAcceleration * 524288 / 360);   //加速度
+					GVL.diElTargetDec := REAL_TO_UDINT(sCtrl.rDeceleration * 524288 / 360);   //减速度
+				END_IF
+			MODES.reset://重置
+				IF NOT sStatus.Disabled THEN
+					IF sStatus.Moving THEN
+						GVL.diElTargetVel := 0;
+						bElCtrlBit8 := TRUE;
+					ELSE
+						bElCtrlBit8 := FALSE;
+					END_IF
+				END_IF
+			MODES.halt://待机
+				IF NOT sStatus.Disabled THEN
+					IF sStatus.Moving THEN
+						GVL.diElTargetVel := 0;
+						bElCtrlBit8 := TRUE;
+					ELSE
+						bElCtrlBit8 := FALSE;
+					END_IF
+				END_IF
+			
+		END_CASE
+	ELSE // 本控
+		IF sLocal.iMode <> 1 THEN
+			istate:=0;
+			icount:=0;
+		END_IF
+		CASE sLocal.iMode OF
+			MODES.powerOff: // 下电
+				IF NOT sStatus.Disabled THEN
+					IF sStatus.Moving THEN // 运动中，先停止运动
+						GVL.diElTargetVel := 0;
+						bElCtrlBit8 := TRUE;
+					ELSE
+						// 写入下电控制字
+						GVL.bElCtrlBit3 := FALSE;
+						GVL.bElCtrlBit0 := FALSE;
+						GVL.bElCtrlBit1 := FALSE;
+						GVL.bElCtrlBit2 := FALSE;
+					END_IF
+				END_IF
+			MODES.powerOn:  // 上电
+				IF sStatus.Disabled THEN
+					// 目标速度清零
+					GVL.diElTargetVel := 0;
+					IF GVL.siElMode <> 3 THEN // 上电时模式默认为3，速度模式
+						GVL.siElMode := 3;
+					END_IF
+					IF siElMode = 3 THEN
+						
+						
+						
+						CASE istate OF
+							0:
+								GVL.bElCtrlBit1 := TRUE;
+								GVL.bElCtrlBit2 := TRUE;
+								icount := icount + 1;
+								IF icount = 20 THEN
+									icount:=0;
+									istate:=1;
+								END_IF
+							1:
+								GVL.bElCtrlBit0 := TRUE;
+								icount := icount + 1;
+								IF icount = 20 THEN
+									icount:=0;
+									istate:=2;
+								END_IF
+							2:
+								GVL.bElCtrlBit3 := TRUE;
+						END_CASE
+					END_IF
+				ELSE
+					IF sStatus.Moving THEN
+						GVL.diElTargetVel := 0;
+						bElCtrlBit8 := TRUE;
+					ELSE
+						bElCtrlBit8 := FALSE;
+					END_IF
+				END_IF
 			MODES.velocityMode://手控速度模式-本控模式
 				IF NOT sStatus.Disabled THEN
 					IF ABS(sLocal.rVelCmd) <= sLocal.rVel_Limit THEN
@@ -347,14 +319,13 @@ IF GVL.Error_code=0 AND GVL.eElErrorcode = 0 AND NOT GVL.bElCtrlBit7  AND NOT tr
 					GVL.diElTargetAcc := REAL_TO_UDINT(sLocal.rAcceleration * 524288 / 360);   //加速度
 					GVL.diElTargetDec := REAL_TO_UDINT(sLocal.rDeceleration * 524288 / 360);   //减速度
 				END_IF
-
-			MODES.programBootMode://本控位置模式（普通 PID，不用变增益）
+			MODES.programBootMode://本控位置模式
 				IF NOT sStatus.Disabled THEN
 					IF NOT sLocal.bPIDEnable THEN
 						GVL.diElTargetVel := 0;							
 					ELSE
 						IF NOT slocal.bStartAutoTrack THEN
-							// 纯位置跟踪 PID
+							//PID计算速度指令
 							 VelPID_2(rTarget:=sLocal.rPosCmd,
 									 rFeedback:=rRealPos,
 									 rPosLimPositive:=sLocal.rSoft_limit_Postive,//软限位
@@ -367,7 +338,6 @@ IF GVL.Error_code=0 AND GVL.eElErrorcode = 0 AND NOT GVL.bElCtrlBit7  AND NOT tr
 									 rVelLim:=sLocal.Pos_Vel,
 									 rPIDOutput=>sLocal.rPIDCmdVel);//普通PID
 						ELSE
-							// 本控自跟踪：误差电压叠加
 							 VelPID_2(rTarget:=sLocal.rChanU + rRealPos,
 								rFeedback:=rRealPos,
 								rPosLimPositive:=sLocal.rSoft_limit_Postive,
@@ -386,7 +356,6 @@ IF GVL.Error_code=0 AND GVL.eElErrorcode = 0 AND NOT GVL.bElCtrlBit7  AND NOT tr
 					GVL.diElTargetAcc := REAL_TO_UDINT(9 * 524288 / 360);   //加速度
 					GVL.diElTargetDec := REAL_TO_UDINT(9 * 524288 / 360);   //减速度
 				END_IF
-
 			MODES.reset://重置
 			// 是否需要
 			MODES.halt://待机
@@ -401,11 +370,6 @@ IF GVL.Error_code=0 AND GVL.eElErrorcode = 0 AND NOT GVL.bElCtrlBit7  AND NOT tr
 			
 		END_CASE
 	END_IF
-
-// =============================================================================
-// 段 E: 全局错误时强制停轴（Error_code≠0 但驱动本身无错，属于上层逻辑错误）
-// 发快速停止，超时 1s 后强制下电
-// =============================================================================
 ELSIF GVL.Error_code<>0 AND GVL.eElErrorcode = 0 AND NOT GVL.bElCtrlBit7  AND NOT tr AND NOT bfin1 AND NOT bfin2 THEN
 	// 出现错误，轴停止运动
 	GVL.diElTargetVel := 0;

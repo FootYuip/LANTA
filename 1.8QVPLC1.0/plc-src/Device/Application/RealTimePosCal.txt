@@ -23,27 +23,10 @@ VAR
 END_VAR
 
 // --- implementation (ST) ---
-(*==============================================================================
-  PRG: RealTimePosCal（程引实时位置计算）
-  任务: Canopen 10ms
-  作用:
-    1. 合成 GVL.dRealTime（毫秒时间轴，供插值用 xt）
-    2. 双轴程引(mode4)时，按时间对 Modbus 轨道表做三次样条插值
-    3. 输出 rInterAzPos / rInterElPos → *_ctrl_1 合成 rPIDCmdPos
-  时间源（GVL.bTimeSwich）:
-    FALSE — GNSS: stGNSS_Timestap + 10×TimeAdd.icount
-    TRUE  — 上位机 UTC: Modbus_Slave.UTC_New + 8h + 10×本地 icount
-  插值输入:
-    X = Modbus_Slave.aUTC_TIME[1..10]（时间结点，相对首点归一化）
-    Y = Modbus_Slave.aPosCmd_1/2（俯仰/方位角度结点）
-    xt = dRealTime - 8×3600×1000（转为与轨道表一致的 UTC 毫秒）
-==============================================================================*)
+//GVL.dRealTime:= TimeCase.stSYS_Timestamp + GVL.dDelTime + 1000 + 56 ;// 矫正后的时间 单位毫秒
+//GVL.dRealTime:= TimeCase.stSYS_Timestamp + GVL.dDelTime;// 矫正后的时间 单位毫秒
 
-// =============================================================================
-// 段 1: 合成 GVL.dRealTime（全局毫秒时钟）
-// =============================================================================
-
-//直接从上位机拿数（UTC_New 一般为 UTC 毫秒，+8h 对齐北京时）
+//直接从上位机拿数
 dRTime := modbus_slave.UTC_New + 8 * 3600 * 1000;
 IF dRTime <> dLastRTime THEN
 	icount := 0;
@@ -51,11 +34,10 @@ ELSE
 	icount := icount + 1;
 END_IF
 dLastRTime:=dRTime;
-
 IF not GVL.bTimeSwich THEN
-	GVL.dRealTime:=GVL.stGNSS_Timestap + 10*timeadd.icount;   // GNSS + 插值
+	GVL.dRealTime:=GVL.stGNSS_Timestap + 10*timeadd.icount;
 ELSE
-	GVL.dRealTime:=dRTime + 10*icount;                        // 上位机 UTC + 插值
+	GVL.dRealTime:=dRTime + 10*icount;
 END_IF
 IF icount > 5000 THEN
 	icount := 0;
@@ -66,10 +48,6 @@ GVL.dRealTime:=GVL.stGNSS_Timestap + 10*timeadd.icount;
 dtReal := TO_DT(GVL.dRealTime / 1000);
 sRealTime := TO_STRING(dtReal);
 
-// =============================================================================
-// 段 2: 双轴均为程引 mode4 时 — 三次样条插值求当前俯仰/方位
-// xt 减去 8×3600×1000 与轨道表 aUTC_TIME 时间基准对齐
-// =============================================================================
 IF Axis1Remote.iMode=4 AND Axis2Remote.iMode=4 THEN//若PTP时间锁定 且时间模式为PTP时间
 		//三次样条插值
 
@@ -85,7 +63,49 @@ IF Axis1Remote.iMode=4 AND Axis2Remote.iMode=4 THEN//若PTP时间锁定 且时�
 			Error_code:=iErrcode;
 		END_IF
 END_IF
+(*
+//IF Axis1Remote.iMode=4 AND Axis2Remote.iMode=4 AND Modbus_Slave.bIFPoly THEN//若PTP时间锁定 且时间模式为PTP时间
+IF Modbus_Slave.bIFPoly THEN//若PTP时间锁定 且时间模式为PTP时间
+		//多项式拟合
 
-(* 段 3: 多项式拟合程引（Get_AZ / Get_AZ_1）整段已注释，当前未使用
-   若启用: rInterAzPos = -rPolyAzPos, rInterElPos = rPolyElPos + 90
+		//GVL.dRealTime:= TimeCase.stSYS_Timestamp + GVL.dDelTime + 1000 + 56; // 矫正后的时间 单位毫秒
+		GVL.dRealTime:= GVL.stGNSS_Timestap +450; // 矫正后的时间 单位毫秒
+	
+		AzPoly(
+		uliRealTime := (ULINT_TO_LREAL(GVL.dRealTime) - 8 * 3600 *1000),
+		lrStartTime := Modbus_Slave.starttime,
+		rNodeTime1 := Modbus_Slave.rNodeTime1_az,
+		rNodeTime2 := Modbus_Slave.rNodeTime2_az,
+		rNodeTime3 := Modbus_Slave.rNodeTime3_az,
+		rNodeTime4 := Modbus_Slave.rNodeTime4_az,
+		rNodeTime5 := Modbus_Slave.rNodeTime5_az,
+		rEndTime := Modbus_Slave.rEndTime,
+		lrFun1 := Modbus_Slave.lrFun1_az,
+		lrFun2 := Modbus_Slave.lrFun2_az,
+		lrFun3 := Modbus_Slave.lrFun3_az,
+		lrFun4 := Modbus_Slave.lrFun4_az,
+		lrFun5 := Modbus_Slave.lrFun5_az,
+		lrFun6 := Modbus_Slave.lrFun6_az,
+		lrFitResult => rPolyAzPos);
+		
+		ElPoly(
+		uliRealTime := (ULINT_TO_LREAL(GVL.dRealTime) - 8 * 3600 *1000),
+		lrStartTime := Modbus_Slave.starttime,
+		rNodeTime1 := Modbus_Slave.rNodeTime1_el,
+		rNodeTime2 := Modbus_Slave.rNodeTime2_el,
+		rNodeTime3 := Modbus_Slave.rNodeTime3_el,
+		rNodeTime4 := Modbus_Slave.rNodeTime4_el,
+		rNodeTime5 := Modbus_Slave.rNodeTime5_el,
+		rEndTime := Modbus_Slave.rEndTime,
+		lrFun1 := Modbus_Slave.lrFun1_el,
+		lrFun2 := Modbus_Slave.lrFun2_el,
+		lrFun3 := Modbus_Slave.lrFun3_el,
+		lrFun4 := Modbus_Slave.lrFun4_el,
+		lrFun5 := Modbus_Slave.lrFun5_el,
+		lrFun6 := Modbus_Slave.lrFun6_el,
+		lrFitResult => rPolyElPos);
+		
+		rInterAzPos := rPolyAzPos * (-1);
+		rInterElPos := rPolyElPos + 90;
+END_IF
 *)

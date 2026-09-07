@@ -33,28 +33,12 @@ VAR
 END_VAR
 
 // --- implementation (ST) ---
-(*==============================================================================
-  FB: Az_Ctrl_FB（方位轴 Azimuth 控制功能块）
-  与 El_Ctrl_FB 结构完全相同，差异点:
-    - 操作的 GVL 变量为 Az 系列（diAzTargetVel / bAzCtrlBitX / eAzErrorcode 等）
-    - positionMode 加速度为 12 deg/s²（El 为 9 deg/s²）
-    - positionMode 的 Kp=0.6（El 为 0.7），本控 programBootMode Kp=0.6
-    - programBootMode 参数来自 PersistentVars.rAzXxx
-
-  速度换算公式（通用）:
-    diAzTargetVel [inc/s] = deg/s × 524288 / 360
-==============================================================================*)
-
-// =============================================================================
-// 段 A: 轴停止或下电时清快速停止位 bit8
-// =============================================================================
+// 下电时复位控制字bit8
 IF sStatus.Disabled OR(NOT sStatus.Moving)THEN
 	bAzCtrlBit8 := FALSE;
 END_IF
 
-// =============================================================================
-// 段 B: 全局错误复位
-// =============================================================================
+//	错误复位功能
 IF GVL.bError_Reset THEN
 	sCtrl.iMode:=6;
 	sLocal.iMode:=6;
@@ -64,9 +48,7 @@ IF GVL.Error_code =0 THEN
 	GVL.bError_Reset:=FALSE;
 END_IF
 
-// =============================================================================
-// 段 C: CANopen 心跳超时（0x8130）自动恢复序列
-// =============================================================================
+/////////心跳报错清除/////////
 IF GVL.eAzErrorcode = 16#8130 AND NOT tr THEN
 	GVL.bAzCtrlBit7 := TRUE;
 	tr:=TRUE;
@@ -94,20 +76,15 @@ IF icount2 > 101 THEN
 	bfin1 := FALSE;
 	icount2 := 0;
 END_IF
+/////////////////////////////
 
-// =============================================================================
-// 段 D: 主控制逻辑
-// =============================================================================
 IF GVL.Error_code=0 AND GVL.eAzErrorcode = 0 AND NOT GVL.bAzCtrlBit7  AND NOT tr AND NOT bfin1 AND NOT bfin2 THEN
-
-	// =========== 远控 ===========
 	IF GVL.bLocalCtrl=FALSE THEN //远控
 		IF sCtrl.iMode <> 1 THEN
 			istate:=0;
 			icount:=0;
 		END_IF
 		CASE sCtrl.iMode OF
-
 			MODES.powerOff: // 下电
 				IF NOT sStatus.Disabled THEN
 					IF sStatus.Moving THEN // 运动中，先停止运动
@@ -121,14 +98,14 @@ IF GVL.Error_code=0 AND GVL.eAzErrorcode = 0 AND NOT GVL.bAzCtrlBit7  AND NOT tr
 						GVL.bAzCtrlBit2 := FALSE;
 					END_IF
 				END_IF
-				// 下电状态下持续调用 vpid1（保持内部状态稳定）
+				
 				vpid1(rKpbase:=1, rKibase:=0.01, rKpMax:=1, rKiMax:=0.01, rVelThreshold:=10,rTarget:=sCtrl.rPIDCmdPos,rFeedback:=rRealPos,rPosLimPositive:=sCtrl.rSoft_limit_Postive,
 							rPosLimNegitive:=sCtrl.rSoft_limit_Negative,
 								bPIDEnable:=sCtrl.bPIDEnable,rVelLim:=sCtrl.rVel_Limit,rKpScale:=0.02,rKiScale:=0.005,rElPos:=GVL.rFctPosReal_1-90,
 								iThrehold:=sCtrl.rPIDThre,rPIDOutDir=>sCtrl.rPIDCmdVel);
-
-			MODES.powerOn:  // 上电（DS402 三步序列）
+			MODES.powerOn:  // 上电
 				IF sStatus.Disabled THEN
+					// 目标速度清零
 					GVL.diAzTargetVel := 0;
 					IF GVL.siAzMode <> 3 THEN // 上电时模式默认为3，速度模式
 						GVL.siAzMode := 3;
@@ -162,8 +139,7 @@ IF GVL.Error_code=0 AND GVL.eAzErrorcode = 0 AND NOT GVL.bAzCtrlBit7  AND NOT tr
 						bAzCtrlBit8 := FALSE;
 					END_IF
 				END_IF
-
-			MODES.positionMode: // 远控指向模式（加速度 12 deg/s²，Kp=0.6）
+			MODES.positionMode: // 远控指向模式
 				IF NOT sStatus.Disabled THEN
 					IF sCtrl.bStartAutoTrack THEN
 						//自跟踪模式下，由误差电压直接驱动
@@ -193,10 +169,9 @@ IF GVL.Error_code=0 AND GVL.eAzErrorcode = 0 AND NOT GVL.bAzCtrlBit7  AND NOT tr
 							rPIDOutput=>sCtrl.rPIDCmdVel);
 					END_IF
 					GVL.diAzTargetVel := REAL_TO_DINT(sCtrl.rPIDCmdVel * 524288 / 360);
-					GVL.diAzTargetAcc := REAL_TO_UDINT(12 * 524288 / 360);   //加速度 12 deg/s²
+					GVL.diAzTargetAcc := REAL_TO_UDINT(12 * 524288 / 360);   //加速度
 					GVL.diAzTargetDec := REAL_TO_UDINT(12 * 524288 / 360);   //减速度
 				END_IF
-
 			MODES.velocityMode://手控速度模式-远控模式
 				IF NOT sStatus.Disabled THEN
 					IF ABS(sCtrl.rVelCmd) <= sCtrl.rVel_Limit THEN
@@ -209,17 +184,42 @@ IF GVL.Error_code=0 AND GVL.eAzErrorcode = 0 AND NOT GVL.bAzCtrlBit7  AND NOT tr
 					GVL.diAzTargetAcc := REAL_TO_UDINT(sCtrl.rAcceleration * 524288 / 360);   //加速度
 					GVL.diAzTargetDec := REAL_TO_UDINT(sCtrl.rDeceleration * 524288 / 360);   //减速度
 				END_IF
-
-			MODES.programBootMode://PID速度模式-正常模式 程引（变增益 vpid1）
+			MODES.programBootMode://PID速度模式-正常模式 程引
 				IF NOT sStatus.Disabled THEN
 					IF sCtrl.bStartAutoTrack THEN
-						// 程引+自跟踪
+						(*
+						//自跟踪模式下，由误差电压直接驱动
+						VelPID_3(rTarget:=sCtrl.rChanU + rRealPos,
+								rFeedback:=rRealPos,
+								rPosLimPositive:=sCtrl.rSoft_limit_Postive,
+								rPosLimNegative:=sCtrl.rSoft_limit_Negative,
+								rVelLim:=sCtrl.rVel_Limit,
+								rKp:=sCtrl.rP_AutoTrack,//自跟踪PI系数3,0.02
+								rKi:=sCtrl.rI_AutoTrack,
+								rKd:=sCtrl.rD,
+								bPIDEnable:=sCtrl.bPIDEnable,
+								iThreshold:= -1,
+								rPIDOutput=>sCtrl.rPIDCmdVel);
+								*)
 						vpid1(rKpbase:=Persistentvars.rAzKpBase, rKibase:=Persistentvars.rAzKiBase, rKpMax:=Persistentvars.rAzKpMax, rKiMax:=Persistentvars.rAzKiMax, rVelThreshold:=Persistentvars.rAzThre,rTarget:=sCtrl.rPIDCmdPos,rFeedback:=rRealPos,rPosLimPositive:=sCtrl.rSoft_limit_Postive,
 							rPosLimNegitive:=sCtrl.rSoft_limit_Negative,
 								bPIDEnable:=sCtrl.bPIDEnable,rVelLim:=sCtrl.rVel_Limit,rKpScale:=Persistentvars.rAzKpscale,rKiScale:=Persistentvars.rAzKiscale,rElPos:=GVL.rFctPosReal_1-90,
 								iThrehold:=sCtrl.rPIDThre,rPIDOutDir=>sCtrl.rPIDCmdVel);							
 					ELSE
-						// 纯程引
+						//PID计算速度指令
+						(*
+						VelPID_3(rTarget:=sCtrl.rPIDCmdPos,
+							rFeedback:=rRealPos,
+							rVelLim:=sCtrl.rVel_Limit,
+							rPosLimPositive:=sCtrl.rSoft_limit_Postive,
+							rPosLimNegative:=sCtrl.rSoft_limit_Negative,
+							rKp:=sCtrl.rP,//程引PI系数地带：1,0.002  高带：3,0.02
+							rKi:=sCtrl.rI,
+							rKd:=sCtrl.rD,
+							bPIDEnable:=sCtrl.bPIDEnable,
+							iThreshold:=sCtrl.rPIDThre,
+							rPIDOutput=>);
+							*)
 						vpid1(rKpbase:=Persistentvars.rAzKpBase, rKibase:=Persistentvars.rAzKiBase, rKpMax:=Persistentvars.rAzKpMax, rKiMax:=Persistentvars.rAzKiMax, rVelThreshold:=Persistentvars.rAzThre,rTarget:=sCtrl.rPIDCmdPos,rFeedback:=rRealPos,rPosLimPositive:=sCtrl.rSoft_limit_Postive,
 							rPosLimNegitive:=sCtrl.rSoft_limit_Negative,
 								bPIDEnable:=sCtrl.bPIDEnable,rVelLim:=sCtrl.rVel_Limit,rKpScale:=Persistentvars.rAzKpscale,rKiScale:=Persistentvars.rAzKiscale,rElPos:=GVL.rFctPosReal_1-90,
@@ -230,7 +230,6 @@ IF GVL.Error_code=0 AND GVL.eAzErrorcode = 0 AND NOT GVL.bAzCtrlBit7  AND NOT tr
 					GVL.diAzTargetAcc := REAL_TO_UDINT(sCtrl.rAcceleration * 524288 / 360);   //加速度
 					GVL.diAzTargetDec := REAL_TO_UDINT(sCtrl.rDeceleration * 524288 / 360);   //减速度
 				END_IF
-
 			MODES.reset://重置
 				IF NOT sStatus.Disabled THEN
 					IF sStatus.Moving THEN
@@ -240,7 +239,6 @@ IF GVL.Error_code=0 AND GVL.eAzErrorcode = 0 AND NOT GVL.bAzCtrlBit7  AND NOT tr
 						bAzCtrlBit8 := FALSE;
 					END_IF
 				END_IF
-
 			MODES.halt://待机
 				IF NOT sStatus.Disabled THEN
 					IF sStatus.Moving THEN
@@ -252,15 +250,12 @@ IF GVL.Error_code=0 AND GVL.eAzErrorcode = 0 AND NOT GVL.bAzCtrlBit7  AND NOT tr
 				END_IF
 			
 		END_CASE
-
-	// =========== 本控 ===========
 	ELSE // 本控
 		IF sLocal.iMode <> 1 THEN
 			istate:=0;
 			icount:=0;
 		END_IF
 		CASE sLocal.iMode OF
-
 			MODES.powerOff: // 下电
 				IF NOT sStatus.Disabled THEN
 					IF sStatus.Moving THEN // 运动中，先停止运动
@@ -274,9 +269,9 @@ IF GVL.Error_code=0 AND GVL.eAzErrorcode = 0 AND NOT GVL.bAzCtrlBit7  AND NOT tr
 						GVL.bAzCtrlBit2 := FALSE;
 					END_IF
 				END_IF
-
 			MODES.powerOn:  // 上电
 				IF sStatus.Disabled THEN
+					// 目标速度清零
 					GVL.diAzTargetVel := 0;
 					IF GVL.siAzMode <> 3 THEN // 上电时模式默认为3，速度模式
 						GVL.siAzMode := 3;
@@ -310,7 +305,6 @@ IF GVL.Error_code=0 AND GVL.eAzErrorcode = 0 AND NOT GVL.bAzCtrlBit7  AND NOT tr
 						bAzCtrlBit8 := FALSE;
 					END_IF
 				END_IF
-
 			MODES.velocityMode://手控速度模式-本控模式
 				IF NOT sStatus.Disabled THEN
 					IF ABS(sLocal.rVelCmd) <= sLocal.rVel_Limit THEN
@@ -323,8 +317,7 @@ IF GVL.Error_code=0 AND GVL.eAzErrorcode = 0 AND NOT GVL.bAzCtrlBit7  AND NOT tr
 					GVL.diAzTargetAcc := REAL_TO_UDINT(sLocal.rAcceleration * 524288 / 360);   //加速度
 					GVL.diAzTargetDec := REAL_TO_UDINT(sLocal.rDeceleration * 524288 / 360);   //减速度
 				END_IF
-
-			MODES.programBootMode://本控位置模式（普通 PID，Kp=0.6）
+			MODES.programBootMode://本控位置模式
 				IF NOT sStatus.Disabled THEN
 					IF NOT sLocal.bPIDEnable THEN
 						GVL.diAzTargetVel := 0;							
@@ -362,7 +355,6 @@ IF GVL.Error_code=0 AND GVL.eAzErrorcode = 0 AND NOT GVL.bAzCtrlBit7  AND NOT tr
 					GVL.diAzTargetAcc := REAL_TO_UDINT(12 * 524288 / 360);   //加速度
 					GVL.diAzTargetDec := REAL_TO_UDINT(12 * 524288 / 360);   //减速度
 				END_IF
-
 			MODES.reset://重置
 			// 是否需要
 			MODES.halt://待机
@@ -377,10 +369,6 @@ IF GVL.Error_code=0 AND GVL.eAzErrorcode = 0 AND NOT GVL.bAzCtrlBit7  AND NOT tr
 			
 		END_CASE
 	END_IF
-
-// =============================================================================
-// 段 E: 全局错误时强制停轴，超时后强制下电
-// =============================================================================
 ELSIF GVL.Error_code<>0 AND GVL.eAzErrorcode = 0 AND NOT GVL.bAzCtrlBit7  AND NOT tr AND NOT bfin1 AND NOT bfin2 THEN
 	// 出现错误，轴停止运动
 	GVL.diAzTargetVel := 0;

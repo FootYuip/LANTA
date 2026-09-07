@@ -33,20 +33,6 @@ VAR
 END_VAR
 
 // --- implementation (ST) ---
-(*==============================================================================
-  PRG: GPRMC_1（GNSS 串口接收与 NMEA 时间解析）
-  任务: SerialCom 5ms
-  硬件: GCAN 模块串口 mPort=1（232），115200 8N1
-  作用:
-    - 读 GNSS 模块输出的 NMEA 报文（GPRMC 等，帧头 ASCII '$'=36）
-    - 从固定偏移解析 UTC 日期时间，+8 转为北京时间
-    - 写入 GVL.stGNSS_Timestap（毫秒 ULINT），供 TimeAdd / RealTimePosCal 使用
-  下游:
-    TimeAdd.icount — 秒未变时累加，用于 GNSS 丢帧时的 10ms 插值
-    RealTimePosCal — GVL.dRealTime := stGNSS_Timestap + 10*TimeAdd.icount
-==============================================================================*)
-
-
 ////////////////////////////////////////////////////////////////////////////////////////
 //串口接收GPRMC报文解析
 //日期：2024/08/25

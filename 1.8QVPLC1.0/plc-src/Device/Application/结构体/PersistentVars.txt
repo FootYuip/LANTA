@@ -1,6 +1,6 @@
 # kind=gvl
 # name=PersistentVars
-# retain=false
+# retain=true
 # persistent=true
 # objectId=fb1321bc-080e-49dc-9b7c-a517f16632af
 
@@ -22,10 +22,10 @@ VAR_GLOBAL
     rAzThre : REAL;
     rElThre : REAL;
     bTrackingMode : BOOL;
-    rAzScanRange : REAL;
-    rElScanRange : REAL;
     bSearchType : BOOL;
     rErrorThre : REAL;
     rStartThre : REAL;
+    rAzScanRange : REAL;
+    rElScanRange : REAL;
     rStep : REAL;
 END_VAR

@@ -28,7 +28,7 @@ VAR
     rRemoteInitPosModeSpeed : REAL;
     iCountOffAuto : INT;
     iCasePBAutoTrack : INT := 2;
-    rKAuToStepBias : LREAL := 0.3;
+    rKAuToStepBias : LREAL := 0.6; // 对齐2.4
     bVisError : BOOL;
     a : INT;
     agcmaxsearch_tb : agcmaxsearch_pb_1;

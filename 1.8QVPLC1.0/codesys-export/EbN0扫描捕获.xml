@@ -6285,7 +6285,7 @@ VAR
 	
 	iCasePBAutoTrack:INT:=2;//程序引导自跟踪切换 
 // 	rKAuToStepBias:LREAL:=0.25;
-	rKAuToStepBias:LREAL:=0.3;
+	rKAuToStepBias:LREAL:=0.6;
 	bVisError:BOOL; //报错可视化标识
 	
 	a : INT;
@@ -6590,7 +6590,7 @@ VAR
 	
 	iCasePBAutoTrack:INT:=2;//程序引导自跟踪切换 
 // 	rKAuToStepBias:LREAL:=0.25;
-	rKAuToStepBias:LREAL:=0.3;
+	rKAuToStepBias:LREAL:=0.6;
 	bVisError:BOOL; //报错可视化标识
 	
 	a : INT;
@@ -8482,7 +8482,7 @@ VAR
 	
 	iCasePBAutoTrack:INT:=2;//程序引导自跟踪切换 
 // 	rKAuToStepBias:LREAL:=0.25;
-	rKAuToStepBias:LREAL:=0.18;
+	rKAuToStepBias:LREAL:=0.45;
 	
 	//拉偏搜索
 	agcmaxsearch_tb:AGCMaxSearch_PB_1;//指向步进跟踪
@@ -8758,7 +8758,7 @@ VAR
 	
 	iCasePBAutoTrack:INT:=2;//程序引导自跟踪切换 
 // 	rKAuToStepBias:LREAL:=0.25;
-	rKAuToStepBias:LREAL:=0.18;
+	rKAuToStepBias:LREAL:=0.45;
 	
 	//拉偏搜索
 	agcmaxsearch_tb:AGCMaxSearch_PB_1;//指向步进跟踪
@@ -11232,11 +11232,12 @@ ELSE
 END_IF
 
 // 螺旋局部参数（与直线 PersistentVars.rStep 量纲不同：此处为每格周期数）
+// 对齐2.4手感：0.12°/格、12拍/格 → 沿轨迹约 1.0°/s（10ms任务）
 IF rdelta &lt; 1.0E-6 THEN
-	rdelta := 0.08;
+	rdelta := 0.12;
 END_IF
 IF rStep &lt; 1.0E-6 THEN
-	rStep := 20.0;
+	rStep := 12.0;
 END_IF
 
 // =============================================================================

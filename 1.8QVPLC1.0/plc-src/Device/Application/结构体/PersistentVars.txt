@@ -25,7 +25,7 @@ VAR_GLOBAL
     bSearchType : BOOL := FALSE; // 0 直线扫；1 螺旋扫
     rErrorThre : REAL := 6.0;
     rStartThre : REAL := 0.5;
-    rAzScanRange : REAL := 0.3;
-    rElScanRange : REAL := 0;
+    rAzScanRange : REAL := 1.0;
+    rElScanRange : REAL := 1.0;
     rStep : REAL := 0.0015;
 END_VAR

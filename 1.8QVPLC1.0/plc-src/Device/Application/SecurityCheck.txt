@@ -46,8 +46,8 @@ VAR
     icountLostLocking1 : INT;
     bType_out : BOOL;
     iconutwait : INT;
-    rdelta : REAL;                 // 螺旋每格边长(°)，对齐2.4=0.12
-    rStep : REAL;                  // 螺旋每格拍数，对齐2.4=12
+    rdelta : REAL := 0.08;         // 螺旋每格边长(°)
+    rStep : REAL := 20.0;          // 螺旋每格拍数
     bFinish : BOOL;
     rAzErrorReal : REAL;
     rElErrorReal : REAL;
@@ -244,12 +244,11 @@ ELSE
 END_IF
 
 // 螺旋局部参数（与直线 PersistentVars.rStep 量纲不同：此处为每格周期数）
-// 对齐2.4手感：0.12°/格、12拍/格 → 沿轨迹约 1.0°/s（10ms任务）
 IF rdelta < 1.0E-6 THEN
-	rdelta := 0.12;
+	rdelta := 0.08;
 END_IF
 IF rStep < 1.0E-6 THEN
-	rStep := 12.0;
+	rStep := 20.0;
 END_IF
 
 // =============================================================================

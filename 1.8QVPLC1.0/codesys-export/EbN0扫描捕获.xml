@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <project xmlns="http://www.plcopen.org/xml/tc6_0200">
-  <fileHeader companyName="" productName="CODESYS" productVersion="CODESYS V3.5 SP18" creationDateTime="2026-09-04T15:41:08.1763429" />
-  <contentHeader name="EbN0扫描捕获.project" modificationDateTime="2026-09-04T13:44:59.7960141">
+  <fileHeader companyName="" productName="CODESYS" productVersion="CODESYS V3.5 SP18" creationDateTime="2026-09-07T13:44:28.0897124" />
+  <contentHeader name="EbN0扫描捕获.project" modificationDateTime="2026-09-07T13:38:00.8155116">
     <coordinateInfo>
       <fbd>
         <scaling x="1" y="1" />
@@ -1244,194 +1244,6 @@
               </initialValue>
             </variable>
             <addData>
-              <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                <InterfaceAsPlainText>
-                  <xhtml xmlns="http://www.w3.org/1999/xhtml">VAR_GLOBAL
-	/////////////////////////////////俯仰轴////////////////////////////////////////////////////
-	(* 俯仰轴控制字 *)
-    bElCtrlBit0 AT %QX4.0 : BOOL; // 俯仰控制字bit0
-    bElCtrlBit1 AT %QX4.1 : BOOL; // 俯仰控制字bit1
-    bElCtrlBit2 AT %QX4.2 : BOOL; // 俯仰控制字bit2
-    bElCtrlBit3 AT %QX4.3 : BOOL; // 俯仰控制字bit3
-    bElCtrlBit4 AT %QX4.4 : BOOL; // 俯仰控制字bit4
-    bElCtrlBit5 AT %QX4.5 : BOOL; // 俯仰控制字bit5
-    bElCtrlBit7 AT %QX4.7 : BOOL; // 俯仰控制字bit7	
-    bElCtrlBit8 AT %QX5.0 : BOOL; // 俯仰控制字bit8
-    diElTargetVel AT %QD2 : DINT; // 俯仰目标速度
-    diElTargetPos AT %QD3 : DINT; // 俯仰目标位置
-	diElTargetAcc AT %QD4 : UDINT; // 俯仰目标加速度
-	diElTargetDec AT %QD5 : UDINT; // 俯仰目标减速度
-    (* 俯仰轴状态字 *)
-    bElStsBit0 AT %IX4.0 : BOOL; // 俯仰状态字bit0
-    bElStsBit1 AT %IX4.1 : BOOL; // 俯仰状态字bit1
-    bElStsBit2 AT %IX4.2 : BOOL; // 俯仰状态字bit2
-	bElStsBit3 AT %IX4.3 : BOOL; // 俯仰状态字bit3
-    bElStsBit10 AT %IX5.2 : BOOL; // 俯仰状态字bit10
-    bElStsBit12 AT %IX5.4 : BOOL; // 俯仰状态字bit12
-    diElActVel AT %ID2 : DINT; // 俯仰实际速度
-    diElActPos AT %ID3 : DINT; // 俯仰实际位置
-    (* 俯仰模式 *)
-    siElMode AT %QB6 : UINT; // 俯仰模式，1位置模式，3速度模式
-	(* 俯仰轴错误 *)
-    eElErrorcode AT %IW3 : UINT; //错误代码
-	
-	/////////////////////////////////方位轴////////////////////////////////////////////////////
-    (* 方位轴控制字 *)
-    bAzCtrlBit0 AT %QX24.0 : BOOL; // 方位控制字bit0
-    bAzCtrlBit1 AT %QX24.1 : BOOL; // 方位控制字bit1
-    bAzCtrlBit2 AT %QX24.2 : BOOL; // 方位控制字bit2
-    bAzCtrlBit3 AT %QX24.3 : BOOL; // 方位控制字bit3
-    bAzCtrlBit4 AT %QX24.4 : BOOL; // 方位控制字bit4
-    bAzCtrlBit5 AT %QX24.5 : BOOL; // 方位控制字bit5
-    bAzCtrlBit7 AT %QX24.7 : BOOL; // 俯仰控制字bit7
-    bAzCtrlBit8 AT %QX25.0 : BOOL; // 方位控制字bit8
-    diAzTargetVel AT %QD7 : DINT; // 方位目标速度
-    diAzTargetPos AT %QD8 : DINT; // 方位目标位置
-	diAzTargetAcc AT %QD9 : UDINT; // 方位目标加速度
-    diAzTargetDec AT %QD10 : UDINT; // 方位目标减速度
-    (* 方位轴状态字 *)
-    bAzStsBit0 AT %IX24.0 : BOOL; // 方位状态字bit0
-    bAzStsBit1 AT %IX24.1 : BOOL; // 方位状态字bit1
-    bAzStsBit2 AT %IX24.2 : BOOL; // 方位状态字bit2
-	bAzStsBit3 AT %IX24.3 : BOOL; // 方位状态字bit3
-    bAzStsBit10 AT %IX25.2 : BOOL; // 方位状态字bit10
-    bAzStsBit12 AT %IX25.4 : BOOL; // 方位状态字bit12
-    diAzActVel AT %ID7 : DINT; // 方位实际速度
-    diAzActPos AT %ID8 : DINT; // 方位实际位置
-    (* 方位模式 *)
-    siAzMode AT %QB26 : UINT; // 方位模式，1位置模式，3速度模式
-	(* 方位轴错误 *)
-	eAzErrorcode AT %IW13 : UINT; //错误代码
-	
-	/////////////////////////////////倾斜轴////////////////////////////////////////////////////
-	(* 倾斜轴控制字 *)
-    bTiCtrlBit0 AT %QX44.0 : BOOL; // 倾斜控制字bit0
-    bTiCtrlBit1 AT %QX44.1 : BOOL; // 倾斜控制字bit1
-    bTiCtrlBit2 AT %QX44.2 : BOOL; // 倾斜控制字bit2
-    bTiCtrlBit3 AT %QX44.3 : BOOL; // 倾斜控制字bit3
-    bTiCtrlBit4 AT %QX44.4 : BOOL; // 倾斜控制字bit4
-    bTiCtrlBit5 AT %QX44.5 : BOOL; // 倾斜控制字bit5
-    bTiCtrlBit7 AT %QX44.7 : BOOL; // 俯仰控制字bit7
-    bTiCtrlBit8 AT %QX45.0 : BOOL; // 倾斜控制字bit8
-    diTiTargetVel AT %QD12 : DINT; // 倾斜目标速度
-    diTiTargetPos AT %QD13 : DINT; // 倾斜目标位置
-    diTiTargetAcc AT %QD14 : UDINT; // 倾斜目标加速度
-    diTiTargetDec AT %QD15 : UDINT; // 倾斜目标减速度
-    (* 倾斜轴状态字 *)
-    bTiStsBit0 AT %IX44.0 : BOOL; // 倾斜状态字bit0
-    bTiStsBit1 AT %IX44.1 : BOOL; // 倾斜状态字bit1
-    bTiStsBit2 AT %IX44.2 : BOOL; // 倾斜状态字bit2
-	bTiStsBit3 AT %IX44.3 : BOOL; // 倾斜状态字bit3
-    bTiStsBit10 AT %IX45.2 : BOOL; // 倾斜状态字bit10
-    bTiStsBit12 AT %IX45.4 : BOOL; // 倾斜状态字bit12
-    diTiActVel AT %ID12 : DINT; // 倾斜实际速度
-    diTiActPos AT %ID13 : DINT; // 倾斜实际位置
-    (* 倾斜模式 *)
-    siTiMode AT %QB46 : UINT; // 倾斜模式，1位置模式，3速度模式
-	(* 倾斜轴错误 *)
-	eTiErrorcode AT %IW23 : UINT; //错误代码
-	
-	
-	dDelTime: DINT;
-	stGNSS_Timestap: ULINT;
-	dRealTime: ULINT;
-	
-	bLocalCtrl:BOOL;				//本远控切换标志
-	bError_Reset:BOOL;				//错误复位标识			
-	Error_code:INT;					//错误代码	
-	
-	Axis1Local:AxisCrtlStruct;		//轴一本控结构体
-	Axis1Remote:AxisCrtlStruct;		//轴一远控结构体
-	Axis1Status:AxisStatus;			//轴一状态结构体
-	Axis1Visible:AxisVisible;		//轴一HMI相关变量
-	rFctPosReal_1:LREAL;			//轴一位置（由CANopen编码器上报）
-	rFctVelReal_1:LREAL;			//轴一速度
-	rFctAccReal_1:LREAL;	        //轴一加速度
-	rFctDecReal_1:LREAL;	        //轴一减速度
-	
-	Axis2Local:AxisCrtlStruct;		//轴二本控结构体
-	Axis2Remote:AxisCrtlStruct;		//轴二远控结构体
-	Axis2Status:AxisStatus;			//轴二状态结构体
-	Axis2Visible:AxisVisible;		//轴二HMI相关变量
-	rFctPosReal_2:REAL;				//轴二位置（由CANopen编码器上报）
-	rFctVelReal_2:LREAL;			//轴二速度
-	rFctAccReal_2:LREAL;	        //轴二加速度
-	rFctDecReal_2:LREAL;	        //轴二减速度
-	
-	Axis3Local:AxisCrtlStruct;		//轴三本控结构体
-	Axis3Remote:AxisCrtlStruct;		//轴三远控结构体
-	Axis3Status:AxisStatus;			//轴三状态结构体
-	Axis3Visible:AxisVisible;		//轴三HMI相关变量
-	rFctPosReal_3:REAL;				//轴三位置（由CANopen编码器上报）
-	rFctVelReal_3:LREAL;			//轴三速度
-	rFctAccReal_3:LREAL;	        //轴三加速度
-	rFctDecReal_3:LREAL;	        //轴三减速度
-	
-	//跟踪接收机变量
-	bStartTrack:BOOL;//自跟踪开启标识符
-	Chan1AGC:REAL; //跟踪接收机1 AGC电压值
-	Chan1Ua:REAL;  //跟踪接收机1 Ua
-	Chan1Ue:REAL;  //跟踪接收机1 Ue
-	Chan1Lock:BOOL;//跟踪接收机1 是否锁定
-	Chan1Online:BOOL;//跟踪接收机1是否在线
-	
-	
-	Chan2AGC:REAL; //跟踪接收机2 AGC电压值
-	Chan2Ua:REAL;  //跟踪接收机2 Ua
-	Chan2Ue:REAL;  //跟踪接收机2 Ue
-	Chan2Lock:BOOL;//跟踪接收机2 是否锁定
-	Chan2Online:BOOL;//跟踪接收机2是否在线
-	
-	Chanthreshold:REAL;
-	AzV:AxisCrtlStruct; // 方位可视化结构体
-	ElV:AxisCrtlStruct; // 俯仰可视化结构体
-	TiV:AxisCrtlStruct; // 倾斜可视化结构体
-	iTest:INT;
-	a:INT;
-	
-	iVisualSwitch:INT;//方位俯仰倾斜转换
-	//可视化按钮
-	bAzVisable:BOOL; //True 不可点击 False 可以点击
-	bElVisable:BOOL;
-	bTlVisable:BOOL;
-	bLocalAutoTrackVis:BOOL;
-	bStartLocalAutoTrack:BOOL;
-	bRemoteTimeLock : BOOL;
-	
-	Ti:REAL;
-	El:REAL;
-	
-	bTimeSwich:BOOL:=TRUE;
-	
-	rvAzKpBase : REAL := 1;
-	rvAzKiBase : REAL := 0.01;
-	
-	rvAzKpscale : REAL := 0.01;
-	rvAzKiscale : REAL := 0.01;
-	
-	rvElKpBase : REAL := 1;
-	rvElKiBase : REAL := 0.01;
-	
-	rvElKpscale : REAL := 0.01;
-	rvElKiscale : REAL := 0.01;
-	
-	rvAzKpMax : REAL := 1;
-	rvAzKiMax : REAL := 0.01;
-	
-	rvElKpMax : REAL := 1;
-	rvElKiMax : REAL := 0.01;
-	
-	rvAzThre: REAL := 10.0;
-	rvElThre: REAL := 10.0;
-	
-	bTrackingModeTemp : BOOL := FALSE; //是否自动转自跟踪，0 acu转；1 自己转
-	rAzScanRangeTemp : REAL := 0.3;
-	rElScanRangeTemp : REAL := 0;
-	rErrorTherTemp : REAL := 6.0;
-	rStepTemp : REAL := 0.0015;
-END_VAR</xhtml>
-                </InterfaceAsPlainText>
-              </data>
               <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                 <ObjectId>250e77ee-5a88-484f-b1e1-875c0983333e</ObjectId>
               </data>
@@ -1633,44 +1445,6 @@ END_VAR</xhtml>
                 <Attributes>
                   <Attribute Name="qualified_only" Value="" />
                 </Attributes>
-              </data>
-              <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                <InterfaceAsPlainText>
-                  <xhtml xmlns="http://www.w3.org/1999/xhtml">{attribute 'qualified_only'}
-VAR_GLOBAL PERSISTENT RETAIN
-	TiOffset : REAL := 0;
-	ElOffset : REAL := 0;
-	
-	rAzKpBase : REAL := 0.9;
-	rAzKiBase : REAL := 0.009;
-	
-	rAzKpscale : REAL := 0.02;
-	rAzKiscale : REAL := 0.002;
-	
-	rElKpBase : REAL := 1;
-	rElKiBase : REAL := 0.01;
-	
-	rElKpscale : REAL := 0.01;
-	rElKiscale : REAL := 0.001;
-	
-	rAzKpMax : REAL := 2.5;
-	rAzKiMax : REAL := 0.03;
-	
-	rElKpMax : REAL := 1.5;
-	rElKiMax : REAL := 0.03;
-	
-	rAzThre: REAL := 80.0;
-	rElThre: REAL := 80.0;
-	
-	bTrackingMode : BOOL := FALSE; //是否自动转自跟踪，0 acu转；1 自己转
-	bSearchType : BOOL := FALSE; // 扫描模式，0 直线扫；1 螺旋扫
-	rErrorThre : REAL := 6.0;
-	rStartThre : REAL := 0.5;
-	rAzScanRange : REAL := 0.3;
-	rElScanRange : REAL := 0;
-	rStep : REAL := 0.0015;
-END_VAR</xhtml>
-                </InterfaceAsPlainText>
               </data>
               <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                 <ObjectId>fb1321bc-080e-49dc-9b7c-a517f16632af</ObjectId>
@@ -1907,44 +1681,6 @@ END_VAR</xhtml>
                   </struct>
                 </baseType>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">TYPE AxisCrtlStruct :
-STRUCT
-	iMode:INT;                     //方位运动模式   
-	//bEnable :BOOL;                 //方位使能      
-	rPosCmd :REAL;                 //方位位置命令    
-	rVelCmd :REAL;                 //方位速度指令  
-	rPIDCmdVel:LREAL;                //PID下发速度
-	rPIDCmdPos:LREAL;				//PID目标位置
-	bPIDEnable :BOOL;              //方位PID使能  
-	bStartAutoTrack :BOOL;			//自跟踪使能
-	rChanU:REAL;					//自跟踪采用的跟踪接收机误差电压
-	
-	rP:REAL:=1.0;                        //  P 
-	rI:REAL:=0;                         //  I 
-	rD:REAL:=0;                         //  D 
-	rPIDThre:INT:=1;                   //积分阈值
-	
-	rP_AutoTrack:REAL:=3.0;          //自跟踪P
-	rI_AutoTrack:REAL:=0.02;         //自跟踪I
-	
-	rAcceleration :REAL:=3;             //加速度
-	rDeceleration :REAL:=3;       		//减速度
-	rJogVel:LREAL:=2;					//点动速度 
-	Pos_Vel:REAL:=4;					//位置模式速度
-	rPos_Limit:LREAL;					//最大位置限制
-	rVel_Limit:LREAL:=3;				//最大速度限制
-	    
-	rSoft_limit_Postive:REAL;
-	rSoft_limit_Negative:REAL;			//正负软限位
-	rLimitionNegative:LREAL;			//起始减速负限位
-	rLimitionPositive:LREAL;			//起始减速正限位
-	
-END_STRUCT
-END_TYPE</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>2c4cb9db-f1b2-4a86-ae3f-b53babea604b</ObjectId>
                   </data>
@@ -2070,29 +1806,6 @@ END_TYPE</xhtml>
                   </struct>
                 </baseType>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">TYPE AxisStatus :
-STRUCT
-	Valid:BOOL;            //轴可用
-	Busy:BOOL;             //轴工作中
-	Error:BOOL;            //轴报错
-	ErrorID:UINT;          //错误码
-	ErrorStop:BOOL;        //轴错误停止
-	Disabled:BOOL;         //轴下使能
-	Stopping:BOOL;         //轴挂机或停止中
-	Homing:BOOL;           //轴回原点
-	Standstill:BOOL;       //轴待命
-	DiscreteMotion:BOOL;   //轴离散运动
-	ContinuousMotion:BOOL; //轴连续运动
-	bServo_Enable:BOOL;		//轴使能状态
-	bBrake:BOOL;			//轴抱闸状态
-	Moving:BOOL;           //轴运动中
-END_STRUCT
-END_TYPE
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>e9d1435d-ac4f-407e-8744-02959c4b09b2</ObjectId>
                   </data>
@@ -2207,43 +1920,6 @@ END_TYPE
                   </struct>
                 </baseType>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">TYPE AxisVisible :
-STRUCT
-	
-	
-	bJog_Forward:BOOL :=FALSE;
-	bJog_Backward:BOOL :=FALSE;
-	bVel_Run:BOOL:=FALSE;
-	bPos_Run:BOOL:=FALSE;
-	
-
-	
-	//JogB:BOOL;//点动指示灯
-	//JogF:BOOL;
-	bEnable:BOOL;//使能指示灯
-	bUnable:BOOL;//下使能指示灯
-	bLocalCtrl:BOOL;//本控指示灯
-	bRemoteCtrl:BOOL;//远控指示灯
-	//bJogLight:BOOL;//点动指示灯
-	bStop:BOOL;//停止指示灯
-	bmoveLight:BOOL;
-	//bMovePos:BOOL;//速度运行指示灯
-	//bMoveVel:BOOL;//位置运行指示灯
-	bErrLight:BOOL;//报错提示灯
-	//bExitPosLight:BOOL;//退限位模式指示灯
-	//bPosLimLight:BOOL;//撞限位指示灯
-	
-	
-	rLocalPosCmd:REAL;//本控位置命令
-	rLocalVelCmd:REAL;//本控速度命令
-	//rVelStep:REAL;//速度步距
-	//rPosStep:REAL;//位置步距
-END_STRUCT
-END_TYPE</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>83fa676e-90cc-48ab-95f1-c09fab895d66</ObjectId>
                   </data>
@@ -2334,27 +2010,6 @@ END_TYPE</xhtml>
                       <Attribute Name="strict" Value="" />
                     </Attributes>
                   </data>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">{attribute 'qualified_only'}
-{attribute 'strict'}
-TYPE MODES :
-(
-	powerOff:=0,          //下电
-	powerOn := 1,         //上电
-	positionMode:=2,      //位置模式
-	velocityMode:=3,      //手动速度模式
-	programBootMode:=4,   //程序引导模式
-	reset:=6,             //轴错误复位
-	halt:=7,              //停止
-	stop:=8,             //挂机
-	jog:=9 ,             //退限位模式
-	edge:=10,            //
-	test1:=11
-);
-END_TYPE</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>78e1d870-9efd-4a7e-a28c-f7264eb38c9c</ObjectId>
                   </data>
@@ -2375,17 +2030,6 @@ END_TYPE</xhtml>
                         <REAL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM PLC_PRG
-VAR
-	a : DINT;
-	b : REAL;
-END_VAR</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -2394,15 +2038,6 @@ END_VAR</xhtml>
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM PLC_PRG
-VAR
-	a : DINT;
-	b : REAL;
-END_VAR</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>782b9028-c073-45d5-9c79-e0eeee37da47</ObjectId>
                   </data>
@@ -2504,34 +2139,6 @@ END_VAR</xhtml>
                         <DINT />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM TimeCase
-VAR
-	stUTC_Timestamp :SYSTIME ;
-	stSYS_Timestamp :ULINT ;
-	stGNSS_Timestap :ULINT;
-    Result : RTS_IEC_RESULT;
-	Uptriger:Standard.R_TRIG;
-	Triger AT %IX0.0:BOOL;
-	Feed AT %QX0.0:BOOL;	
-	TON_F: TON;
-	dDelPTime: DINT;
-	max_DelPTime:DINT :=0; 
-	min_DelPTime: DINT :=-999999;
-	iCount: INT;
-	dtNow: DATE_AND_TIME;
-	dtGNSS: DATE_AND_TIME;
-	dtLastGNSS: ULINT;
-	iDiffETime: DINT;
-	DelPTime: DINT;
-	
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -2577,32 +2184,6 @@ END_IF</xhtml>
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM TimeCase
-VAR
-	stUTC_Timestamp :SYSTIME ;
-	stSYS_Timestamp :ULINT ;
-	stGNSS_Timestap :ULINT;
-    Result : RTS_IEC_RESULT;
-	Uptriger:Standard.R_TRIG;
-	Triger AT %IX0.0:BOOL;
-	Feed AT %QX0.0:BOOL;	
-	TON_F: TON;
-	dDelPTime: DINT;
-	max_DelPTime:DINT :=0; 
-	min_DelPTime: DINT :=-999999;
-	iCount: INT;
-	dtNow: DATE_AND_TIME;
-	dtGNSS: DATE_AND_TIME;
-	dtLastGNSS: ULINT;
-	iDiffETime: DINT;
-	DelPTime: DINT;
-	
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>8e7a7244-a61d-4720-a592-6679a8ac64b5</ObjectId>
                   </data>
@@ -2696,43 +2277,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">速度限制</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK PID
-VAR_INPUT
-    rTarget : REAL;       (* 设定值 *)
-    rFeedback : REAL;       (* 反馈值 *)
-	rPosLimPositive:LREAL;//位置正限位
-	rPosLimNegative:LREAL;//位置反限位
-	rKp:REAL;     //比例增益
-	rKi:REAL;     //积分增益
-	rKd:REAL;     //微分增益
-	iThreshold:INT;//积分项开启的位置阈值
-	bPIDEnable:BOOL:=TRUE;//PID使能
-	rVelLim:LREAL;//速度限制
-END_VAR
-VAR_OUTPUT
-    rPIDOutput : LREAL:=0;         //带方向的输出速度
-	rPIDtrace : LREAL:=0;         //带方向的输出速度
-END_VAR
-VAR
-	//rPIDOutPut: REAL:=0.0;
-	rLastError: LREAL:=0.0;(*上一次误差*)
-	rErrorNow:LREAL:=0.0;(*当前误差*)
-    rIntegralNew : LREAL := 0.0; (* 积分项 *)
-    rDerivativeNew : LREAL := 0.0; (* 微分项 *)
-	rDelta: LREAL;(*增量*)
-	rProportionNew: LREAL;
-	
-	//iAzPIDEnable: INT;
-END_VAR
-
-
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inputVars>
                   <outputVars>
                     <variable name="rPIDOutput">
@@ -2757,43 +2301,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">带方向的输出速度</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK PID
-VAR_INPUT
-    rTarget : REAL;       (* 设定值 *)
-    rFeedback : REAL;       (* 反馈值 *)
-	rPosLimPositive:LREAL;//位置正限位
-	rPosLimNegative:LREAL;//位置反限位
-	rKp:REAL;     //比例增益
-	rKi:REAL;     //积分增益
-	rKd:REAL;     //微分增益
-	iThreshold:INT;//积分项开启的位置阈值
-	bPIDEnable:BOOL:=TRUE;//PID使能
-	rVelLim:LREAL;//速度限制
-END_VAR
-VAR_OUTPUT
-    rPIDOutput : LREAL:=0;         //带方向的输出速度
-	rPIDtrace : LREAL:=0;         //带方向的输出速度
-END_VAR
-VAR
-	//rPIDOutPut: REAL:=0.0;
-	rLastError: LREAL:=0.0;(*上一次误差*)
-	rErrorNow:LREAL:=0.0;(*当前误差*)
-    rIntegralNew : LREAL := 0.0; (* 积分项 *)
-    rDerivativeNew : LREAL := 0.0; (* 微分项 *)
-	rDelta: LREAL;(*增量*)
-	rProportionNew: LREAL;
-	
-	//iAzPIDEnable: INT;
-END_VAR
-
-
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </outputVars>
                   <localVars>
                     <variable name="rLastError">
@@ -2853,43 +2360,6 @@ END_VAR
                         <LREAL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK PID
-VAR_INPUT
-    rTarget : REAL;       (* 设定值 *)
-    rFeedback : REAL;       (* 反馈值 *)
-	rPosLimPositive:LREAL;//位置正限位
-	rPosLimNegative:LREAL;//位置反限位
-	rKp:REAL;     //比例增益
-	rKi:REAL;     //积分增益
-	rKd:REAL;     //微分增益
-	iThreshold:INT;//积分项开启的位置阈值
-	bPIDEnable:BOOL:=TRUE;//PID使能
-	rVelLim:LREAL;//速度限制
-END_VAR
-VAR_OUTPUT
-    rPIDOutput : LREAL:=0;         //带方向的输出速度
-	rPIDtrace : LREAL:=0;         //带方向的输出速度
-END_VAR
-VAR
-	//rPIDOutPut: REAL:=0.0;
-	rLastError: LREAL:=0.0;(*上一次误差*)
-	rErrorNow:LREAL:=0.0;(*当前误差*)
-    rIntegralNew : LREAL := 0.0; (* 积分项 *)
-    rDerivativeNew : LREAL := 0.0; (* 微分项 *)
-	rDelta: LREAL;(*增量*)
-	rProportionNew: LREAL;
-	
-	//iAzPIDEnable: INT;
-END_VAR
-
-
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -2955,41 +2425,6 @@ END_IF
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK PID
-VAR_INPUT
-    rTarget : REAL;       (* 设定值 *)
-    rFeedback : REAL;       (* 反馈值 *)
-	rPosLimPositive:LREAL;//位置正限位
-	rPosLimNegative:LREAL;//位置反限位
-	rKp:REAL;     //比例增益
-	rKi:REAL;     //积分增益
-	rKd:REAL;     //微分增益
-	iThreshold:INT;//积分项开启的位置阈值
-	bPIDEnable:BOOL:=TRUE;//PID使能
-	rVelLim:LREAL;//速度限制
-END_VAR
-VAR_OUTPUT
-    rPIDOutput : LREAL:=0;         //带方向的输出速度
-	rPIDtrace : LREAL:=0;         //带方向的输出速度
-END_VAR
-VAR
-	//rPIDOutPut: REAL:=0.0;
-	rLastError: LREAL:=0.0;(*上一次误差*)
-	rErrorNow:LREAL:=0.0;(*当前误差*)
-    rIntegralNew : LREAL := 0.0; (* 积分项 *)
-    rDerivativeNew : LREAL := 0.0; (* 微分项 *)
-	rDelta: LREAL;(*增量*)
-	rProportionNew: LREAL;
-	
-	//iAzPIDEnable: INT;
-END_VAR
-
-
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>b5e79cdc-cc76-4950-ba1b-cf91b66aab2b</ObjectId>
                   </data>
@@ -3010,18 +2445,6 @@ END_VAR
                         <INT />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM TimeAdd
-VAR
-	icount : INT;
-	iSecondLast:INT;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -3040,16 +2463,6 @@ END_IF</xhtml>
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM TimeAdd
-VAR
-	icount : INT;
-	iSecondLast:INT;
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>9e411174-1a48-44ff-a9cb-6dd375c5d740</ObjectId>
                   </data>
@@ -3200,36 +2613,6 @@ END_VAR
                         <BYTE />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM GPRMC
-VAR
-	com_init:gcan.FB_Com_Init;      		//gcan.FB_Com_Init为串口初始化功能块，可设定串口端口号，串口波特率等参数
-	com_read:gcan.FB_Com_Read ;				//gcan.FB_Com_Read为串口接收功能块，用于通过接收串口发送给PLC的数据
-	com_write:gcan.FB_Com_Write ;			//gcan.FB_Com_Write为串口发送功能块，用于发送串口数据
-	m_uiError:UINT;							//用于承接功能块中报错引脚错误信息的变量
-	m_out:BOOL;								//用于承接功能块中完成标志引脚数据的变量
-	isFirst:BOOL:=TRUE;						//用于判断初始化只执行一次的逻辑
-	mPort:BYTE;								//程序中用作设定串口端口号
-	recSize:UINT;							//接收数据长度，单位：字节
-	recBuf:ARRAY[0..100] OF BYTE;			//用于存放接收到的串口数据的数组
-	sum_i:INT;
-	checksum:BYTE;
-	iYear: INT;
-	iMonth: INT;
-	iDay: INT;
-	iHour: INT;
-	iMinute: INT;
-	iSecond: INT;
-	strDateTimeNow : STRING;
-	gnssTimestamp: ULINT;
-	high4: BYTE;
-	low4: BYTE;
-END_VAR</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -3334,34 +2717,6 @@ END_IF</xhtml>
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM GPRMC
-VAR
-	com_init:gcan.FB_Com_Init;      		//gcan.FB_Com_Init为串口初始化功能块，可设定串口端口号，串口波特率等参数
-	com_read:gcan.FB_Com_Read ;				//gcan.FB_Com_Read为串口接收功能块，用于通过接收串口发送给PLC的数据
-	com_write:gcan.FB_Com_Write ;			//gcan.FB_Com_Write为串口发送功能块，用于发送串口数据
-	m_uiError:UINT;							//用于承接功能块中报错引脚错误信息的变量
-	m_out:BOOL;								//用于承接功能块中完成标志引脚数据的变量
-	isFirst:BOOL:=TRUE;						//用于判断初始化只执行一次的逻辑
-	mPort:BYTE;								//程序中用作设定串口端口号
-	recSize:UINT;							//接收数据长度，单位：字节
-	recBuf:ARRAY[0..100] OF BYTE;			//用于存放接收到的串口数据的数组
-	sum_i:INT;
-	checksum:BYTE;
-	iYear: INT;
-	iMonth: INT;
-	iDay: INT;
-	iHour: INT;
-	iMinute: INT;
-	iSecond: INT;
-	strDateTimeNow : STRING;
-	gnssTimestamp: ULINT;
-	high4: BYTE;
-	low4: BYTE;
-END_VAR</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>865d0762-fb2e-4b24-bffd-e5c9d6c7fc8c</ObjectId>
                   </data>
@@ -3484,36 +2839,6 @@ END_VAR</xhtml>
                         <INT />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM RealTimePosCal
-VAR
-	dtReal: DATE_AND_TIME;
-	sRealTime:STRING;
-	btestTimeInit:BOOL;
-	AzCubicInter:threesimple2_1;//方位三次样条插值
-	ElCubicInter:threesimple2_1;//俯仰三次样条插值
-	iErrcode : INT;
-	rInterAzPos:REAL;//方位轴插值位置
-    rInterElPos:REAL;//俯仰轴插值位置
-	
-	rInterAzPostest:REAL;//方位轴插值位置
-    rInterElPostest:REAL;//俯仰轴插值位置
-	
-	rPolyAzPos:REAL;//方位轴多项式位置
-    rPolyElPos:REAL;//俯仰轴多项式位置
-	AzPoly:Get_AZ;
-	ElPoly:Get_AZ_1;
-	
-	dRTime:ULINT;//上位机外部时间 单位ns Unix时间戳，起点是1970-1-1 0:0:0
-	dLastRTime:ULINT;
-	icount : INT;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -3607,34 +2932,6 @@ END_IF
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM RealTimePosCal
-VAR
-	dtReal: DATE_AND_TIME;
-	sRealTime:STRING;
-	btestTimeInit:BOOL;
-	AzCubicInter:threesimple2_1;//方位三次样条插值
-	ElCubicInter:threesimple2_1;//俯仰三次样条插值
-	iErrcode : INT;
-	rInterAzPos:REAL;//方位轴插值位置
-    rInterElPos:REAL;//俯仰轴插值位置
-	
-	rInterAzPostest:REAL;//方位轴插值位置
-    rInterElPostest:REAL;//俯仰轴插值位置
-	
-	rPolyAzPos:REAL;//方位轴多项式位置
-    rPolyElPos:REAL;//俯仰轴多项式位置
-	AzPoly:Get_AZ;
-	ElPoly:Get_AZ_1;
-	
-	dRTime:ULINT;//上位机外部时间 单位ns Unix时间戳，起点是1970-1-1 0:0:0
-	dLastRTime:ULINT;
-	icount : INT;
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>d1d353e9-b6ba-4daf-a75d-684630ba06ac</ObjectId>
                   </data>
@@ -4815,212 +4112,6 @@ END_VAR
                         <simpleValue value="8" />
                       </initialValue>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM Modbus_Slave
-VAR
-	modTcpSlaveInit:gcan.FB_ModbusTCP_Slave_Init;	//gcan.FB_ModbusTCP_Slave_Init为Modbus TCP Slave初始化功能块
-	modTcpSlaveCtrl:gcan.FB_ModbusTCP_Slave_Ctrl;	//gcan.FB_ModbusTCP_Slave_Init为Modbus TCP Slave执行功能块
-	eout: BOOL;										//用于承接功能块中完成标志引脚数据的变量
-	iSocket: INT;									//用于存放自身socket
-	uiErr: UINT;									//用于承接功能块中报错引脚错误信息的变量
-	isInit: BOOL:=FALSE;							//用于初始化执行一次的逻辑变量
-	arClient:ARRAY[0..10] OF INT;					//用于存放Client即主站的socket
-	
-	arDo_data:ARRAY[0..654] OF BOOL;					//用于存放线圈的数据
-	arDi_data:ARRAY[0..79] OF BOOL;					//用于存放离散型数据
-	//arReg_data:ARRAY[0..10] OF INT;					//用于存放保持型寄存器的数据
-	//arAi_data:ARRAY[0..10] OF INT;					//用于存放输入型寄存器的数据
-	modbusData	    AT %MW0		: ARRAY[0..654] OF WORD;//用于存放保持型寄存器的数据，接收的数据
-	modbusInputRegs	AT %MW660	: ARRAY[0..79] OF WORD;//用于存放输入型寄存器的数据，上报的数据
-	
-	enCtr:BOOL:=FALSE;								//Modbus TCP Slave执行功能块使能变量
-
-	Remote_time 	 	:LWORD;
-	dif:ULINT;//时延
-	iCount				:WORD;
-	TypeList1 			:DWORD;
-	UTC_Union: float2bit;
-	CtrlBool: WORD_AS_BIT;
-	bCommReset:BOOL;		//错误复位标识符
-	iWatchDogTime:INT;
-	
-	Pos1_Union:float2bit;//远控处理数据结构体
-	Pos2_Union:float2bit;
-	Pos3_Union:float2bit;
-	//轴1远控指令，俯仰
-	iMode_1 			:INT;  			//轴1模式远控
-	rPosCmd_1 		 	:REAL; 			//轴1位置指令远控
-	rVelcmd_1 			:REAL; 			//轴1速度指令远控
-	rP_1 				:REAL;    	//轴1P远控
-	rI_1 			 	:REAL;      	//轴1I远控
-	rD_1				:REAL;     	//轴1D远控
-	rThreshold_1 	 	:INT:=1;		//轴1积分阈值远控
-	rAcceleration_1  	:REAL;			//最大加速度
-	rDeceleration_1  	:REAL;			//最大减速度	
-	rVelLim_1	  	 	:REAL;			//最大速度
-	
-	//轴2远控指令，方位
-    iMode_2  		 	:INT; 			//轴2模式远控
-	rPosCmd_2 			:REAL; 			//轴2位置指令远控
-	rVelcmd_2 			:REAL; 			//轴2速度指令远控
-	rP_2 				:REAL;  		//轴2P远控
-	rI_2 			 	:REAL;  		//轴2I远控
-	rD_2 			 	:REAL;  		//轴2D远控
-	rThreshold_2 		:INT;			//轴2积分阈值远控
-	rAcceleration_2 	:REAL;			//最大加速度
-	rDeceleration_2  	:REAL;			//最大减速度	
-	rVelLim_2	  		:REAL;			//最大速度
-	//轴3远控指令，方位
-    iMode_3  		 	:INT; 			//轴2模式远控
-	rPosCmd_3 			:REAL; 			//轴2位置指令远控
-	rVelcmd_3 			:REAL; 			//轴2速度指令远控
-	rP_3 				:REAL;  		//轴2P远控
-	rI_3 			 	:REAL;  		//轴2I远控
-	rD_3 			 	:REAL;  		//轴2D远控
-	rThreshold_3 		:INT;			//轴2积分阈值远控
-	rAcceleration_3 	:REAL;			//最大加速度
-	rDeceleration_3  	:REAL;			//最大减速度	
-	rVelLim_3	  		:REAL;			//最大速度
-	
-	//轨道时间结构体
-	UTC_Orbit_Union:float2bit;
-	UTC_Orbit_New:ULINT;
-	UTC_Orbit_Last:ULINT;
-	//拉偏变量
-	TimeBias_Union:float2bit;
-	Bias1_Union:float2bit;
-	Bias2_Union:float2bit;
-	Bias3_Union:float2bit;
-	AcuElOffset:float2bit;
-	rTimeBias:LREAL;
-	rBias_1:LREAL;
-	rBias_2:LREAL;
-	rBias_3:LREAL;
-	lrElOffset:LREAL;
-	UTC_New:ULINT;
-	UTC_Last:ULINT;
-	aUTC_TIME:ARRAY [1..10] OF ULINT;  //用于三次样条插值的数据
-	aPosCmd_1 :ARRAY [1..10] OF LREAL;//用于三次样条插值的数据
-	aPosCmd_2 :ARRAY [1..10] OF LREAL;//用于三次样条插值的数据
-	isave:INT;
-	iCheck:INT;
-	bPass:BOOL;//通过大小检测
-	iclear:INT;
-	
-	uPTPTime_Union:float2bit;
-	DI1_Union:Util.BIT_AS_WORD;	//上报位置结构体
-	DI2_Union:Util.BIT_AS_WORD;
-	DO1_Union:Util.BIT_AS_WORD;
-	DO2_Union:Util.BIT_AS_WORD;
-	DI1_word:WORD;
-	DI2_word:WORD;
-	DO1_word:WORD;
-	DO2_word:WORD;
-// 	
-	PosSub1_Union:float2bit;
-	PosSub2_Union:float2bit;
-	PosSub3_Union:float2bit;
-	BiasSub1_Union:float2bit;
-	BiasSub2_Union:float2bit;
-	BiasSub3_Union:float2bit;
-
-	Chan_Union:Util.BIT_AS_WORD;
-	Chan_word:WORD;
-	
-	ptptime:ULINT;
-	
-	rAzTheory:LREAL;
-	rEltheory:LREAL;
-	rAzTheory_Union:float2bit;
-	rEltheory_Union:float2bit;
-	
-	
-	MillisecondsTime: ULINT;
-	
-	// for time test
-	DeltaTimeBetPC : ULINT;
-
-	AGC_Value: REAL;
-
-	// 方位轨道多项式变量
-	starttime : LREAL ;
-	rNodeTime1_az : LREAL;
-	rNodeTime2_az : LREAL;
-	rNodeTime3_az : LREAL;
-    rNodeTime4_az : LREAL;
-    rNodeTime5_az : LREAL;
-	rEndTime : LREAL;
-	
-	lrFun1_az : ARRAY[0..10] OF LREAL;
-    lrFun2_az : ARRAY[0..10] OF LREAL;
-    lrFun3_az : ARRAY[0..10] OF LREAL;
-    lrFun4_az : ARRAY[0..10] OF LREAL;
-	lrFun5_az : ARRAY[0..10] OF LREAL;
-    lrFun6_az : ARRAY[0..10] OF LREAL;
-
-    unionFun1_az : ARRAY[0..10] OF UnionLREAL_WORD;
-    unionFun2_az : ARRAY[0..10] OF UnionLREAL_WORD;
-    unionFun3_az : ARRAY[0..10] OF UnionLREAL_WORD;
-    unionFun4_az : ARRAY[0..10] OF UnionLREAL_WORD;
-    unionFun5_az : ARRAY[0..10] OF UnionLREAL_WORD;
-    unionFun6_az : ARRAY[0..10] OF UnionLREAL_WORD;
-	
-	unionStartTime: UnionLREAL_WORD;
-	
-    unionNodeTime1_az : UnionLREAL_WORD;
-    unionNodeTime2_az : UnionLREAL_WORD;
-    unionNodeTime3_az : UnionLREAL_WORD;
-    unionNodeTime4_az : UnionLREAL_WORD;
-    unionNodeTime5_az : UnionLREAL_WORD;
-    unionEndTime : UnionLREAL_WORD;
-	
-	// 俯仰轨道多项式变量
-	rNodeTime1_el : REAL;
-	rNodeTime2_el : REAL;
-	rNodeTime3_el : REAL;
-    rNodeTime4_el : REAL;
-    rNodeTime5_el : REAL;
-	lrFun1_el : ARRAY[0..10] OF LREAL;
-    lrFun2_el : ARRAY[0..10] OF LREAL;
-    lrFun3_el : ARRAY[0..10] OF LREAL;
-    lrFun4_el : ARRAY[0..10] OF LREAL;
-	lrFun5_el : ARRAY[0..10] OF LREAL;
-    lrFun6_el : ARRAY[0..10] OF LREAL;
-	unionFun1_el : ARRAY[0..10] OF UnionLREAL_WORD;
-	unionFun2_el : ARRAY[0..10] OF UnionLREAL_WORD;
-	unionFun3_el : ARRAY[0..10] OF UnionLREAL_WORD;
-	unionFun4_el : ARRAY[0..10] OF UnionLREAL_WORD;
-	unionFun5_el : ARRAY[0..10] OF UnionLREAL_WORD;
-	unionFun6_el : ARRAY[0..10] OF UnionLREAL_WORD;
-	unionNodeTime1_el : UnionLREAL_WORD;
-	unionNodeTime2_el : UnionLREAL_WORD;
-	unionNodeTime3_el : UnionLREAL_WORD;
-	unionNodeTime4_el : UnionLREAL_WORD;
-	unionNodeTime5_el : UnionLREAL_WORD;
-	unionSum:UnionLREAL_WORD;
-	lrSum:LREAL;
-	lrSumlocal:LREAL;
-	i : INT;
-	bNotFirst : BOOL; //
-	bCheck : BOOL;
-	bIFPoly: BOOL;//开启多项式拟合模式的标识，由上位机下发
-	iCountPolyGet:INT;//计时接收多项式数组的模块
-	uChangeTest:Time2Word;//变量转换测试
-	iCountSum:INT;
-	bSearch: BOOL;
-	bStartTrackAcu : BOOL;
-	
-	//接收上位机下发位置模式速度
-	rAzPosVel : REAL := 8;
-	rElPosVel : REAL := 6;
-	rTlPosVel : REAL := 8;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -5693,210 +4784,6 @@ END_IF
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM Modbus_Slave
-VAR
-	modTcpSlaveInit:gcan.FB_ModbusTCP_Slave_Init;	//gcan.FB_ModbusTCP_Slave_Init为Modbus TCP Slave初始化功能块
-	modTcpSlaveCtrl:gcan.FB_ModbusTCP_Slave_Ctrl;	//gcan.FB_ModbusTCP_Slave_Init为Modbus TCP Slave执行功能块
-	eout: BOOL;										//用于承接功能块中完成标志引脚数据的变量
-	iSocket: INT;									//用于存放自身socket
-	uiErr: UINT;									//用于承接功能块中报错引脚错误信息的变量
-	isInit: BOOL:=FALSE;							//用于初始化执行一次的逻辑变量
-	arClient:ARRAY[0..10] OF INT;					//用于存放Client即主站的socket
-	
-	arDo_data:ARRAY[0..654] OF BOOL;					//用于存放线圈的数据
-	arDi_data:ARRAY[0..79] OF BOOL;					//用于存放离散型数据
-	//arReg_data:ARRAY[0..10] OF INT;					//用于存放保持型寄存器的数据
-	//arAi_data:ARRAY[0..10] OF INT;					//用于存放输入型寄存器的数据
-	modbusData	    AT %MW0		: ARRAY[0..654] OF WORD;//用于存放保持型寄存器的数据，接收的数据
-	modbusInputRegs	AT %MW660	: ARRAY[0..79] OF WORD;//用于存放输入型寄存器的数据，上报的数据
-	
-	enCtr:BOOL:=FALSE;								//Modbus TCP Slave执行功能块使能变量
-
-	Remote_time 	 	:LWORD;
-	dif:ULINT;//时延
-	iCount				:WORD;
-	TypeList1 			:DWORD;
-	UTC_Union: float2bit;
-	CtrlBool: WORD_AS_BIT;
-	bCommReset:BOOL;		//错误复位标识符
-	iWatchDogTime:INT;
-	
-	Pos1_Union:float2bit;//远控处理数据结构体
-	Pos2_Union:float2bit;
-	Pos3_Union:float2bit;
-	//轴1远控指令，俯仰
-	iMode_1 			:INT;  			//轴1模式远控
-	rPosCmd_1 		 	:REAL; 			//轴1位置指令远控
-	rVelcmd_1 			:REAL; 			//轴1速度指令远控
-	rP_1 				:REAL;    	//轴1P远控
-	rI_1 			 	:REAL;      	//轴1I远控
-	rD_1				:REAL;     	//轴1D远控
-	rThreshold_1 	 	:INT:=1;		//轴1积分阈值远控
-	rAcceleration_1  	:REAL;			//最大加速度
-	rDeceleration_1  	:REAL;			//最大减速度	
-	rVelLim_1	  	 	:REAL;			//最大速度
-	
-	//轴2远控指令，方位
-    iMode_2  		 	:INT; 			//轴2模式远控
-	rPosCmd_2 			:REAL; 			//轴2位置指令远控
-	rVelcmd_2 			:REAL; 			//轴2速度指令远控
-	rP_2 				:REAL;  		//轴2P远控
-	rI_2 			 	:REAL;  		//轴2I远控
-	rD_2 			 	:REAL;  		//轴2D远控
-	rThreshold_2 		:INT;			//轴2积分阈值远控
-	rAcceleration_2 	:REAL;			//最大加速度
-	rDeceleration_2  	:REAL;			//最大减速度	
-	rVelLim_2	  		:REAL;			//最大速度
-	//轴3远控指令，方位
-    iMode_3  		 	:INT; 			//轴2模式远控
-	rPosCmd_3 			:REAL; 			//轴2位置指令远控
-	rVelcmd_3 			:REAL; 			//轴2速度指令远控
-	rP_3 				:REAL;  		//轴2P远控
-	rI_3 			 	:REAL;  		//轴2I远控
-	rD_3 			 	:REAL;  		//轴2D远控
-	rThreshold_3 		:INT;			//轴2积分阈值远控
-	rAcceleration_3 	:REAL;			//最大加速度
-	rDeceleration_3  	:REAL;			//最大减速度	
-	rVelLim_3	  		:REAL;			//最大速度
-	
-	//轨道时间结构体
-	UTC_Orbit_Union:float2bit;
-	UTC_Orbit_New:ULINT;
-	UTC_Orbit_Last:ULINT;
-	//拉偏变量
-	TimeBias_Union:float2bit;
-	Bias1_Union:float2bit;
-	Bias2_Union:float2bit;
-	Bias3_Union:float2bit;
-	AcuElOffset:float2bit;
-	rTimeBias:LREAL;
-	rBias_1:LREAL;
-	rBias_2:LREAL;
-	rBias_3:LREAL;
-	lrElOffset:LREAL;
-	UTC_New:ULINT;
-	UTC_Last:ULINT;
-	aUTC_TIME:ARRAY [1..10] OF ULINT;  //用于三次样条插值的数据
-	aPosCmd_1 :ARRAY [1..10] OF LREAL;//用于三次样条插值的数据
-	aPosCmd_2 :ARRAY [1..10] OF LREAL;//用于三次样条插值的数据
-	isave:INT;
-	iCheck:INT;
-	bPass:BOOL;//通过大小检测
-	iclear:INT;
-	
-	uPTPTime_Union:float2bit;
-	DI1_Union:Util.BIT_AS_WORD;	//上报位置结构体
-	DI2_Union:Util.BIT_AS_WORD;
-	DO1_Union:Util.BIT_AS_WORD;
-	DO2_Union:Util.BIT_AS_WORD;
-	DI1_word:WORD;
-	DI2_word:WORD;
-	DO1_word:WORD;
-	DO2_word:WORD;
-// 	
-	PosSub1_Union:float2bit;
-	PosSub2_Union:float2bit;
-	PosSub3_Union:float2bit;
-	BiasSub1_Union:float2bit;
-	BiasSub2_Union:float2bit;
-	BiasSub3_Union:float2bit;
-
-	Chan_Union:Util.BIT_AS_WORD;
-	Chan_word:WORD;
-	
-	ptptime:ULINT;
-	
-	rAzTheory:LREAL;
-	rEltheory:LREAL;
-	rAzTheory_Union:float2bit;
-	rEltheory_Union:float2bit;
-	
-	
-	MillisecondsTime: ULINT;
-	
-	// for time test
-	DeltaTimeBetPC : ULINT;
-
-	AGC_Value: REAL;
-
-	// 方位轨道多项式变量
-	starttime : LREAL ;
-	rNodeTime1_az : LREAL;
-	rNodeTime2_az : LREAL;
-	rNodeTime3_az : LREAL;
-    rNodeTime4_az : LREAL;
-    rNodeTime5_az : LREAL;
-	rEndTime : LREAL;
-	
-	lrFun1_az : ARRAY[0..10] OF LREAL;
-    lrFun2_az : ARRAY[0..10] OF LREAL;
-    lrFun3_az : ARRAY[0..10] OF LREAL;
-    lrFun4_az : ARRAY[0..10] OF LREAL;
-	lrFun5_az : ARRAY[0..10] OF LREAL;
-    lrFun6_az : ARRAY[0..10] OF LREAL;
-
-    unionFun1_az : ARRAY[0..10] OF UnionLREAL_WORD;
-    unionFun2_az : ARRAY[0..10] OF UnionLREAL_WORD;
-    unionFun3_az : ARRAY[0..10] OF UnionLREAL_WORD;
-    unionFun4_az : ARRAY[0..10] OF UnionLREAL_WORD;
-    unionFun5_az : ARRAY[0..10] OF UnionLREAL_WORD;
-    unionFun6_az : ARRAY[0..10] OF UnionLREAL_WORD;
-	
-	unionStartTime: UnionLREAL_WORD;
-	
-    unionNodeTime1_az : UnionLREAL_WORD;
-    unionNodeTime2_az : UnionLREAL_WORD;
-    unionNodeTime3_az : UnionLREAL_WORD;
-    unionNodeTime4_az : UnionLREAL_WORD;
-    unionNodeTime5_az : UnionLREAL_WORD;
-    unionEndTime : UnionLREAL_WORD;
-	
-	// 俯仰轨道多项式变量
-	rNodeTime1_el : REAL;
-	rNodeTime2_el : REAL;
-	rNodeTime3_el : REAL;
-    rNodeTime4_el : REAL;
-    rNodeTime5_el : REAL;
-	lrFun1_el : ARRAY[0..10] OF LREAL;
-    lrFun2_el : ARRAY[0..10] OF LREAL;
-    lrFun3_el : ARRAY[0..10] OF LREAL;
-    lrFun4_el : ARRAY[0..10] OF LREAL;
-	lrFun5_el : ARRAY[0..10] OF LREAL;
-    lrFun6_el : ARRAY[0..10] OF LREAL;
-	unionFun1_el : ARRAY[0..10] OF UnionLREAL_WORD;
-	unionFun2_el : ARRAY[0..10] OF UnionLREAL_WORD;
-	unionFun3_el : ARRAY[0..10] OF UnionLREAL_WORD;
-	unionFun4_el : ARRAY[0..10] OF UnionLREAL_WORD;
-	unionFun5_el : ARRAY[0..10] OF UnionLREAL_WORD;
-	unionFun6_el : ARRAY[0..10] OF UnionLREAL_WORD;
-	unionNodeTime1_el : UnionLREAL_WORD;
-	unionNodeTime2_el : UnionLREAL_WORD;
-	unionNodeTime3_el : UnionLREAL_WORD;
-	unionNodeTime4_el : UnionLREAL_WORD;
-	unionNodeTime5_el : UnionLREAL_WORD;
-	unionSum:UnionLREAL_WORD;
-	lrSum:LREAL;
-	lrSumlocal:LREAL;
-	i : INT;
-	bNotFirst : BOOL; //
-	bCheck : BOOL;
-	bIFPoly: BOOL;//开启多项式拟合模式的标识，由上位机下发
-	iCountPolyGet:INT;//计时接收多项式数组的模块
-	uChangeTest:Time2Word;//变量转换测试
-	iCountSum:INT;
-	bSearch: BOOL;
-	bStartTrackAcu : BOOL;
-	
-	//接收上位机下发位置模式速度
-	rAzPosVel : REAL := 8;
-	rElPosVel : REAL := 6;
-	rTlPosVel : REAL := 8;
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>b8ad2f70-c1f4-4ca4-b34f-79f47417026d</ObjectId>
                   </data>
@@ -6241,81 +5128,6 @@ END_VAR
                         <simpleValue value="0.3" />
                       </initialValue>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM Az_ctrl_1
-VAR
-	Axis2_Ctrl:Az_Ctrl_FB;
-	bRemote2LocalStop:BOOL;
-	bLocal2RemoteStop:BOOL;
-	Error:INT;
-	
-	Axis2Limit_pos:REAL;//正软限位
-	Axis2Limit_Neg:REAL;//负软限位
-	
-	bRTriger:Standard.R_TRIG;//本控上升沿
-	bFTriger:Standard.F_TRIG;//远控下降沿
-	Stop2_Count: INT;
-	bStop_2: BOOL;
-	
-	//指向模式自跟踪
-	rPosModeStepBias:LREAL;//指向模式自跟踪拉偏累计值
-	rPosModeStep:LREAL:=0.005;//指向模式自跟踪步长，积分用
-	rStepBiasMax:LREAL:=2;//指向模式拉偏最大值
-	
-	//程引拉偏
-	rStepBias:LREAL;//步进拉偏累计值
-// 	rStep:LREAL:=0.0002;//步长，与控制周期有关，1ms周期对应1秒内累积0.0002*1000=0.2°
-// 	rStep:LREAL:=0.01;//步长，与控制周期有关，50ms周期对应1秒内累积0.01*20=0.2°
-	rStep:LREAL:=0.002;//步长，与控制周期有关，20ms周期对应1秒内累积0.004*50=0.2°
-		
-	//自跟踪拉偏
-	rAuToStepBias:LREAL;//步进拉偏累计值
-	rAuToStepBiasTemp:LREAL;//步进拉偏累计值
-// 	rAutoStep:LREAL:=0.005;//步长
-	rAutoStep:LREAL:=0.005;//步长
-	TbAutoTrigger:Standard.F_TRIG;//自跟踪关闭的下降沿
-	RbAutoTrigger:Standard.R_TRIG;//自跟踪开启的上升沿
-
-	rAutoTrackingBiasMax:LREAL:=15;//自跟踪拉偏最大值
-	rLocalInitPosModeSpeed: REAL;
-	rRemoteInitPosModeSpeed: REAL;
-	iCountOffAuto: INT;
-	
-	iCasePBAutoTrack:INT:=2;//程序引导自跟踪切换 
-// 	rKAuToStepBias:LREAL:=0.25;
-	rKAuToStepBias:LREAL:=0.6;
-	bVisError:BOOL; //报错可视化标识
-	
-	a : INT;
-	
-	agcmaxsearch_tb:agcmaxsearch_pb_1;//拉偏搜索 位置模式
-	//bstartagcmaxsearch:BOOL;//十字搜索启动标志
-	rSearchNextStepTarget_tb:REAL;//当前搜索位置
-	
-	
-	agcmaxsearch_pb:agcmaxsearch_pb_1;//拉偏搜索 程引模式
-	//agcmaxsearch_pb_1:agcmaxsearch_pb_1;
-	rElthreshold:REAL :=4.2;
-	toN1: Standard.Ton;//计时器 定时触发上升沿
-	ttime1:TIME:=T#200mS;
-	bstartagcmaxsearch:BOOL;//十字搜索启动标志
-	rSearchNextStepTarget:REAL;//当前搜索位置
-	rMaxPosTest:REAL;//输出最强点位置
-	iCountSearch: UINT;
-	iCountn: UINT;
-	bstartSearchAz: BOOL;
-	bstartSearchEl: BOOL;
-	
-	iCircly:INT :=400;
-	rAZSearchThr:REAL:=0.3;
-	rElSearchThr:REAL:=0.3;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -6547,79 +5359,6 @@ Axis2_Ctrl(sLocal:=Axis2Local, sCtrl:=Axis2Remote, sStatus:=Axis2Status, sVisibl
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM Az_ctrl_1
-VAR
-	Axis2_Ctrl:Az_Ctrl_FB;
-	bRemote2LocalStop:BOOL;
-	bLocal2RemoteStop:BOOL;
-	Error:INT;
-	
-	Axis2Limit_pos:REAL;//正软限位
-	Axis2Limit_Neg:REAL;//负软限位
-	
-	bRTriger:Standard.R_TRIG;//本控上升沿
-	bFTriger:Standard.F_TRIG;//远控下降沿
-	Stop2_Count: INT;
-	bStop_2: BOOL;
-	
-	//指向模式自跟踪
-	rPosModeStepBias:LREAL;//指向模式自跟踪拉偏累计值
-	rPosModeStep:LREAL:=0.005;//指向模式自跟踪步长，积分用
-	rStepBiasMax:LREAL:=2;//指向模式拉偏最大值
-	
-	//程引拉偏
-	rStepBias:LREAL;//步进拉偏累计值
-// 	rStep:LREAL:=0.0002;//步长，与控制周期有关，1ms周期对应1秒内累积0.0002*1000=0.2°
-// 	rStep:LREAL:=0.01;//步长，与控制周期有关，50ms周期对应1秒内累积0.01*20=0.2°
-	rStep:LREAL:=0.002;//步长，与控制周期有关，20ms周期对应1秒内累积0.004*50=0.2°
-		
-	//自跟踪拉偏
-	rAuToStepBias:LREAL;//步进拉偏累计值
-	rAuToStepBiasTemp:LREAL;//步进拉偏累计值
-// 	rAutoStep:LREAL:=0.005;//步长
-	rAutoStep:LREAL:=0.005;//步长
-	TbAutoTrigger:Standard.F_TRIG;//自跟踪关闭的下降沿
-	RbAutoTrigger:Standard.R_TRIG;//自跟踪开启的上升沿
-
-	rAutoTrackingBiasMax:LREAL:=15;//自跟踪拉偏最大值
-	rLocalInitPosModeSpeed: REAL;
-	rRemoteInitPosModeSpeed: REAL;
-	iCountOffAuto: INT;
-	
-	iCasePBAutoTrack:INT:=2;//程序引导自跟踪切换 
-// 	rKAuToStepBias:LREAL:=0.25;
-	rKAuToStepBias:LREAL:=0.6;
-	bVisError:BOOL; //报错可视化标识
-	
-	a : INT;
-	
-	agcmaxsearch_tb:agcmaxsearch_pb_1;//拉偏搜索 位置模式
-	//bstartagcmaxsearch:BOOL;//十字搜索启动标志
-	rSearchNextStepTarget_tb:REAL;//当前搜索位置
-	
-	
-	agcmaxsearch_pb:agcmaxsearch_pb_1;//拉偏搜索 程引模式
-	//agcmaxsearch_pb_1:agcmaxsearch_pb_1;
-	rElthreshold:REAL :=4.2;
-	toN1: Standard.Ton;//计时器 定时触发上升沿
-	ttime1:TIME:=T#200mS;
-	bstartagcmaxsearch:BOOL;//十字搜索启动标志
-	rSearchNextStepTarget:REAL;//当前搜索位置
-	rMaxPosTest:REAL;//输出最强点位置
-	iCountSearch: UINT;
-	iCountn: UINT;
-	bstartSearchAz: BOOL;
-	bstartSearchEl: BOOL;
-	
-	iCircly:INT :=400;
-	rAZSearchThr:REAL:=0.3;
-	rElSearchThr:REAL:=0.3;
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>2724b75a-ca36-4465-9d9a-601104553947</ObjectId>
                   </data>
@@ -6660,41 +5399,6 @@ END_VAR
                         <REAL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK Az_Ctrl_FB
-VAR_INPUT
-	sLocal:AxisCrtlStruct;
-	sCtrl:AxisCrtlStruct;
-	sStatus:AxisStatus;
-	sVisible:AxisVisible;
-	rRealPos:REAL;
-	rPosLimK:REAL;
-END_VAR
-VAR_OUTPUT
-	logicError:INT;
-END_VAR
-VAR
-	VelPID_1:PID;
-	VelPID_2:PID;
-	VelPID_3:PID;
-	vpid1:vpid;
-	TON_0:TON;
-	bTick:BOOL;
-	tr:BOOL;
-	icount1:INT := 0;
-	icount2:INT := 0;
-	icount3:INT := 0;
-	bfin1:BOOL;
-	bfin2:BOOL;
-	istate:INT:=0;
-	icount:INT:=0;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inputVars>
                   <outputVars>
                     <variable name="logicError">
@@ -6702,41 +5406,6 @@ END_VAR
                         <INT />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK Az_Ctrl_FB
-VAR_INPUT
-	sLocal:AxisCrtlStruct;
-	sCtrl:AxisCrtlStruct;
-	sStatus:AxisStatus;
-	sVisible:AxisVisible;
-	rRealPos:REAL;
-	rPosLimK:REAL;
-END_VAR
-VAR_OUTPUT
-	logicError:INT;
-END_VAR
-VAR
-	VelPID_1:PID;
-	VelPID_2:PID;
-	VelPID_3:PID;
-	vpid1:vpid;
-	TON_0:TON;
-	bTick:BOOL;
-	tr:BOOL;
-	icount1:INT := 0;
-	icount2:INT := 0;
-	icount3:INT := 0;
-	bfin1:BOOL;
-	bfin2:BOOL;
-	istate:INT:=0;
-	icount:INT:=0;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </outputVars>
                   <localVars>
                     <variable name="VelPID_1">
@@ -6824,41 +5493,6 @@ END_VAR
                         <simpleValue value="0" />
                       </initialValue>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK Az_Ctrl_FB
-VAR_INPUT
-	sLocal:AxisCrtlStruct;
-	sCtrl:AxisCrtlStruct;
-	sStatus:AxisStatus;
-	sVisible:AxisVisible;
-	rRealPos:REAL;
-	rPosLimK:REAL;
-END_VAR
-VAR_OUTPUT
-	logicError:INT;
-END_VAR
-VAR
-	VelPID_1:PID;
-	VelPID_2:PID;
-	VelPID_3:PID;
-	vpid1:vpid;
-	TON_0:TON;
-	bTick:BOOL;
-	tr:BOOL;
-	icount1:INT := 0;
-	icount2:INT := 0;
-	icount3:INT := 0;
-	bfin1:BOOL;
-	bfin2:BOOL;
-	istate:INT:=0;
-	icount:INT:=0;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -7218,39 +5852,6 @@ END_IF</xhtml>
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK Az_Ctrl_FB
-VAR_INPUT
-	sLocal:AxisCrtlStruct;
-	sCtrl:AxisCrtlStruct;
-	sStatus:AxisStatus;
-	sVisible:AxisVisible;
-	rRealPos:REAL;
-	rPosLimK:REAL;
-END_VAR
-VAR_OUTPUT
-	logicError:INT;
-END_VAR
-VAR
-	VelPID_1:PID;
-	VelPID_2:PID;
-	VelPID_3:PID;
-	vpid1:vpid;
-	TON_0:TON;
-	bTick:BOOL;
-	tr:BOOL;
-	icount1:INT := 0;
-	icount2:INT := 0;
-	icount3:INT := 0;
-	bfin1:BOOL;
-	bfin2:BOOL;
-	istate:INT:=0;
-	icount:INT:=0;
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>0cb0be60-638d-4066-bce3-f581bbf54550</ObjectId>
                   </data>
@@ -7288,34 +5889,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml"> 定义3x1数组G</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK solvex
-
-VAR_IN_OUT
-	M: ARRAY [1..3, 1..3] OF LREAL ; // 定义3x3矩阵M
-    G: ARRAY [1..3] OF LREAL ; // 定义3x1数组G
-END_VAR
-VAR
-    
-   
-	AdjointMatrix: ARRAY [1..3, 1..3] OF REAL; // 用于存储伴随矩阵
-	Determinant: REAL; //行列式
-    //M_Inverse: ARRAY [1..3, 1..3] OF REAL; //逆矩阵
-    i, j, k: INT;
-    Temp: REAL;
-
-   
-
-END_VAR
-
-VAR_OUTPUT
-	X: ARRAY [1..3] OF REAL; // 用于存储解x
-END_VAR</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inOutVars>
                   <localVars>
                     <variable name="AdjointMatrix">
@@ -7369,34 +5942,6 @@ END_VAR</xhtml>
                         <REAL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK solvex
-
-VAR_IN_OUT
-	M: ARRAY [1..3, 1..3] OF LREAL ; // 定义3x3矩阵M
-    G: ARRAY [1..3] OF LREAL ; // 定义3x1数组G
-END_VAR
-VAR
-    
-   
-	AdjointMatrix: ARRAY [1..3, 1..3] OF REAL; // 用于存储伴随矩阵
-	Determinant: REAL; //行列式
-    //M_Inverse: ARRAY [1..3, 1..3] OF REAL; //逆矩阵
-    i, j, k: INT;
-    Temp: REAL;
-
-   
-
-END_VAR
-
-VAR_OUTPUT
-	X: ARRAY [1..3] OF REAL; // 用于存储解x
-END_VAR</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                   <outputVars>
                     <variable name="X">
@@ -7412,34 +5957,6 @@ END_VAR</xhtml>
                         <xhtml xmlns="http://www.w3.org/1999/xhtml"> 用于存储解x</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK solvex
-
-VAR_IN_OUT
-	M: ARRAY [1..3, 1..3] OF LREAL ; // 定义3x3矩阵M
-    G: ARRAY [1..3] OF LREAL ; // 定义3x1数组G
-END_VAR
-VAR
-    
-   
-	AdjointMatrix: ARRAY [1..3, 1..3] OF REAL; // 用于存储伴随矩阵
-	Determinant: REAL; //行列式
-    //M_Inverse: ARRAY [1..3, 1..3] OF REAL; //逆矩阵
-    i, j, k: INT;
-    Temp: REAL;
-
-   
-
-END_VAR
-
-VAR_OUTPUT
-	X: ARRAY [1..3] OF REAL; // 用于存储解x
-END_VAR</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </outputVars>
                 </interface>
                 <body>
@@ -7500,32 +6017,6 @@ END_FOR
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK solvex
-
-VAR_IN_OUT
-	M: ARRAY [1..3, 1..3] OF LREAL ; // 定义3x3矩阵M
-    G: ARRAY [1..3] OF LREAL ; // 定义3x1数组G
-END_VAR
-VAR
-    
-   
-	AdjointMatrix: ARRAY [1..3, 1..3] OF REAL; // 用于存储伴随矩阵
-	Determinant: REAL; //行列式
-    //M_Inverse: ARRAY [1..3, 1..3] OF REAL; //逆矩阵
-    i, j, k: INT;
-    Temp: REAL;
-
-   
-
-END_VAR
-
-VAR_OUTPUT
-	X: ARRAY [1..3] OF REAL; // 用于存储解x
-END_VAR</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>c2e12020-b1ae-4565-9efc-5b9c3985907a</ObjectId>
                   </data>
@@ -7566,40 +6057,6 @@ END_VAR</xhtml>
                         <REAL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK El_Ctrl_FB
-VAR_INPUT
-	sLocal:AxisCrtlStruct;
-	sCtrl:AxisCrtlStruct;
-	sStatus:AxisStatus;
-	sVisible:AxisVisible;
-	rRealPos:REAL;
-	rPosLimK:REAL;
-END_VAR
-VAR_OUTPUT
-	logicError:INT;
-END_VAR
-VAR
-	VelPID_1:PID;
-	VelPID_2:PID;
-	VelPID_3:PID;
-	vpid1:vpid;
-	TON_0:TON;
-	bTick:BOOL;
-	tr:BOOL;
-	icount1:INT := 0;
-	icount2:INT := 0;
-	icount3:INT := 0;
-	bfin1:BOOL;
-	bfin2:BOOL;
-	istate:INT:=0;
-	icount:INT:=0;
-END_VAR</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inputVars>
                   <outputVars>
                     <variable name="logicError">
@@ -7607,40 +6064,6 @@ END_VAR</xhtml>
                         <INT />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK El_Ctrl_FB
-VAR_INPUT
-	sLocal:AxisCrtlStruct;
-	sCtrl:AxisCrtlStruct;
-	sStatus:AxisStatus;
-	sVisible:AxisVisible;
-	rRealPos:REAL;
-	rPosLimK:REAL;
-END_VAR
-VAR_OUTPUT
-	logicError:INT;
-END_VAR
-VAR
-	VelPID_1:PID;
-	VelPID_2:PID;
-	VelPID_3:PID;
-	vpid1:vpid;
-	TON_0:TON;
-	bTick:BOOL;
-	tr:BOOL;
-	icount1:INT := 0;
-	icount2:INT := 0;
-	icount3:INT := 0;
-	bfin1:BOOL;
-	bfin2:BOOL;
-	istate:INT:=0;
-	icount:INT:=0;
-END_VAR</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </outputVars>
                   <localVars>
                     <variable name="VelPID_1">
@@ -7728,40 +6151,6 @@ END_VAR</xhtml>
                         <simpleValue value="0" />
                       </initialValue>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK El_Ctrl_FB
-VAR_INPUT
-	sLocal:AxisCrtlStruct;
-	sCtrl:AxisCrtlStruct;
-	sStatus:AxisStatus;
-	sVisible:AxisVisible;
-	rRealPos:REAL;
-	rPosLimK:REAL;
-END_VAR
-VAR_OUTPUT
-	logicError:INT;
-END_VAR
-VAR
-	VelPID_1:PID;
-	VelPID_2:PID;
-	VelPID_3:PID;
-	vpid1:vpid;
-	TON_0:TON;
-	bTick:BOOL;
-	tr:BOOL;
-	icount1:INT := 0;
-	icount2:INT := 0;
-	icount3:INT := 0;
-	bfin1:BOOL;
-	bfin2:BOOL;
-	istate:INT:=0;
-	icount:INT:=0;
-END_VAR</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -8122,38 +6511,6 @@ END_IF</xhtml>
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK El_Ctrl_FB
-VAR_INPUT
-	sLocal:AxisCrtlStruct;
-	sCtrl:AxisCrtlStruct;
-	sStatus:AxisStatus;
-	sVisible:AxisVisible;
-	rRealPos:REAL;
-	rPosLimK:REAL;
-END_VAR
-VAR_OUTPUT
-	logicError:INT;
-END_VAR
-VAR
-	VelPID_1:PID;
-	VelPID_2:PID;
-	VelPID_3:PID;
-	vpid1:vpid;
-	TON_0:TON;
-	bTick:BOOL;
-	tr:BOOL;
-	icount1:INT := 0;
-	icount2:INT := 0;
-	icount3:INT := 0;
-	bfin1:BOOL;
-	bfin2:BOOL;
-	istate:INT:=0;
-	icount:INT:=0;
-END_VAR</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>b4c049e8-551d-466c-bbf6-cfd36e03c6f4</ObjectId>
                   </data>
@@ -8438,66 +6795,6 @@ END_VAR</xhtml>
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">输出最强点位置</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM El_ctrl_1
-VAR
-	Axis1_Ctrl:El_Ctrl_FB;
-	bRemote2LocalStop:BOOL;
-	bLocal2RemoteStop:BOOL;
-	Error:INT;
-	
-	Axis1Limit_pos:REAL;//正软限位
-	Axis1Limit_Neg:REAL;//负软限位
-	
-	bRTriger:Standard.R_TRIG;//本控上升沿
-	bFTriger:Standard.F_TRIG;//远控下降沿
-	Stop1_Count: INT;
-	bStop_1: BOOL;
-	
-	//指向模式自跟踪
-	rPosModeStepBias:LREAL;//指向模式自跟踪拉偏累计值
-	rPosModeStep:LREAL:=0.005;//指向模式自跟踪步长，积分用
-	rStepBiasMax:LREAL:=2;//指向模式拉偏最大值
-	
-	//程引拉偏
-	rStepBias:LREAL;//步进拉偏累计值
-// 	rStep:LREAL:=0.0002;//步长，与控制周期有关，1ms周期对应1秒内累积0.0002*1000=0.2°
-// 	rStep:LREAL:=0.01;//步长，与控制周期有关，50ms周期对应1秒内累积0.01*20=0.2°
-	rStep:LREAL:=0.002;//步长，与控制周期有关，20ms周期对应1秒内累积0.004*50=0.2°
-		
-	//自跟踪拉偏
-	rAuToStepBias:LREAL;//步进拉偏累计值
-	rAuToStepBiasTemp:LREAL;//步进拉偏累计值
-// 	rAutoStep:LREAL:=0.005;//步长
-	rAutoStep:LREAL:=0.01;//步长
-	TbAutoTrigger:Standard.F_TRIG;//自跟踪关闭的下降沿
-	RbAutoTrigger:Standard.R_TRIG;//自跟踪开启的上升沿
-
-	rAutoTrackingBiasMax:LREAL:=6;//自跟踪拉偏最大值
-	rLocalInitPosModeSpeed: REAL;
-	rRemoteInitPosModeSpeed: REAL;
-	iCountOffAuto: INT;
-	
-	iCasePBAutoTrack:INT:=2;//程序引导自跟踪切换 
-// 	rKAuToStepBias:LREAL:=0.25;
-	rKAuToStepBias:LREAL:=0.45;
-	
-	//拉偏搜索
-	agcmaxsearch_tb:AGCMaxSearch_PB_1;//指向步进跟踪
-	rSearchNextStepTarget_tb:REAL;//当前搜索位置
-	agcmaxsearch_pb:AGCMaxSearch_PB_1;//程引步进跟踪
-	rElthreshold:REAL :=4.2;
-	toN1: Standard.Ton;//计时器 定时触发上升沿
-	ttime1:TIME:=T#200mS;
-	bstartagcmaxsearch:BOOL;//手动测试标志
-	rSearchNextStepTarget:REAL;//当前搜索位置
-	rMaxPosTest:REAL;//输出最强点位置
-END_VAR</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -8715,64 +7012,6 @@ Axis1_Ctrl(sLocal:=Axis1Local, sCtrl:=Axis1Remote, sStatus:=Axis1Status, sVisibl
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM El_ctrl_1
-VAR
-	Axis1_Ctrl:El_Ctrl_FB;
-	bRemote2LocalStop:BOOL;
-	bLocal2RemoteStop:BOOL;
-	Error:INT;
-	
-	Axis1Limit_pos:REAL;//正软限位
-	Axis1Limit_Neg:REAL;//负软限位
-	
-	bRTriger:Standard.R_TRIG;//本控上升沿
-	bFTriger:Standard.F_TRIG;//远控下降沿
-	Stop1_Count: INT;
-	bStop_1: BOOL;
-	
-	//指向模式自跟踪
-	rPosModeStepBias:LREAL;//指向模式自跟踪拉偏累计值
-	rPosModeStep:LREAL:=0.005;//指向模式自跟踪步长，积分用
-	rStepBiasMax:LREAL:=2;//指向模式拉偏最大值
-	
-	//程引拉偏
-	rStepBias:LREAL;//步进拉偏累计值
-// 	rStep:LREAL:=0.0002;//步长，与控制周期有关，1ms周期对应1秒内累积0.0002*1000=0.2°
-// 	rStep:LREAL:=0.01;//步长，与控制周期有关，50ms周期对应1秒内累积0.01*20=0.2°
-	rStep:LREAL:=0.002;//步长，与控制周期有关，20ms周期对应1秒内累积0.004*50=0.2°
-		
-	//自跟踪拉偏
-	rAuToStepBias:LREAL;//步进拉偏累计值
-	rAuToStepBiasTemp:LREAL;//步进拉偏累计值
-// 	rAutoStep:LREAL:=0.005;//步长
-	rAutoStep:LREAL:=0.01;//步长
-	TbAutoTrigger:Standard.F_TRIG;//自跟踪关闭的下降沿
-	RbAutoTrigger:Standard.R_TRIG;//自跟踪开启的上升沿
-
-	rAutoTrackingBiasMax:LREAL:=6;//自跟踪拉偏最大值
-	rLocalInitPosModeSpeed: REAL;
-	rRemoteInitPosModeSpeed: REAL;
-	iCountOffAuto: INT;
-	
-	iCasePBAutoTrack:INT:=2;//程序引导自跟踪切换 
-// 	rKAuToStepBias:LREAL:=0.25;
-	rKAuToStepBias:LREAL:=0.45;
-	
-	//拉偏搜索
-	agcmaxsearch_tb:AGCMaxSearch_PB_1;//指向步进跟踪
-	rSearchNextStepTarget_tb:REAL;//当前搜索位置
-	agcmaxsearch_pb:AGCMaxSearch_PB_1;//程引步进跟踪
-	rElthreshold:REAL :=4.2;
-	toN1: Standard.Ton;//计时器 定时触发上升沿
-	ttime1:TIME:=T#200mS;
-	bstartagcmaxsearch:BOOL;//手动测试标志
-	rSearchNextStepTarget:REAL;//当前搜索位置
-	rMaxPosTest:REAL;//输出最强点位置
-END_VAR</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>606036f3-9e29-4a9f-a89f-c2eaefee70cf</ObjectId>
                   </data>
@@ -8823,31 +7062,6 @@ END_VAR</xhtml>
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">目标时间</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK LinearInter
-VAR_INPUT
-	tLastTime:ULINT;//上一时间
-	rLastPos:REAL;//上一时间位置
-	
-	tCurTime:ULINT;//当前时间
-	rCurPos:REAL;//当前时间位置
-	
-	tTargetTime:ULINT;//目标时间
-END_VAR
-VAR_OUTPUT
-	rTargetpos:REAL;//目标时间位置
-END_VAR
-VAR
-	iDelCurLastTime:LREAL:=1.0;//	当前与上一个时间差
-	iDelTarCurTime:LREAL:=1.0;//目标与当前时间差
-	rK:REAL;//方位斜率
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inputVars>
                   <outputVars>
                     <variable name="rTargetpos">
@@ -8858,31 +7072,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">目标时间位置</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK LinearInter
-VAR_INPUT
-	tLastTime:ULINT;//上一时间
-	rLastPos:REAL;//上一时间位置
-	
-	tCurTime:ULINT;//当前时间
-	rCurPos:REAL;//当前时间位置
-	
-	tTargetTime:ULINT;//目标时间
-END_VAR
-VAR_OUTPUT
-	rTargetpos:REAL;//目标时间位置
-END_VAR
-VAR
-	iDelCurLastTime:LREAL:=1.0;//	当前与上一个时间差
-	iDelTarCurTime:LREAL:=1.0;//目标与当前时间差
-	rK:REAL;//方位斜率
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </outputVars>
                   <localVars>
                     <variable name="iDelCurLastTime">
@@ -8915,31 +7104,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">方位斜率</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK LinearInter
-VAR_INPUT
-	tLastTime:ULINT;//上一时间
-	rLastPos:REAL;//上一时间位置
-	
-	tCurTime:ULINT;//当前时间
-	rCurPos:REAL;//当前时间位置
-	
-	tTargetTime:ULINT;//目标时间
-END_VAR
-VAR_OUTPUT
-	rTargetpos:REAL;//目标时间位置
-END_VAR
-VAR
-	iDelCurLastTime:LREAL:=1.0;//	当前与上一个时间差
-	iDelTarCurTime:LREAL:=1.0;//目标与当前时间差
-	rK:REAL;//方位斜率
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -8963,29 +7127,6 @@ rTargetpos:=rCurPos+rK*iDelTarCurTime;  //y1 + ((y1-y0)/(x1-x0))*(x-x1)</xhtml>
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK LinearInter
-VAR_INPUT
-	tLastTime:ULINT;//上一时间
-	rLastPos:REAL;//上一时间位置
-	
-	tCurTime:ULINT;//当前时间
-	rCurPos:REAL;//当前时间位置
-	
-	tTargetTime:ULINT;//目标时间
-END_VAR
-VAR_OUTPUT
-	rTargetpos:REAL;//目标时间位置
-END_VAR
-VAR
-	iDelCurLastTime:LREAL:=1.0;//	当前与上一个时间差
-	iDelTarCurTime:LREAL:=1.0;//目标与当前时间差
-	rK:REAL;//方位斜率
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>69085cfb-035e-4c25-9217-ef2769397935</ObjectId>
                   </data>
@@ -9035,47 +7176,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">y0,yn表示的是S''(x0)=f''(x0)=y0，S''(xn)=f''(xn)=yn,自然边界即条件值为0</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK three2
-VAR_INPUT
-	X:ARRAY [1..5] OF LREAL;
-	Y:ARRAY [1..5] OF LREAL;
-	y0:REAL:=0;
-	yn:REAL:=0;//y0,yn表示的是S''(x0)=f''(x0)=y0，S''(xn)=f''(xn)=yn,自然边界即条件值为0
-END_VAR
-
-VAR_OUTPUT
-	M :ARRAY [1..5] OF LREAL;
-	A: ARRAY [1..5,1..5] OF LREAL;
-	D: ARRAY[1..3,1..3] OF LREAL;
-	g: ARRAY [1..3] OF LREAL;
-	h:ARRAY [1..4] OF LREAL;
-END_VAR
-
-VAR
-	n:INT:=5;
-	
-	
-	ypie:ARRAY [1..5] OF REAL;
-	j:INT;
-	i:INT;
-	u :ARRAY [1..3] OF REAL;
-	n_: ARRAY [1..3] OF REAL;
-	M_:ARRAY [1..3] OF REAL;
-	solve:solvex;
-
-	
-	iCounttest: INT;
-	
-	
-	miu :ARRAY [1..4] OF REAL;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inputVars>
                   <outputVars>
                     <variable name="M">
@@ -9130,47 +7230,6 @@ END_VAR
                         </array>
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK three2
-VAR_INPUT
-	X:ARRAY [1..5] OF LREAL;
-	Y:ARRAY [1..5] OF LREAL;
-	y0:REAL:=0;
-	yn:REAL:=0;//y0,yn表示的是S''(x0)=f''(x0)=y0，S''(xn)=f''(xn)=yn,自然边界即条件值为0
-END_VAR
-
-VAR_OUTPUT
-	M :ARRAY [1..5] OF LREAL;
-	A: ARRAY [1..5,1..5] OF LREAL;
-	D: ARRAY[1..3,1..3] OF LREAL;
-	g: ARRAY [1..3] OF LREAL;
-	h:ARRAY [1..4] OF LREAL;
-END_VAR
-
-VAR
-	n:INT:=5;
-	
-	
-	ypie:ARRAY [1..5] OF REAL;
-	j:INT;
-	i:INT;
-	u :ARRAY [1..3] OF REAL;
-	n_: ARRAY [1..3] OF REAL;
-	M_:ARRAY [1..3] OF REAL;
-	solve:solvex;
-
-	
-	iCounttest: INT;
-	
-	
-	miu :ARRAY [1..4] OF REAL;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </outputVars>
                   <localVars>
                     <variable name="n">
@@ -9251,47 +7310,6 @@ END_VAR
                         </array>
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK three2
-VAR_INPUT
-	X:ARRAY [1..5] OF LREAL;
-	Y:ARRAY [1..5] OF LREAL;
-	y0:REAL:=0;
-	yn:REAL:=0;//y0,yn表示的是S''(x0)=f''(x0)=y0，S''(xn)=f''(xn)=yn,自然边界即条件值为0
-END_VAR
-
-VAR_OUTPUT
-	M :ARRAY [1..5] OF LREAL;
-	A: ARRAY [1..5,1..5] OF LREAL;
-	D: ARRAY[1..3,1..3] OF LREAL;
-	g: ARRAY [1..3] OF LREAL;
-	h:ARRAY [1..4] OF LREAL;
-END_VAR
-
-VAR
-	n:INT:=5;
-	
-	
-	ypie:ARRAY [1..5] OF REAL;
-	j:INT;
-	i:INT;
-	u :ARRAY [1..3] OF REAL;
-	n_: ARRAY [1..3] OF REAL;
-	M_:ARRAY [1..3] OF REAL;
-	solve:solvex;
-
-	
-	iCounttest: INT;
-	
-	
-	miu :ARRAY [1..4] OF REAL;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -9349,45 +7367,6 @@ M[1]:=0;M[5]:=0;M[2]:=M_[1];M[3]:=M_[2];M[4]:=M_[3];
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK three2
-VAR_INPUT
-	X:ARRAY [1..5] OF LREAL;
-	Y:ARRAY [1..5] OF LREAL;
-	y0:REAL:=0;
-	yn:REAL:=0;//y0,yn表示的是S''(x0)=f''(x0)=y0，S''(xn)=f''(xn)=yn,自然边界即条件值为0
-END_VAR
-
-VAR_OUTPUT
-	M :ARRAY [1..5] OF LREAL;
-	A: ARRAY [1..5,1..5] OF LREAL;
-	D: ARRAY[1..3,1..3] OF LREAL;
-	g: ARRAY [1..3] OF LREAL;
-	h:ARRAY [1..4] OF LREAL;
-END_VAR
-
-VAR
-	n:INT:=5;
-	
-	
-	ypie:ARRAY [1..5] OF REAL;
-	j:INT;
-	i:INT;
-	u :ARRAY [1..3] OF REAL;
-	n_: ARRAY [1..3] OF REAL;
-	M_:ARRAY [1..3] OF REAL;
-	solve:solvex;
-
-	
-	iCounttest: INT;
-	
-	
-	miu :ARRAY [1..4] OF REAL;
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>58a267e3-ea8e-4815-858b-a102b6847dfa</ObjectId>
                   </data>
@@ -9445,45 +7424,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">所求目标位置</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK threesimple2
-VAR_INPUT
-	aUTC_TIME:ARRAY [1..5] OF ULINT;  //用于三次样条插值的数据
-	aPosCmd :ARRAY [1..5] OF LREAL;//用于三次样条插值的数据
-	
-	y0:REAL;
-	yn:REAL;//y0,yn表示的是S''(x0)=f''(x0)=y0，S''(xn)=f''(xn)=yn,自然边界即条件值为0
-	xt:REAL;//所求目标位置
-END_VAR
-VAR_OUTPUT
-	sout:REAL;
-	nout:INT;
-END_VAR
-VAR
-	Three:three2;
-	X:ARRAY [1..5] OF LREAL;
-	Y:ARRAY [1..5] OF LREAL;
-	M :ARRAY [1..5] OF LREAL;
-	A: ARRAY [1..5,1..5] OF LREAL;
-	D: ARRAY[1..3,1..3] OF LREAL;
-	g: ARRAY [1..3] OF LREAL;
-	h:ARRAY [1..4] OF LREAL;
-	
-	n:INT:=5;
-	
-	p1: ARRAY [1..4] OF REAL;
-	p2:ARRAY [1..4] OF REAL;
-	p3:ARRAY [1..4] OF REAL;
-	p4:ARRAY [1..4] OF REAL;
-	i:INT;
-	
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inputVars>
                   <outputVars>
                     <variable name="sout">
@@ -9496,45 +7436,6 @@ END_VAR
                         <INT />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK threesimple2
-VAR_INPUT
-	aUTC_TIME:ARRAY [1..5] OF ULINT;  //用于三次样条插值的数据
-	aPosCmd :ARRAY [1..5] OF LREAL;//用于三次样条插值的数据
-	
-	y0:REAL;
-	yn:REAL;//y0,yn表示的是S''(x0)=f''(x0)=y0，S''(xn)=f''(xn)=yn,自然边界即条件值为0
-	xt:REAL;//所求目标位置
-END_VAR
-VAR_OUTPUT
-	sout:REAL;
-	nout:INT;
-END_VAR
-VAR
-	Three:three2;
-	X:ARRAY [1..5] OF LREAL;
-	Y:ARRAY [1..5] OF LREAL;
-	M :ARRAY [1..5] OF LREAL;
-	A: ARRAY [1..5,1..5] OF LREAL;
-	D: ARRAY[1..3,1..3] OF LREAL;
-	g: ARRAY [1..3] OF LREAL;
-	h:ARRAY [1..4] OF LREAL;
-	
-	n:INT:=5;
-	
-	p1: ARRAY [1..4] OF REAL;
-	p2:ARRAY [1..4] OF REAL;
-	p3:ARRAY [1..4] OF REAL;
-	p4:ARRAY [1..4] OF REAL;
-	i:INT;
-	
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </outputVars>
                   <localVars>
                     <variable name="Three">
@@ -9667,45 +7568,6 @@ END_VAR
                         <INT />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK threesimple2
-VAR_INPUT
-	aUTC_TIME:ARRAY [1..5] OF ULINT;  //用于三次样条插值的数据
-	aPosCmd :ARRAY [1..5] OF LREAL;//用于三次样条插值的数据
-	
-	y0:REAL;
-	yn:REAL;//y0,yn表示的是S''(x0)=f''(x0)=y0，S''(xn)=f''(xn)=yn,自然边界即条件值为0
-	xt:REAL;//所求目标位置
-END_VAR
-VAR_OUTPUT
-	sout:REAL;
-	nout:INT;
-END_VAR
-VAR
-	Three:three2;
-	X:ARRAY [1..5] OF LREAL;
-	Y:ARRAY [1..5] OF LREAL;
-	M :ARRAY [1..5] OF LREAL;
-	A: ARRAY [1..5,1..5] OF LREAL;
-	D: ARRAY[1..3,1..3] OF LREAL;
-	g: ARRAY [1..3] OF LREAL;
-	h:ARRAY [1..4] OF LREAL;
-	
-	n:INT:=5;
-	
-	p1: ARRAY [1..4] OF REAL;
-	p2:ARRAY [1..4] OF REAL;
-	p3:ARRAY [1..4] OF REAL;
-	p4:ARRAY [1..4] OF REAL;
-	i:INT;
-	
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -9754,43 +7616,6 @@ END_IF
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK threesimple2
-VAR_INPUT
-	aUTC_TIME:ARRAY [1..5] OF ULINT;  //用于三次样条插值的数据
-	aPosCmd :ARRAY [1..5] OF LREAL;//用于三次样条插值的数据
-	
-	y0:REAL;
-	yn:REAL;//y0,yn表示的是S''(x0)=f''(x0)=y0，S''(xn)=f''(xn)=yn,自然边界即条件值为0
-	xt:REAL;//所求目标位置
-END_VAR
-VAR_OUTPUT
-	sout:REAL;
-	nout:INT;
-END_VAR
-VAR
-	Three:three2;
-	X:ARRAY [1..5] OF LREAL;
-	Y:ARRAY [1..5] OF LREAL;
-	M :ARRAY [1..5] OF LREAL;
-	A: ARRAY [1..5,1..5] OF LREAL;
-	D: ARRAY[1..3,1..3] OF LREAL;
-	g: ARRAY [1..3] OF LREAL;
-	h:ARRAY [1..4] OF LREAL;
-	
-	n:INT:=5;
-	
-	p1: ARRAY [1..4] OF REAL;
-	p2:ARRAY [1..4] OF REAL;
-	p3:ARRAY [1..4] OF REAL;
-	p4:ARRAY [1..4] OF REAL;
-	i:INT;
-	
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>38741d83-b95e-49d9-885d-c93696a27ca8</ObjectId>
                   </data>
@@ -9841,28 +7666,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml"> 创建一个包含5个整数的数组 轨道时间数组  起点 1970-01-01 0:00:00 单位纳秒</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK InterDataProcess
-VAR_INPUT
-	ulRealTime: ULINT;//实际时间 单位纳秒
-	//aOrbitTime: ARRAY [1..5] OF ULINT;//轨道时间数组
-	Arr: ARRAY [1..5] OF ULINT:=[9,0,1,5,4]; // 创建一个包含5个整数的数组 轨道时间数组  起点 1970-01-01 0:00:00 单位纳秒
-    
-END_VAR
-VAR_OUTPUT
-	MaxVal, MinVal: ULINT;   // 定义最大值、最小值和循环计数器变量
-    MaxIndex, MinIndex: INT; // 定义最大值和最小值的索引
-	ulInterRealTime : ULINT;//插值使用的时间
-END_VAR
-VAR
-	i,j: INT;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inputVars>
                   <outputVars>
                     <variable name="MaxVal">
@@ -9905,28 +7708,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">插值使用的时间</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK InterDataProcess
-VAR_INPUT
-	ulRealTime: ULINT;//实际时间 单位纳秒
-	//aOrbitTime: ARRAY [1..5] OF ULINT;//轨道时间数组
-	Arr: ARRAY [1..5] OF ULINT:=[9,0,1,5,4]; // 创建一个包含5个整数的数组 轨道时间数组  起点 1970-01-01 0:00:00 单位纳秒
-    
-END_VAR
-VAR_OUTPUT
-	MaxVal, MinVal: ULINT;   // 定义最大值、最小值和循环计数器变量
-    MaxIndex, MinIndex: INT; // 定义最大值和最小值的索引
-	ulInterRealTime : ULINT;//插值使用的时间
-END_VAR
-VAR
-	i,j: INT;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </outputVars>
                   <localVars>
                     <variable name="i">
@@ -9939,28 +7720,6 @@ END_VAR
                         <INT />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK InterDataProcess
-VAR_INPUT
-	ulRealTime: ULINT;//实际时间 单位纳秒
-	//aOrbitTime: ARRAY [1..5] OF ULINT;//轨道时间数组
-	Arr: ARRAY [1..5] OF ULINT:=[9,0,1,5,4]; // 创建一个包含5个整数的数组 轨道时间数组  起点 1970-01-01 0:00:00 单位纳秒
-    
-END_VAR
-VAR_OUTPUT
-	MaxVal, MinVal: ULINT;   // 定义最大值、最小值和循环计数器变量
-    MaxIndex, MinIndex: INT; // 定义最大值和最小值的索引
-	ulInterRealTime : ULINT;//插值使用的时间
-END_VAR
-VAR
-	i,j: INT;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -10019,26 +7778,6 @@ END_IF</xhtml>
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK InterDataProcess
-VAR_INPUT
-	ulRealTime: ULINT;//实际时间 单位纳秒
-	//aOrbitTime: ARRAY [1..5] OF ULINT;//轨道时间数组
-	Arr: ARRAY [1..5] OF ULINT:=[9,0,1,5,4]; // 创建一个包含5个整数的数组 轨道时间数组  起点 1970-01-01 0:00:00 单位纳秒
-    
-END_VAR
-VAR_OUTPUT
-	MaxVal, MinVal: ULINT;   // 定义最大值、最小值和循环计数器变量
-    MaxIndex, MinIndex: INT; // 定义最大值和最小值的索引
-	ulInterRealTime : ULINT;//插值使用的时间
-END_VAR
-VAR
-	i,j: INT;
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>eaa4dd33-a415-4c10-a261-8fdc73e2db65</ObjectId>
                   </data>
@@ -10140,58 +7879,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">所求目标位置</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK threesimple2_1
-VAR_INPUT
-	XModbusUL:ARRAY [1..10] OF ULINT:=[1,2,3,4,5,6,7,8,9,10];//输入的Modbus时间数组
-	XModbus:ARRAY [1..10] OF LREAL;
-	YModbus:ARRAY [1..10] OF LREAL;//输入的Modbus位置数组
-	y0:REAL;
-	yn:REAL;//y0,yn表示的是S''(x0)=f''(x0)=y0，S''(xn)=f''(xn)=yn,自然边界即条件值为0
-	xt:LREAL;//所求目标位置
-	
-	//bResetErr:BOOL;
-END_VAR
-VAR_OUTPUT
-	sout:REAL;
-	nout:INT;
-	ErrCode:INT;
-	
-	bSetZero:BOOL;//Modbus序列清零标识符；
-END_VAR
-VAR
-	Three:three2;
-	X:ARRAY [1..5] OF LREAL;
-	Y:ARRAY [1..5] OF LREAL;
-	
-	M :ARRAY [1..5] OF LREAL;
-	A: ARRAY [1..5,1..5] OF LREAL;
-	D: ARRAY[1..3,1..3] OF LREAL;
-	g: ARRAY [1..3] OF LREAL;
-	h:ARRAY [1..4] OF LREAL;
-	
-	n:INT:=5;
-	
-	p1: ARRAY [1..4] OF REAL;
-	p2:ARRAY [1..4] OF REAL;
-	p3:ARRAY [1..4] OF REAL;
-	p4:ARRAY [1..4] OF REAL;
-	i:INT;
-	ii:INT;//清空序列
-	
-	j:INT;//寻找差值区间的循环变量
-	k:INT;//插值区间
-	iCountOutMaxRange:INT;
-	iCountOutMinRange:INT;
-	nn:INT;//格式转换循环遍历
-	mm:INT;//查重遍历；
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inputVars>
                   <outputVars>
                     <variable name="sout">
@@ -10217,58 +7904,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">Modbus序列清零标识符；</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK threesimple2_1
-VAR_INPUT
-	XModbusUL:ARRAY [1..10] OF ULINT:=[1,2,3,4,5,6,7,8,9,10];//输入的Modbus时间数组
-	XModbus:ARRAY [1..10] OF LREAL;
-	YModbus:ARRAY [1..10] OF LREAL;//输入的Modbus位置数组
-	y0:REAL;
-	yn:REAL;//y0,yn表示的是S''(x0)=f''(x0)=y0，S''(xn)=f''(xn)=yn,自然边界即条件值为0
-	xt:LREAL;//所求目标位置
-	
-	//bResetErr:BOOL;
-END_VAR
-VAR_OUTPUT
-	sout:REAL;
-	nout:INT;
-	ErrCode:INT;
-	
-	bSetZero:BOOL;//Modbus序列清零标识符；
-END_VAR
-VAR
-	Three:three2;
-	X:ARRAY [1..5] OF LREAL;
-	Y:ARRAY [1..5] OF LREAL;
-	
-	M :ARRAY [1..5] OF LREAL;
-	A: ARRAY [1..5,1..5] OF LREAL;
-	D: ARRAY[1..3,1..3] OF LREAL;
-	g: ARRAY [1..3] OF LREAL;
-	h:ARRAY [1..4] OF LREAL;
-	
-	n:INT:=5;
-	
-	p1: ARRAY [1..4] OF REAL;
-	p2:ARRAY [1..4] OF REAL;
-	p3:ARRAY [1..4] OF REAL;
-	p4:ARRAY [1..4] OF REAL;
-	i:INT;
-	ii:INT;//清空序列
-	
-	j:INT;//寻找差值区间的循环变量
-	k:INT;//插值区间
-	iCountOutMaxRange:INT;
-	iCountOutMinRange:INT;
-	nn:INT;//格式转换循环遍历
-	mm:INT;//查重遍历；
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </outputVars>
                   <localVars>
                     <variable name="Three">
@@ -10451,58 +8086,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">查重遍历；</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK threesimple2_1
-VAR_INPUT
-	XModbusUL:ARRAY [1..10] OF ULINT:=[1,2,3,4,5,6,7,8,9,10];//输入的Modbus时间数组
-	XModbus:ARRAY [1..10] OF LREAL;
-	YModbus:ARRAY [1..10] OF LREAL;//输入的Modbus位置数组
-	y0:REAL;
-	yn:REAL;//y0,yn表示的是S''(x0)=f''(x0)=y0，S''(xn)=f''(xn)=yn,自然边界即条件值为0
-	xt:LREAL;//所求目标位置
-	
-	//bResetErr:BOOL;
-END_VAR
-VAR_OUTPUT
-	sout:REAL;
-	nout:INT;
-	ErrCode:INT;
-	
-	bSetZero:BOOL;//Modbus序列清零标识符；
-END_VAR
-VAR
-	Three:three2;
-	X:ARRAY [1..5] OF LREAL;
-	Y:ARRAY [1..5] OF LREAL;
-	
-	M :ARRAY [1..5] OF LREAL;
-	A: ARRAY [1..5,1..5] OF LREAL;
-	D: ARRAY[1..3,1..3] OF LREAL;
-	g: ARRAY [1..3] OF LREAL;
-	h:ARRAY [1..4] OF LREAL;
-	
-	n:INT:=5;
-	
-	p1: ARRAY [1..4] OF REAL;
-	p2:ARRAY [1..4] OF REAL;
-	p3:ARRAY [1..4] OF REAL;
-	p4:ARRAY [1..4] OF REAL;
-	i:INT;
-	ii:INT;//清空序列
-	
-	j:INT;//寻找差值区间的循环变量
-	k:INT;//插值区间
-	iCountOutMaxRange:INT;
-	iCountOutMinRange:INT;
-	nn:INT;//格式转换循环遍历
-	mm:INT;//查重遍历；
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -10639,56 +8222,6 @@ END_IF
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK threesimple2_1
-VAR_INPUT
-	XModbusUL:ARRAY [1..10] OF ULINT:=[1,2,3,4,5,6,7,8,9,10];//输入的Modbus时间数组
-	XModbus:ARRAY [1..10] OF LREAL;
-	YModbus:ARRAY [1..10] OF LREAL;//输入的Modbus位置数组
-	y0:REAL;
-	yn:REAL;//y0,yn表示的是S''(x0)=f''(x0)=y0，S''(xn)=f''(xn)=yn,自然边界即条件值为0
-	xt:LREAL;//所求目标位置
-	
-	//bResetErr:BOOL;
-END_VAR
-VAR_OUTPUT
-	sout:REAL;
-	nout:INT;
-	ErrCode:INT;
-	
-	bSetZero:BOOL;//Modbus序列清零标识符；
-END_VAR
-VAR
-	Three:three2;
-	X:ARRAY [1..5] OF LREAL;
-	Y:ARRAY [1..5] OF LREAL;
-	
-	M :ARRAY [1..5] OF LREAL;
-	A: ARRAY [1..5,1..5] OF LREAL;
-	D: ARRAY[1..3,1..3] OF LREAL;
-	g: ARRAY [1..3] OF LREAL;
-	h:ARRAY [1..4] OF LREAL;
-	
-	n:INT:=5;
-	
-	p1: ARRAY [1..4] OF REAL;
-	p2:ARRAY [1..4] OF REAL;
-	p3:ARRAY [1..4] OF REAL;
-	p4:ARRAY [1..4] OF REAL;
-	i:INT;
-	ii:INT;//清空序列
-	
-	j:INT;//寻找差值区间的循环变量
-	k:INT;//插值区间
-	iCountOutMaxRange:INT;
-	iCountOutMinRange:INT;
-	nn:INT;//格式转换循环遍历
-	mm:INT;//查重遍历；
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>cc69e4be-c04e-434c-b2cf-309f5108d715</ObjectId>
                   </data>
@@ -10979,72 +8512,6 @@ END_VAR
                         <BOOL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM SecurityCheck
-VAR
-    bPrelimit_Positive_1 : BOOL;
-    bPrelimit_Negative_1 : BOOL;
-    bPrelimit_Positive_2 : BOOL;
-    bPrelimit_Negative_2 : BOOL;
-    bPrelimit_1 : BOOL;
-    bPrelimit_2 : BOOL;
-    bFinallimit_1 : BOOL;
-    bFinallimit_2 : BOOL;
-    AzError : REAL;
-    ElError : REAL;
-    rELCurrent : REAL;
-    rAzCurrent : REAL;
-    rTlCurrent : REAL;
-    rAz_realpos : REAL;
-    rEL_realpos : REAL;
-    fbScan : SpiralScan;
-    fbScan1 : SpiralScan_1;
-    fbScantest : SpiralScan;
-    enabletest : BOOL;
-    aztest : REAL;
-    eltest : REAL;
-    enable : BOOL;
-    delta : REAL;
-    n_steps : REAL;
-    agc_sim : REAL;
-    lock_sim : BOOL;
-    cycle_cnt : INT;
-    sim_done : BOOL;
-    az_out : REAL;
-    el_out : REAL;
-    done_out : BOOL;
-    bLockSearch : BOOL;
-    rSearchThre : REAL;
-    rSearchThreTemp : REAL;
-    bStartTrackTemp : BOOL;
-    RiseEdge : R_TRIG;
-    FallEdge : F_TRIG;
-    bAcuTrackInhibit : BOOL;
-    icountLostLocking : INT;
-    bErrorLock : BOOL;
-    icountLostLocking1 : INT;
-    bType_out : BOOL;
-    iconutwait : INT;
-    rdelta : REAL;
-    rStep : REAL;
-    bFinish : BOOL;
-    rAzErrorReal : REAL;
-    rElErrorReal : REAL;
-    rAlpha : REAL;
-    icountBaseLock : INT;
-    bScanRun : BOOL;
-    bScanDoneOnce : BOOL;
-    bScanFound : BOOL;
-    az_latch : REAL;
-    el_latch : REAL;
-    bBaseLock : BOOL;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -11232,12 +8699,11 @@ ELSE
 END_IF
 
 // 螺旋局部参数（与直线 PersistentVars.rStep 量纲不同：此处为每格周期数）
-// 对齐2.4手感：0.12°/格、12拍/格 → 沿轨迹约 1.0°/s（10ms任务）
 IF rdelta &lt; 1.0E-6 THEN
-	rdelta := 0.12;
+	rdelta := 0.08;
 END_IF
 IF rStep &lt; 1.0E-6 THEN
-	rStep := 12.0;
+	rStep := 20.0;
 END_IF
 
 // =============================================================================
@@ -11322,70 +8788,6 @@ END_IF
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM SecurityCheck
-VAR
-    bPrelimit_Positive_1 : BOOL;
-    bPrelimit_Negative_1 : BOOL;
-    bPrelimit_Positive_2 : BOOL;
-    bPrelimit_Negative_2 : BOOL;
-    bPrelimit_1 : BOOL;
-    bPrelimit_2 : BOOL;
-    bFinallimit_1 : BOOL;
-    bFinallimit_2 : BOOL;
-    AzError : REAL;
-    ElError : REAL;
-    rELCurrent : REAL;
-    rAzCurrent : REAL;
-    rTlCurrent : REAL;
-    rAz_realpos : REAL;
-    rEL_realpos : REAL;
-    fbScan : SpiralScan;
-    fbScan1 : SpiralScan_1;
-    fbScantest : SpiralScan;
-    enabletest : BOOL;
-    aztest : REAL;
-    eltest : REAL;
-    enable : BOOL;
-    delta : REAL;
-    n_steps : REAL;
-    agc_sim : REAL;
-    lock_sim : BOOL;
-    cycle_cnt : INT;
-    sim_done : BOOL;
-    az_out : REAL;
-    el_out : REAL;
-    done_out : BOOL;
-    bLockSearch : BOOL;
-    rSearchThre : REAL;
-    rSearchThreTemp : REAL;
-    bStartTrackTemp : BOOL;
-    RiseEdge : R_TRIG;
-    FallEdge : F_TRIG;
-    bAcuTrackInhibit : BOOL;
-    icountLostLocking : INT;
-    bErrorLock : BOOL;
-    icountLostLocking1 : INT;
-    bType_out : BOOL;
-    iconutwait : INT;
-    rdelta : REAL;
-    rStep : REAL;
-    bFinish : BOOL;
-    rAzErrorReal : REAL;
-    rElErrorReal : REAL;
-    rAlpha : REAL;
-    icountBaseLock : INT;
-    bScanRun : BOOL;
-    bScanDoneOnce : BOOL;
-    bScanFound : BOOL;
-    az_latch : REAL;
-    el_latch : REAL;
-    bBaseLock : BOOL;
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>01e0f185-d49a-4d6d-9268-6e70a0d1342e</ObjectId>
                   </data>
@@ -11479,43 +8881,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">速度限制</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK PID_1
-VAR_INPUT
-    rTarget : REAL;       (* 设定值 *)
-    rFeedback : REAL;       (* 反馈值 *)
-	rPosLimPositive:LREAL;//位置正限位
-	rPosLimNegative:LREAL;//位置反限位
-	rKp:REAL;     //比例增益
-	rKi:REAL;     //积分增益
-	rKd:REAL;     //微分增益
-	iThreshold:INT;//积分项开启的位置阈值
-	bPIDEnable:BOOL:=TRUE;//PID使能
-	rVelLim:LREAL;//速度限制
-END_VAR
-VAR_OUTPUT
-    rPIDOutput : LREAL:=0;         //带方向的输出速度
-
-END_VAR
-VAR
-	//rPIDOutPut: REAL:=0.0;
-	rLastError: LREAL:=0.0;(*上一次误差*)
-	rErrorNow:LREAL:=0.0;(*当前误差*)
-    rIntegralNew : LREAL := 0.0; (* 积分项 *)
-    rDerivativeNew : LREAL := 0.0; (* 微分项 *)
-	rDelta: LREAL;(*增量*)
-	rProportionNew: LREAL;
-	
-	//iAzPIDEnable: INT;
-END_VAR
-
-
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inputVars>
                   <outputVars>
                     <variable name="rPIDOutput">
@@ -11529,43 +8894,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">带方向的输出速度</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK PID_1
-VAR_INPUT
-    rTarget : REAL;       (* 设定值 *)
-    rFeedback : REAL;       (* 反馈值 *)
-	rPosLimPositive:LREAL;//位置正限位
-	rPosLimNegative:LREAL;//位置反限位
-	rKp:REAL;     //比例增益
-	rKi:REAL;     //积分增益
-	rKd:REAL;     //微分增益
-	iThreshold:INT;//积分项开启的位置阈值
-	bPIDEnable:BOOL:=TRUE;//PID使能
-	rVelLim:LREAL;//速度限制
-END_VAR
-VAR_OUTPUT
-    rPIDOutput : LREAL:=0;         //带方向的输出速度
-
-END_VAR
-VAR
-	//rPIDOutPut: REAL:=0.0;
-	rLastError: LREAL:=0.0;(*上一次误差*)
-	rErrorNow:LREAL:=0.0;(*当前误差*)
-    rIntegralNew : LREAL := 0.0; (* 积分项 *)
-    rDerivativeNew : LREAL := 0.0; (* 微分项 *)
-	rDelta: LREAL;(*增量*)
-	rProportionNew: LREAL;
-	
-	//iAzPIDEnable: INT;
-END_VAR
-
-
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </outputVars>
                   <localVars>
                     <variable name="rLastError">
@@ -11625,43 +8953,6 @@ END_VAR
                         <LREAL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK PID_1
-VAR_INPUT
-    rTarget : REAL;       (* 设定值 *)
-    rFeedback : REAL;       (* 反馈值 *)
-	rPosLimPositive:LREAL;//位置正限位
-	rPosLimNegative:LREAL;//位置反限位
-	rKp:REAL;     //比例增益
-	rKi:REAL;     //积分增益
-	rKd:REAL;     //微分增益
-	iThreshold:INT;//积分项开启的位置阈值
-	bPIDEnable:BOOL:=TRUE;//PID使能
-	rVelLim:LREAL;//速度限制
-END_VAR
-VAR_OUTPUT
-    rPIDOutput : LREAL:=0;         //带方向的输出速度
-
-END_VAR
-VAR
-	//rPIDOutPut: REAL:=0.0;
-	rLastError: LREAL:=0.0;(*上一次误差*)
-	rErrorNow:LREAL:=0.0;(*当前误差*)
-    rIntegralNew : LREAL := 0.0; (* 积分项 *)
-    rDerivativeNew : LREAL := 0.0; (* 微分项 *)
-	rDelta: LREAL;(*增量*)
-	rProportionNew: LREAL;
-	
-	//iAzPIDEnable: INT;
-END_VAR
-
-
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -11726,41 +9017,6 @@ END_IF
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK PID_1
-VAR_INPUT
-    rTarget : REAL;       (* 设定值 *)
-    rFeedback : REAL;       (* 反馈值 *)
-	rPosLimPositive:LREAL;//位置正限位
-	rPosLimNegative:LREAL;//位置反限位
-	rKp:REAL;     //比例增益
-	rKi:REAL;     //积分增益
-	rKd:REAL;     //微分增益
-	iThreshold:INT;//积分项开启的位置阈值
-	bPIDEnable:BOOL:=TRUE;//PID使能
-	rVelLim:LREAL;//速度限制
-END_VAR
-VAR_OUTPUT
-    rPIDOutput : LREAL:=0;         //带方向的输出速度
-
-END_VAR
-VAR
-	//rPIDOutPut: REAL:=0.0;
-	rLastError: LREAL:=0.0;(*上一次误差*)
-	rErrorNow:LREAL:=0.0;(*当前误差*)
-    rIntegralNew : LREAL := 0.0; (* 积分项 *)
-    rDerivativeNew : LREAL := 0.0; (* 微分项 *)
-	rDelta: LREAL;(*增量*)
-	rProportionNew: LREAL;
-	
-	//iAzPIDEnable: INT;
-END_VAR
-
-
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>5499e376-7c55-4809-8854-0cf8999530ec</ObjectId>
                   </data>
@@ -11875,32 +9131,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">自跟踪采用的跟踪接收机ue</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM AutoTrackingCal
-VAR
-	rChanUa:REAL;//自跟踪采用的跟踪接收机ua
-	rChanUe:REAL;//自跟踪采用的跟踪接收机ue
-	rChanAGC:REAL;//自跟踪采用的跟踪接收机AGC
-	bChanLock:BOOL;//频道是否锁定
-	iCountATLock:INT;//自跟踪锁定
-	iState:INT;//Case选择变量
-	
-	rAzSum:LREAL;//方位累计量
-	rElSum:LREAL;//俯仰累积量
-	
-	rDirSenFac:REAL:=12;
-	rCurentEl:LREAL;//当前俯仰角
-	rk: LREAL:=1/15.0;
-	
-	rChanUaLocal:REAL;//自跟踪采用的跟踪接收机ua
-	rChanUeLocal:REAL;//自跟踪采用的跟踪接收机ue
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -11971,30 +9201,6 @@ END_CASE</xhtml>
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM AutoTrackingCal
-VAR
-	rChanUa:REAL;//自跟踪采用的跟踪接收机ua
-	rChanUe:REAL;//自跟踪采用的跟踪接收机ue
-	rChanAGC:REAL;//自跟踪采用的跟踪接收机AGC
-	bChanLock:BOOL;//频道是否锁定
-	iCountATLock:INT;//自跟踪锁定
-	iState:INT;//Case选择变量
-	
-	rAzSum:LREAL;//方位累计量
-	rElSum:LREAL;//俯仰累积量
-	
-	rDirSenFac:REAL:=12;
-	rCurentEl:LREAL;//当前俯仰角
-	rk: LREAL:=1/15.0;
-	
-	rChanUaLocal:REAL;//自跟踪采用的跟踪接收机ua
-	rChanUeLocal:REAL;//自跟踪采用的跟踪接收机ue
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>d31898b0-2e29-4c5d-8ff3-31cd90e84e15</ObjectId>
                   </data>
@@ -12207,56 +9413,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">报错可视化标识</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM Ti_ctrl_1
-VAR
-	Axis3_Ctrl:Ti_Ctrl_FB;
-	bRemote2LocalStop:BOOL;
-	bLocal2RemoteStop:BOOL;
-	Error:INT;
-	
-	Axis3Limit_pos:REAL;//正软限位
-	Axis3Limit_Neg:REAL;//负软限位
-	
-	bRTriger:Standard.R_TRIG;//本控上升沿
-	bFTriger:Standard.F_TRIG;//远控下降沿
-	Stop3_Count: INT;
-	bStop_3: BOOL;
-	
-	//指向模式自跟踪
-	rPosModeStepBias:LREAL;//指向模式自跟踪拉偏累计值
-	rPosModeStep:LREAL:=0.005;//指向模式自跟踪步长，积分用
-	rStepBiasMax:LREAL:=2;//指向模式拉偏最大值
-	
-	//程引拉偏
-	rStepBias:LREAL;//步进拉偏累计值
-// 	rStep:LREAL:=0.0002;//步长，与控制周期有关，1ms周期对应1秒内累积0.0002*1000=0.2°
-// 	rStep:LREAL:=0.01;//步长，与控制周期有关，50ms周期对应1秒内累积0.01*20=0.2°
-	rStep:LREAL:=0.004;//步长，与控制周期有关，20ms周期对应1秒内累积0.004*50=0.2°
-		
-	//自跟踪拉偏
-	rAuToStepBias:LREAL;//步进拉偏累计值
-// 	rAutoStep:LREAL:=0.005;//步长
-	rAutoStep:LREAL:=0.01;//步长
-	TbAutoTrigger:Standard.F_TRIG;//自跟踪关闭的下降沿
-	RbAutoTrigger:Standard.R_TRIG;//自跟踪开启的上升沿
-
-	rAutoTrackingBiasMax:LREAL:=300;//自跟踪拉偏最大值
-	rLocalInitPosModeSpeed: REAL;
-	rRemoteInitPosModeSpeed: REAL;
-	iCountOffAuto: INT;
-	
-	iCasePBAutoTrack:INT:=2;//程序引导自跟踪切换 
-// 	rKAuToStepBias:LREAL:=0.25;
-	rKAuToStepBias:LREAL:=0.16;
-	bVisError:BOOL; //报错可视化标识
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -12390,54 +9546,6 @@ Axis3_Ctrl(sLocal:=Axis3Local, sCtrl:=Axis3Remote, sStatus:=Axis3Status, sVisibl
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM Ti_ctrl_1
-VAR
-	Axis3_Ctrl:Ti_Ctrl_FB;
-	bRemote2LocalStop:BOOL;
-	bLocal2RemoteStop:BOOL;
-	Error:INT;
-	
-	Axis3Limit_pos:REAL;//正软限位
-	Axis3Limit_Neg:REAL;//负软限位
-	
-	bRTriger:Standard.R_TRIG;//本控上升沿
-	bFTriger:Standard.F_TRIG;//远控下降沿
-	Stop3_Count: INT;
-	bStop_3: BOOL;
-	
-	//指向模式自跟踪
-	rPosModeStepBias:LREAL;//指向模式自跟踪拉偏累计值
-	rPosModeStep:LREAL:=0.005;//指向模式自跟踪步长，积分用
-	rStepBiasMax:LREAL:=2;//指向模式拉偏最大值
-	
-	//程引拉偏
-	rStepBias:LREAL;//步进拉偏累计值
-// 	rStep:LREAL:=0.0002;//步长，与控制周期有关，1ms周期对应1秒内累积0.0002*1000=0.2°
-// 	rStep:LREAL:=0.01;//步长，与控制周期有关，50ms周期对应1秒内累积0.01*20=0.2°
-	rStep:LREAL:=0.004;//步长，与控制周期有关，20ms周期对应1秒内累积0.004*50=0.2°
-		
-	//自跟踪拉偏
-	rAuToStepBias:LREAL;//步进拉偏累计值
-// 	rAutoStep:LREAL:=0.005;//步长
-	rAutoStep:LREAL:=0.01;//步长
-	TbAutoTrigger:Standard.F_TRIG;//自跟踪关闭的下降沿
-	RbAutoTrigger:Standard.R_TRIG;//自跟踪开启的上升沿
-
-	rAutoTrackingBiasMax:LREAL:=300;//自跟踪拉偏最大值
-	rLocalInitPosModeSpeed: REAL;
-	rRemoteInitPosModeSpeed: REAL;
-	iCountOffAuto: INT;
-	
-	iCasePBAutoTrack:INT:=2;//程序引导自跟踪切换 
-// 	rKAuToStepBias:LREAL:=0.25;
-	rKAuToStepBias:LREAL:=0.16;
-	bVisError:BOOL; //报错可视化标识
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>e86aacd1-719d-4a98-a0f2-ae7fae70687c</ObjectId>
                   </data>
@@ -12478,39 +9586,6 @@ END_VAR
                         <REAL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK Ti_Ctrl_FB
-VAR_INPUT
-	sLocal:AxisCrtlStruct;
-	sCtrl:AxisCrtlStruct;
-	sStatus:AxisStatus;
-	sVisible:AxisVisible;
-	rRealPos:REAL;
-	rPosLimK:REAL;
-END_VAR
-VAR_OUTPUT
-	logicError:INT;
-END_VAR
-VAR
-	VelPID_1:PID;
-	VelPID_2:PID;
-	TON_0:TON;
-	bTick:BOOL;
-	tr:BOOL;
-	icount1:INT := 0;
-	icount2:INT := 0;
-	icount3:INT := 0;
-	bfin1:BOOL;
-	bfin2:BOOL;
-	istate:INT:=0;
-	icount:INT:=0;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inputVars>
                   <outputVars>
                     <variable name="logicError">
@@ -12518,39 +9593,6 @@ END_VAR
                         <INT />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK Ti_Ctrl_FB
-VAR_INPUT
-	sLocal:AxisCrtlStruct;
-	sCtrl:AxisCrtlStruct;
-	sStatus:AxisStatus;
-	sVisible:AxisVisible;
-	rRealPos:REAL;
-	rPosLimK:REAL;
-END_VAR
-VAR_OUTPUT
-	logicError:INT;
-END_VAR
-VAR
-	VelPID_1:PID;
-	VelPID_2:PID;
-	TON_0:TON;
-	bTick:BOOL;
-	tr:BOOL;
-	icount1:INT := 0;
-	icount2:INT := 0;
-	icount3:INT := 0;
-	bfin1:BOOL;
-	bfin2:BOOL;
-	istate:INT:=0;
-	icount:INT:=0;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </outputVars>
                   <localVars>
                     <variable name="VelPID_1">
@@ -12628,39 +9670,6 @@ END_VAR
                         <simpleValue value="0" />
                       </initialValue>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK Ti_Ctrl_FB
-VAR_INPUT
-	sLocal:AxisCrtlStruct;
-	sCtrl:AxisCrtlStruct;
-	sStatus:AxisStatus;
-	sVisible:AxisVisible;
-	rRealPos:REAL;
-	rPosLimK:REAL;
-END_VAR
-VAR_OUTPUT
-	logicError:INT;
-END_VAR
-VAR
-	VelPID_1:PID;
-	VelPID_2:PID;
-	TON_0:TON;
-	bTick:BOOL;
-	tr:BOOL;
-	icount1:INT := 0;
-	icount2:INT := 0;
-	icount3:INT := 0;
-	bfin1:BOOL;
-	bfin2:BOOL;
-	istate:INT:=0;
-	icount:INT:=0;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -12988,37 +9997,6 @@ END_IF</xhtml>
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK Ti_Ctrl_FB
-VAR_INPUT
-	sLocal:AxisCrtlStruct;
-	sCtrl:AxisCrtlStruct;
-	sStatus:AxisStatus;
-	sVisible:AxisVisible;
-	rRealPos:REAL;
-	rPosLimK:REAL;
-END_VAR
-VAR_OUTPUT
-	logicError:INT;
-END_VAR
-VAR
-	VelPID_1:PID;
-	VelPID_2:PID;
-	TON_0:TON;
-	bTick:BOOL;
-	tr:BOOL;
-	icount1:INT := 0;
-	icount2:INT := 0;
-	icount3:INT := 0;
-	bfin1:BOOL;
-	bfin2:BOOL;
-	istate:INT:=0;
-	icount:INT:=0;
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>ebe00c16-e4b5-485c-a823-5dd11ef20e18</ObjectId>
                   </data>
@@ -13146,56 +10124,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml"> 俯仰角度</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK vpid
-VAR_INPUT
-	rTarget : REAL;           // 设定值
-    rFeedback : REAL;         // 反馈值
-    rPosLimPositive : LREAL;  // 位置正限位
-    rPosLimNegitive : LREAL;  // 位置反限位
-    rKpBase : REAL;           // 基础比例增益
-    rKiBase : REAL;           // 基础积分增益
-    rVelThreshold : LREAL;     // 速度阈值，真实值除以控制频率
-    rKpScale : REAL;          // 比例增益比例因子
-    rKiScale : REAL;          // 积分增益比例因子
-    iThrehold : INT;          // 积分项开启的位置阈值
-    bPIDEnable : BOOL := TRUE;// PID使能
-    rVelLim : LREAL;          // 速度限制
-	rKpMax : REAL;
-	rKiMax : REAL;
-	rElPos : REAL;            // 俯仰角度
-END_VAR
-
-VAR_OUTPUT
-    rPIDOutput : LREAL := 0;  // 控制量
-	rPIDOutDir: LREAL;
-END_VAR
-
-VAR
-    rLastFeedback : LREAL := 0.0; // 上一次反馈值
-    rErrorNow : LREAL := 0.0;     // 当前误差
-    rIntegralNew : LREAL := 0.0;  // 积分项
-    rDelta : LREAL;               // 增量
-    rProportionNew : LREAL;       // 比例项
-    rSpeed : REAL;                // 当前速度
-    rKp : REAL:=1;                   // 动态比例增益
-    rKi : REAL:=0.02;                   // 动态积分增益
-	rInterValueNow : LREAL := 0.0;        // 当前插值位置
-	rInterValueLast : LREAL := 0.0;       // 上一次插值位置
-	//rSlope :LREAL :=0; 			  //PI变化斜率
-	rStep:LREAL:=0.002;                //PI变化率
-	
-	rKpTarget :REAL:=1;
-	rKiTarget :REAL:=0.02;
-	
-	
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inputVars>
                   <outputVars>
                     <variable name="rPIDOutput">
@@ -13214,56 +10142,6 @@ END_VAR
                         <LREAL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK vpid
-VAR_INPUT
-	rTarget : REAL;           // 设定值
-    rFeedback : REAL;         // 反馈值
-    rPosLimPositive : LREAL;  // 位置正限位
-    rPosLimNegitive : LREAL;  // 位置反限位
-    rKpBase : REAL;           // 基础比例增益
-    rKiBase : REAL;           // 基础积分增益
-    rVelThreshold : LREAL;     // 速度阈值，真实值除以控制频率
-    rKpScale : REAL;          // 比例增益比例因子
-    rKiScale : REAL;          // 积分增益比例因子
-    iThrehold : INT;          // 积分项开启的位置阈值
-    bPIDEnable : BOOL := TRUE;// PID使能
-    rVelLim : LREAL;          // 速度限制
-	rKpMax : REAL;
-	rKiMax : REAL;
-	rElPos : REAL;            // 俯仰角度
-END_VAR
-
-VAR_OUTPUT
-    rPIDOutput : LREAL := 0;  // 控制量
-	rPIDOutDir: LREAL;
-END_VAR
-
-VAR
-    rLastFeedback : LREAL := 0.0; // 上一次反馈值
-    rErrorNow : LREAL := 0.0;     // 当前误差
-    rIntegralNew : LREAL := 0.0;  // 积分项
-    rDelta : LREAL;               // 增量
-    rProportionNew : LREAL;       // 比例项
-    rSpeed : REAL;                // 当前速度
-    rKp : REAL:=1;                   // 动态比例增益
-    rKi : REAL:=0.02;                   // 动态积分增益
-	rInterValueNow : LREAL := 0.0;        // 当前插值位置
-	rInterValueLast : LREAL := 0.0;       // 上一次插值位置
-	//rSlope :LREAL :=0; 			  //PI变化斜率
-	rStep:LREAL:=0.002;                //PI变化率
-	
-	rKpTarget :REAL:=1;
-	rKiTarget :REAL:=0.02;
-	
-	
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </outputVars>
                   <localVars>
                     <variable name="rLastFeedback">
@@ -13394,56 +10272,6 @@ END_VAR
                         <simpleValue value="0.02" />
                       </initialValue>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK vpid
-VAR_INPUT
-	rTarget : REAL;           // 设定值
-    rFeedback : REAL;         // 反馈值
-    rPosLimPositive : LREAL;  // 位置正限位
-    rPosLimNegitive : LREAL;  // 位置反限位
-    rKpBase : REAL;           // 基础比例增益
-    rKiBase : REAL;           // 基础积分增益
-    rVelThreshold : LREAL;     // 速度阈值，真实值除以控制频率
-    rKpScale : REAL;          // 比例增益比例因子
-    rKiScale : REAL;          // 积分增益比例因子
-    iThrehold : INT;          // 积分项开启的位置阈值
-    bPIDEnable : BOOL := TRUE;// PID使能
-    rVelLim : LREAL;          // 速度限制
-	rKpMax : REAL;
-	rKiMax : REAL;
-	rElPos : REAL;            // 俯仰角度
-END_VAR
-
-VAR_OUTPUT
-    rPIDOutput : LREAL := 0;  // 控制量
-	rPIDOutDir: LREAL;
-END_VAR
-
-VAR
-    rLastFeedback : LREAL := 0.0; // 上一次反馈值
-    rErrorNow : LREAL := 0.0;     // 当前误差
-    rIntegralNew : LREAL := 0.0;  // 积分项
-    rDelta : LREAL;               // 增量
-    rProportionNew : LREAL;       // 比例项
-    rSpeed : REAL;                // 当前速度
-    rKp : REAL:=1;                   // 动态比例增益
-    rKi : REAL:=0.02;                   // 动态积分增益
-	rInterValueNow : LREAL := 0.0;        // 当前插值位置
-	rInterValueLast : LREAL := 0.0;       // 上一次插值位置
-	//rSlope :LREAL :=0; 			  //PI变化斜率
-	rStep:LREAL:=0.002;                //PI变化率
-	
-	rKpTarget :REAL:=1;
-	rKiTarget :REAL:=0.02;
-	
-	
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -13554,54 +10382,6 @@ END_IF
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK vpid
-VAR_INPUT
-	rTarget : REAL;           // 设定值
-    rFeedback : REAL;         // 反馈值
-    rPosLimPositive : LREAL;  // 位置正限位
-    rPosLimNegitive : LREAL;  // 位置反限位
-    rKpBase : REAL;           // 基础比例增益
-    rKiBase : REAL;           // 基础积分增益
-    rVelThreshold : LREAL;     // 速度阈值，真实值除以控制频率
-    rKpScale : REAL;          // 比例增益比例因子
-    rKiScale : REAL;          // 积分增益比例因子
-    iThrehold : INT;          // 积分项开启的位置阈值
-    bPIDEnable : BOOL := TRUE;// PID使能
-    rVelLim : LREAL;          // 速度限制
-	rKpMax : REAL;
-	rKiMax : REAL;
-	rElPos : REAL;            // 俯仰角度
-END_VAR
-
-VAR_OUTPUT
-    rPIDOutput : LREAL := 0;  // 控制量
-	rPIDOutDir: LREAL;
-END_VAR
-
-VAR
-    rLastFeedback : LREAL := 0.0; // 上一次反馈值
-    rErrorNow : LREAL := 0.0;     // 当前误差
-    rIntegralNew : LREAL := 0.0;  // 积分项
-    rDelta : LREAL;               // 增量
-    rProportionNew : LREAL;       // 比例项
-    rSpeed : REAL;                // 当前速度
-    rKp : REAL:=1;                   // 动态比例增益
-    rKi : REAL:=0.02;                   // 动态积分增益
-	rInterValueNow : LREAL := 0.0;        // 当前插值位置
-	rInterValueLast : LREAL := 0.0;       // 上一次插值位置
-	//rSlope :LREAL :=0; 			  //PI变化斜率
-	rStep:LREAL:=0.002;                //PI变化率
-	
-	rKpTarget :REAL:=1;
-	rKiTarget :REAL:=0.02;
-	
-	
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>7c72a0b3-617e-4a04-be4b-ecd1af0fd60f</ObjectId>
                   </data>
@@ -13819,50 +10599,6 @@ END_VAR
                         <INT />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM READ_485
-VAR
-	com_init:gcan.FB_Com_Init;      		//gcan.FB_Com_Init为串口初始化功能块，可设定串口端口号，串口波特率等参数
-	com_read:gcan.FB_Com_Read ;				//gcan.FB_Com_Read为串口接收功能块，用于通过接收串口发送给PLC的数据
-	com_write:gcan.FB_Com_Write ;			//gcan.FB_Com_Write为串口发送功能块，用于发送串口数据
-	m_uiError:UINT;							//用于承接功能块中报错引脚错误信息的变量
-	m_out:BOOL;								//用于承接功能块中完成标志引脚数据的变量
-	isFirst:BOOL:=TRUE;						//用于判断初始化只执行一次的逻辑
-	mPort:BYTE;								//程序中用作设定串口端口号
-	recSize:UINT;							//接收数据长度，单位：字节
-	recBuf:ARRAY[0..19] OF BYTE;			//用于存放接收到的串口数据的数组
-	recData:ARRAY[0..8] OF BYTE;			//用于存放整帧数据
-	wAGC:WORD; // agc，电平值
-	iUa:INT; // 方位误差电压，mV
-	iUe:INT; // 俯仰误差电压，mV
-	iChan1DataLen: UINT;
-	chan1_i: INT;
-	chan1_j: INT;
-	Word2Bit1:Word2Bit;
-	Word2Bit2:Word2Bit;
-	Word2Bit3:Word2Bit;
-	rUagcTemp:REAL;
-	rUaTemp:REAL;
-	rUeTemp:REAL;
-	btest:BOOL;
-	btest2:BOOL;
-	
-	rSData:REAL;
-	rQData:REAL;
-	Dword2Bit1:Dword2Bit;
-	Dword2Bit2:Dword2Bit;
-	Chan1EB_N0: REAL;
-	bEBN0Lock:BOOL;
-	icount0:INT;
-END_VAR
-
-	
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -14020,48 +10756,6 @@ END_IF
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM READ_485
-VAR
-	com_init:gcan.FB_Com_Init;      		//gcan.FB_Com_Init为串口初始化功能块，可设定串口端口号，串口波特率等参数
-	com_read:gcan.FB_Com_Read ;				//gcan.FB_Com_Read为串口接收功能块，用于通过接收串口发送给PLC的数据
-	com_write:gcan.FB_Com_Write ;			//gcan.FB_Com_Write为串口发送功能块，用于发送串口数据
-	m_uiError:UINT;							//用于承接功能块中报错引脚错误信息的变量
-	m_out:BOOL;								//用于承接功能块中完成标志引脚数据的变量
-	isFirst:BOOL:=TRUE;						//用于判断初始化只执行一次的逻辑
-	mPort:BYTE;								//程序中用作设定串口端口号
-	recSize:UINT;							//接收数据长度，单位：字节
-	recBuf:ARRAY[0..19] OF BYTE;			//用于存放接收到的串口数据的数组
-	recData:ARRAY[0..8] OF BYTE;			//用于存放整帧数据
-	wAGC:WORD; // agc，电平值
-	iUa:INT; // 方位误差电压，mV
-	iUe:INT; // 俯仰误差电压，mV
-	iChan1DataLen: UINT;
-	chan1_i: INT;
-	chan1_j: INT;
-	Word2Bit1:Word2Bit;
-	Word2Bit2:Word2Bit;
-	Word2Bit3:Word2Bit;
-	rUagcTemp:REAL;
-	rUaTemp:REAL;
-	rUeTemp:REAL;
-	btest:BOOL;
-	btest2:BOOL;
-	
-	rSData:REAL;
-	rQData:REAL;
-	Dword2Bit1:Dword2Bit;
-	Dword2Bit2:Dword2Bit;
-	Chan1EB_N0: REAL;
-	bEBN0Lock:BOOL;
-	icount0:INT;
-END_VAR
-
-	
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>bf0b9152-755b-4529-9d6a-65e584178361</ObjectId>
                   </data>
@@ -14178,37 +10872,6 @@ END_VAR
                         </array>
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK Get_AZ
-VAR_INPUT
-	uliRealTime : LREAL; // 当前时间戳，单位毫秒
-	lrStartTime : LREAL; // 任务起始时间，单位秒
-	rNodeTime1 : REAL;
-	rNodeTime2 : REAL;
-	rNodeTime3 : REAL;
-    rNodeTime4 : REAL;
-    rNodeTime5 : REAL;
-	rEndTime : REAL;
-	lrFun1 : ARRAY[0..10] OF LREAL;
-	lrFun2 : ARRAY[0..10] OF LREAL;
-	lrFun3 : ARRAY[0..10] OF LREAL;
-	lrFun4 : ARRAY[0..10] OF LREAL;
-	lrFun5 : ARRAY[0..10] OF LREAL;
-	lrFun6 : ARRAY[0..10] OF LREAL;
-END_VAR
-VAR_OUTPUT
-	lrFitResult : LREAL;
-END_VAR
-VAR
-	rDelTime : REAL;
-	rRealTime : LREAL;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inputVars>
                   <outputVars>
                     <variable name="lrFitResult">
@@ -14216,37 +10879,6 @@ END_VAR
                         <LREAL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK Get_AZ
-VAR_INPUT
-	uliRealTime : LREAL; // 当前时间戳，单位毫秒
-	lrStartTime : LREAL; // 任务起始时间，单位秒
-	rNodeTime1 : REAL;
-	rNodeTime2 : REAL;
-	rNodeTime3 : REAL;
-    rNodeTime4 : REAL;
-    rNodeTime5 : REAL;
-	rEndTime : REAL;
-	lrFun1 : ARRAY[0..10] OF LREAL;
-	lrFun2 : ARRAY[0..10] OF LREAL;
-	lrFun3 : ARRAY[0..10] OF LREAL;
-	lrFun4 : ARRAY[0..10] OF LREAL;
-	lrFun5 : ARRAY[0..10] OF LREAL;
-	lrFun6 : ARRAY[0..10] OF LREAL;
-END_VAR
-VAR_OUTPUT
-	lrFitResult : LREAL;
-END_VAR
-VAR
-	rDelTime : REAL;
-	rRealTime : LREAL;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </outputVars>
                   <localVars>
                     <variable name="rDelTime">
@@ -14259,37 +10891,6 @@ END_VAR
                         <LREAL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK Get_AZ
-VAR_INPUT
-	uliRealTime : LREAL; // 当前时间戳，单位毫秒
-	lrStartTime : LREAL; // 任务起始时间，单位秒
-	rNodeTime1 : REAL;
-	rNodeTime2 : REAL;
-	rNodeTime3 : REAL;
-    rNodeTime4 : REAL;
-    rNodeTime5 : REAL;
-	rEndTime : REAL;
-	lrFun1 : ARRAY[0..10] OF LREAL;
-	lrFun2 : ARRAY[0..10] OF LREAL;
-	lrFun3 : ARRAY[0..10] OF LREAL;
-	lrFun4 : ARRAY[0..10] OF LREAL;
-	lrFun5 : ARRAY[0..10] OF LREAL;
-	lrFun6 : ARRAY[0..10] OF LREAL;
-END_VAR
-VAR_OUTPUT
-	lrFitResult : LREAL;
-END_VAR
-VAR
-	rDelTime : REAL;
-	rRealTime : LREAL;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -14338,35 +10939,6 @@ END_IF</xhtml>
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK Get_AZ
-VAR_INPUT
-	uliRealTime : LREAL; // 当前时间戳，单位毫秒
-	lrStartTime : LREAL; // 任务起始时间，单位秒
-	rNodeTime1 : REAL;
-	rNodeTime2 : REAL;
-	rNodeTime3 : REAL;
-    rNodeTime4 : REAL;
-    rNodeTime5 : REAL;
-	rEndTime : REAL;
-	lrFun1 : ARRAY[0..10] OF LREAL;
-	lrFun2 : ARRAY[0..10] OF LREAL;
-	lrFun3 : ARRAY[0..10] OF LREAL;
-	lrFun4 : ARRAY[0..10] OF LREAL;
-	lrFun5 : ARRAY[0..10] OF LREAL;
-	lrFun6 : ARRAY[0..10] OF LREAL;
-END_VAR
-VAR_OUTPUT
-	lrFitResult : LREAL;
-END_VAR
-VAR
-	rDelTime : REAL;
-	rRealTime : LREAL;
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>330c3e5c-ca2a-4c25-8c0b-68269e914251</ObjectId>
                   </data>
@@ -14483,37 +11055,6 @@ END_VAR
                         </array>
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK Get_AZ_1
-VAR_INPUT
-	uliRealTime : LREAL; // 当前时间戳，单位毫秒
-	lrStartTime : LREAL; // 任务起始时间，单位秒
-	rNodeTime1 : REAL;
-	rNodeTime2 : REAL;
-	rNodeTime3 : REAL;
-    rNodeTime4 : REAL;
-    rNodeTime5 : REAL;
-	rEndTime : REAL;
-	lrFun1 : ARRAY[0..10] OF LREAL;
-	lrFun2 : ARRAY[0..10] OF LREAL;
-	lrFun3 : ARRAY[0..10] OF LREAL;
-	lrFun4 : ARRAY[0..10] OF LREAL;
-	lrFun5 : ARRAY[0..10] OF LREAL;
-	lrFun6 : ARRAY[0..10] OF LREAL;
-END_VAR
-VAR_OUTPUT
-	lrFitResult : LREAL;
-END_VAR
-VAR
-	rDelTime : REAL;
-	rRealTime : LREAL;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inputVars>
                   <outputVars>
                     <variable name="lrFitResult">
@@ -14521,37 +11062,6 @@ END_VAR
                         <LREAL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK Get_AZ_1
-VAR_INPUT
-	uliRealTime : LREAL; // 当前时间戳，单位毫秒
-	lrStartTime : LREAL; // 任务起始时间，单位秒
-	rNodeTime1 : REAL;
-	rNodeTime2 : REAL;
-	rNodeTime3 : REAL;
-    rNodeTime4 : REAL;
-    rNodeTime5 : REAL;
-	rEndTime : REAL;
-	lrFun1 : ARRAY[0..10] OF LREAL;
-	lrFun2 : ARRAY[0..10] OF LREAL;
-	lrFun3 : ARRAY[0..10] OF LREAL;
-	lrFun4 : ARRAY[0..10] OF LREAL;
-	lrFun5 : ARRAY[0..10] OF LREAL;
-	lrFun6 : ARRAY[0..10] OF LREAL;
-END_VAR
-VAR_OUTPUT
-	lrFitResult : LREAL;
-END_VAR
-VAR
-	rDelTime : REAL;
-	rRealTime : LREAL;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </outputVars>
                   <localVars>
                     <variable name="rDelTime">
@@ -14564,37 +11074,6 @@ END_VAR
                         <LREAL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK Get_AZ_1
-VAR_INPUT
-	uliRealTime : LREAL; // 当前时间戳，单位毫秒
-	lrStartTime : LREAL; // 任务起始时间，单位秒
-	rNodeTime1 : REAL;
-	rNodeTime2 : REAL;
-	rNodeTime3 : REAL;
-    rNodeTime4 : REAL;
-    rNodeTime5 : REAL;
-	rEndTime : REAL;
-	lrFun1 : ARRAY[0..10] OF LREAL;
-	lrFun2 : ARRAY[0..10] OF LREAL;
-	lrFun3 : ARRAY[0..10] OF LREAL;
-	lrFun4 : ARRAY[0..10] OF LREAL;
-	lrFun5 : ARRAY[0..10] OF LREAL;
-	lrFun6 : ARRAY[0..10] OF LREAL;
-END_VAR
-VAR_OUTPUT
-	lrFitResult : LREAL;
-END_VAR
-VAR
-	rDelTime : REAL;
-	rRealTime : LREAL;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -14643,35 +11122,6 @@ END_IF</xhtml>
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK Get_AZ_1
-VAR_INPUT
-	uliRealTime : LREAL; // 当前时间戳，单位毫秒
-	lrStartTime : LREAL; // 任务起始时间，单位秒
-	rNodeTime1 : REAL;
-	rNodeTime2 : REAL;
-	rNodeTime3 : REAL;
-    rNodeTime4 : REAL;
-    rNodeTime5 : REAL;
-	rEndTime : REAL;
-	lrFun1 : ARRAY[0..10] OF LREAL;
-	lrFun2 : ARRAY[0..10] OF LREAL;
-	lrFun3 : ARRAY[0..10] OF LREAL;
-	lrFun4 : ARRAY[0..10] OF LREAL;
-	lrFun5 : ARRAY[0..10] OF LREAL;
-	lrFun6 : ARRAY[0..10] OF LREAL;
-END_VAR
-VAR_OUTPUT
-	lrFitResult : LREAL;
-END_VAR
-VAR
-	rDelTime : REAL;
-	rRealTime : LREAL;
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>b79e8dce-8bb9-4681-a1d7-0c5420f8d7d9</ObjectId>
                   </data>
@@ -14746,67 +11196,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">插值位置</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK AGCMaxSearch_PB_1 //双轴静止星步进跟踪使用的代码
-VAR_INPUT
-	bstart:BOOL;//模块开始标识
-	rAGCNow:REAL;//当前AGC值
-	btrig:BOOL;//触发一次
-	rStepBiasNow:REAL;//当前拉偏量 //用来判断此次搜索是否有效
-	bAutoTracking:BOOL;// 自跟踪标识
-	bStop:BOOL;//满足ua ue很小
-	
-	rCurrentPos:REAL;//当前位置
-	rInterPos:REAL;//插值位置
-	//rOutStepBias:REAL;//外部拉偏量
-END_VAR
-VAR_OUTPUT
-	
-	rAGCMaxBias:REAL;//输出AGC最强时的拉偏量 单位为°
-	bSucess :BOOL;//数出模块是否成功
-	rStepBias:REAL;//步进量
-END_VAR
-VAR
-	ton:Standard.TON;
-	rTrg:Standard.R_TRIG;//初始化上升沿检测器
-	rAGCInit:REAL:=0;//初始化AGC
-	rPrevAGC:REAL:=0;//上一步的AGC值 单位为V
-	rBiasInit:REAL;//初始化拉偏量
-	
-	iCountStep:INT:=0;//计步数
-	toN1: Standard.Ton;//计时器 定时触发上升沿 
-	
-	rDirection: INT:=1;
-	rSearchNextStepTarget:REAL;//搜索当前目标位置 单位为°
-	rStep:REAL:=0.0003;//步进值
-	rSensitivity:REAL:=0.05;//反向灵敏度
-	iCountStopMax:INT:=20;//停止计数上限
-	
-	rLastDirection:INT;//上一次方向，判断是否换向
-	iCountDirChange:INT;//换向标识
-	rAGCMaxPos:REAL;//信号最强位置
-	
-	rAGCLastrecord: REAL;
-	iStatus: INT;
-	iCountStop1:INT;//第一阶段停止标识 (正向)
-	iCountStop2:INT;//(反向)
-	
-	rAGCMaxValue: REAL;//AGC最大值
-	
-	//新加的
-	iCountSearchRight:INT;//搜索方向正确，提前结束标识
-	
-	bSearchRight:BOOL;//搜索正确标识
-	//模块指行完成标识
-	iCountBlockEnd:INT;//用来计数确认已达到最强位置
-	iCountBlockEndMax:INT:=500;//到位计数上限
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inputVars>
                   <outputVars>
                     <variable name="rAGCMaxBias">
@@ -14833,67 +11222,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">步进量</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK AGCMaxSearch_PB_1 //双轴静止星步进跟踪使用的代码
-VAR_INPUT
-	bstart:BOOL;//模块开始标识
-	rAGCNow:REAL;//当前AGC值
-	btrig:BOOL;//触发一次
-	rStepBiasNow:REAL;//当前拉偏量 //用来判断此次搜索是否有效
-	bAutoTracking:BOOL;// 自跟踪标识
-	bStop:BOOL;//满足ua ue很小
-	
-	rCurrentPos:REAL;//当前位置
-	rInterPos:REAL;//插值位置
-	//rOutStepBias:REAL;//外部拉偏量
-END_VAR
-VAR_OUTPUT
-	
-	rAGCMaxBias:REAL;//输出AGC最强时的拉偏量 单位为°
-	bSucess :BOOL;//数出模块是否成功
-	rStepBias:REAL;//步进量
-END_VAR
-VAR
-	ton:Standard.TON;
-	rTrg:Standard.R_TRIG;//初始化上升沿检测器
-	rAGCInit:REAL:=0;//初始化AGC
-	rPrevAGC:REAL:=0;//上一步的AGC值 单位为V
-	rBiasInit:REAL;//初始化拉偏量
-	
-	iCountStep:INT:=0;//计步数
-	toN1: Standard.Ton;//计时器 定时触发上升沿 
-	
-	rDirection: INT:=1;
-	rSearchNextStepTarget:REAL;//搜索当前目标位置 单位为°
-	rStep:REAL:=0.0003;//步进值
-	rSensitivity:REAL:=0.05;//反向灵敏度
-	iCountStopMax:INT:=20;//停止计数上限
-	
-	rLastDirection:INT;//上一次方向，判断是否换向
-	iCountDirChange:INT;//换向标识
-	rAGCMaxPos:REAL;//信号最强位置
-	
-	rAGCLastrecord: REAL;
-	iStatus: INT;
-	iCountStop1:INT;//第一阶段停止标识 (正向)
-	iCountStop2:INT;//(反向)
-	
-	rAGCMaxValue: REAL;//AGC最大值
-	
-	//新加的
-	iCountSearchRight:INT;//搜索方向正确，提前结束标识
-	
-	bSearchRight:BOOL;//搜索正确标识
-	//模块指行完成标识
-	iCountBlockEnd:INT;//用来计数确认已达到最强位置
-	iCountBlockEndMax:INT:=500;//到位计数上限
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </outputVars>
                   <localVars>
                     <variable name="ton">
@@ -15100,67 +11428,6 @@ END_VAR
                         <xhtml xmlns="http://www.w3.org/1999/xhtml">到位计数上限</xhtml>
                       </documentation>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK AGCMaxSearch_PB_1 //双轴静止星步进跟踪使用的代码
-VAR_INPUT
-	bstart:BOOL;//模块开始标识
-	rAGCNow:REAL;//当前AGC值
-	btrig:BOOL;//触发一次
-	rStepBiasNow:REAL;//当前拉偏量 //用来判断此次搜索是否有效
-	bAutoTracking:BOOL;// 自跟踪标识
-	bStop:BOOL;//满足ua ue很小
-	
-	rCurrentPos:REAL;//当前位置
-	rInterPos:REAL;//插值位置
-	//rOutStepBias:REAL;//外部拉偏量
-END_VAR
-VAR_OUTPUT
-	
-	rAGCMaxBias:REAL;//输出AGC最强时的拉偏量 单位为°
-	bSucess :BOOL;//数出模块是否成功
-	rStepBias:REAL;//步进量
-END_VAR
-VAR
-	ton:Standard.TON;
-	rTrg:Standard.R_TRIG;//初始化上升沿检测器
-	rAGCInit:REAL:=0;//初始化AGC
-	rPrevAGC:REAL:=0;//上一步的AGC值 单位为V
-	rBiasInit:REAL;//初始化拉偏量
-	
-	iCountStep:INT:=0;//计步数
-	toN1: Standard.Ton;//计时器 定时触发上升沿 
-	
-	rDirection: INT:=1;
-	rSearchNextStepTarget:REAL;//搜索当前目标位置 单位为°
-	rStep:REAL:=0.0003;//步进值
-	rSensitivity:REAL:=0.05;//反向灵敏度
-	iCountStopMax:INT:=20;//停止计数上限
-	
-	rLastDirection:INT;//上一次方向，判断是否换向
-	iCountDirChange:INT;//换向标识
-	rAGCMaxPos:REAL;//信号最强位置
-	
-	rAGCLastrecord: REAL;
-	iStatus: INT;
-	iCountStop1:INT;//第一阶段停止标识 (正向)
-	iCountStop2:INT;//(反向)
-	
-	rAGCMaxValue: REAL;//AGC最大值
-	
-	//新加的
-	iCountSearchRight:INT;//搜索方向正确，提前结束标识
-	
-	bSearchRight:BOOL;//搜索正确标识
-	//模块指行完成标识
-	iCountBlockEnd:INT;//用来计数确认已达到最强位置
-	iCountBlockEndMax:INT:=500;//到位计数上限
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -15313,65 +11580,6 @@ END_IF*)</xhtml>
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK AGCMaxSearch_PB_1 //双轴静止星步进跟踪使用的代码
-VAR_INPUT
-	bstart:BOOL;//模块开始标识
-	rAGCNow:REAL;//当前AGC值
-	btrig:BOOL;//触发一次
-	rStepBiasNow:REAL;//当前拉偏量 //用来判断此次搜索是否有效
-	bAutoTracking:BOOL;// 自跟踪标识
-	bStop:BOOL;//满足ua ue很小
-	
-	rCurrentPos:REAL;//当前位置
-	rInterPos:REAL;//插值位置
-	//rOutStepBias:REAL;//外部拉偏量
-END_VAR
-VAR_OUTPUT
-	
-	rAGCMaxBias:REAL;//输出AGC最强时的拉偏量 单位为°
-	bSucess :BOOL;//数出模块是否成功
-	rStepBias:REAL;//步进量
-END_VAR
-VAR
-	ton:Standard.TON;
-	rTrg:Standard.R_TRIG;//初始化上升沿检测器
-	rAGCInit:REAL:=0;//初始化AGC
-	rPrevAGC:REAL:=0;//上一步的AGC值 单位为V
-	rBiasInit:REAL;//初始化拉偏量
-	
-	iCountStep:INT:=0;//计步数
-	toN1: Standard.Ton;//计时器 定时触发上升沿 
-	
-	rDirection: INT:=1;
-	rSearchNextStepTarget:REAL;//搜索当前目标位置 单位为°
-	rStep:REAL:=0.0003;//步进值
-	rSensitivity:REAL:=0.05;//反向灵敏度
-	iCountStopMax:INT:=20;//停止计数上限
-	
-	rLastDirection:INT;//上一次方向，判断是否换向
-	iCountDirChange:INT;//换向标识
-	rAGCMaxPos:REAL;//信号最强位置
-	
-	rAGCLastrecord: REAL;
-	iStatus: INT;
-	iCountStop1:INT;//第一阶段停止标识 (正向)
-	iCountStop2:INT;//(反向)
-	
-	rAGCMaxValue: REAL;//AGC最大值
-	
-	//新加的
-	iCountSearchRight:INT;//搜索方向正确，提前结束标识
-	
-	bSearchRight:BOOL;//搜索正确标识
-	//模块指行完成标识
-	iCountBlockEnd:INT;//用来计数确认已达到最强位置
-	iCountBlockEndMax:INT:=500;//到位计数上限
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>4787ce3e-a3b4-48e2-bab0-db9748263bc2</ObjectId>
                   </data>
@@ -15532,41 +11740,6 @@ END_VAR
                         <BYTE />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM GPRMC_1
-VAR
-	com_init:gcan.FB_Com_Init;      		//gcan.FB_Com_Init为串口初始化功能块，可设定串口端口号，串口波特率等参数
-	com_read:gcan.FB_Com_Read ;				//gcan.FB_Com_Read为串口接收功能块，用于通过接收串口发送给PLC的数据
-	com_write:gcan.FB_Com_Write ;			//gcan.FB_Com_Write为串口发送功能块，用于发送串口数据
-	m_uiError:UINT;							//用于承接功能块中报错引脚错误信息的变量
-	m_out:BOOL;								//用于承接功能块中完成标志引脚数据的变量
-	isFirst:BOOL:=TRUE;						//用于判断初始化只执行一次的逻辑
-	mPort:BYTE;								//程序中用作设定串口端口号
-	recSize:UINT;							//接收数据长度，单位：字节
-	recBuf:ARRAY[0..101] OF BYTE;			//用于存放接收到的串口数据的数组
-	sum_i:INT;
-	checksum:BYTE;
-	iYear: INT;
-	iMonth: INT;
-	iDay: INT;
-	iHour: INT;
-	iMinute: INT;
-	iSecond: INT;
-	strDateTimeNow : STRING;
-	gnssTimestamp: ULINT;
-	gnssTimestamplast:ULINT;
-	icount:INT;
-	high4: BYTE;
-	low4: BYTE;
-END_VAR
-VAR_INPUT
-	EN_in_1:BOOL;
-END_VAR</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                   <inputVars>
                     <variable name="EN_in_1">
@@ -15574,41 +11747,6 @@ END_VAR</xhtml>
                         <BOOL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM GPRMC_1
-VAR
-	com_init:gcan.FB_Com_Init;      		//gcan.FB_Com_Init为串口初始化功能块，可设定串口端口号，串口波特率等参数
-	com_read:gcan.FB_Com_Read ;				//gcan.FB_Com_Read为串口接收功能块，用于通过接收串口发送给PLC的数据
-	com_write:gcan.FB_Com_Write ;			//gcan.FB_Com_Write为串口发送功能块，用于发送串口数据
-	m_uiError:UINT;							//用于承接功能块中报错引脚错误信息的变量
-	m_out:BOOL;								//用于承接功能块中完成标志引脚数据的变量
-	isFirst:BOOL:=TRUE;						//用于判断初始化只执行一次的逻辑
-	mPort:BYTE;								//程序中用作设定串口端口号
-	recSize:UINT;							//接收数据长度，单位：字节
-	recBuf:ARRAY[0..101] OF BYTE;			//用于存放接收到的串口数据的数组
-	sum_i:INT;
-	checksum:BYTE;
-	iYear: INT;
-	iMonth: INT;
-	iDay: INT;
-	iHour: INT;
-	iMinute: INT;
-	iSecond: INT;
-	strDateTimeNow : STRING;
-	gnssTimestamp: ULINT;
-	gnssTimestamplast:ULINT;
-	icount:INT;
-	high4: BYTE;
-	low4: BYTE;
-END_VAR
-VAR_INPUT
-	EN_in_1:BOOL;
-END_VAR</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inputVars>
                 </interface>
                 <body>
@@ -15710,39 +11848,6 @@ END_IF</xhtml>
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM GPRMC_1
-VAR
-	com_init:gcan.FB_Com_Init;      		//gcan.FB_Com_Init为串口初始化功能块，可设定串口端口号，串口波特率等参数
-	com_read:gcan.FB_Com_Read ;				//gcan.FB_Com_Read为串口接收功能块，用于通过接收串口发送给PLC的数据
-	com_write:gcan.FB_Com_Write ;			//gcan.FB_Com_Write为串口发送功能块，用于发送串口数据
-	m_uiError:UINT;							//用于承接功能块中报错引脚错误信息的变量
-	m_out:BOOL;								//用于承接功能块中完成标志引脚数据的变量
-	isFirst:BOOL:=TRUE;						//用于判断初始化只执行一次的逻辑
-	mPort:BYTE;								//程序中用作设定串口端口号
-	recSize:UINT;							//接收数据长度，单位：字节
-	recBuf:ARRAY[0..101] OF BYTE;			//用于存放接收到的串口数据的数组
-	sum_i:INT;
-	checksum:BYTE;
-	iYear: INT;
-	iMonth: INT;
-	iDay: INT;
-	iHour: INT;
-	iMinute: INT;
-	iSecond: INT;
-	strDateTimeNow : STRING;
-	gnssTimestamp: ULINT;
-	gnssTimestamplast:ULINT;
-	icount:INT;
-	high4: BYTE;
-	low4: BYTE;
-END_VAR
-VAR_INPUT
-	EN_in_1:BOOL;
-END_VAR</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>6ae6f3b7-856b-408d-a86d-65d2f20bda69</ObjectId>
                   </data>
@@ -15899,37 +12004,6 @@ END_VAR</xhtml>
                         <ULINT />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM GetACUTime
-VAR
-    tp      : TP;           // 脉冲定时器
-    toggle  : BOOL := FALSE; // 当前输出状态
-    clk     : BOOL := FALSE; // 方波输出
-    tick_ms : TIME := T#500MS; // 高电平/低电平持续时间
-	Result : RTS_IEC_RESULT;
-	stUTC_Timestamp :SYSTIME ;
-	
-	dRTime:ULINT;//上位机外部时间 单位ns Unix时间戳，起点是1970-1-1 0:0:0
-	dModbusTime:ULINT;//Modbus临时外部时间
-	iCountRemote:INT; //上位机锁定判断时间常数
-	dCountRemote:ULINT;//上位机时间滑动平均常数
-	dLastRTime:ULINT;//上位机上一次外部时间 单位ns Unix时间戳，起点是1970-1-1 0:0:0
-	iDiffRTime:DINT;//上位机时间差值
-	dDelRTime:LINT;
-	dMeanDelRTime:LINT;
-	rTriger:Standard.R_TRIG;//上升沿触发器
-	
-	iDiff:DINT;//实际时间差值
-	iDiffLocal:DINT;//本地时间差值
-	iDiffETime:DINT;//外部时间差值
-	ulACUTimeStamp : ULINT;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -15986,35 +12060,6 @@ ulACUTimeStamp := stUTC_Timestamp - dDelRTime;</xhtml>
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM GetACUTime
-VAR
-    tp      : TP;           // 脉冲定时器
-    toggle  : BOOL := FALSE; // 当前输出状态
-    clk     : BOOL := FALSE; // 方波输出
-    tick_ms : TIME := T#500MS; // 高电平/低电平持续时间
-	Result : RTS_IEC_RESULT;
-	stUTC_Timestamp :SYSTIME ;
-	
-	dRTime:ULINT;//上位机外部时间 单位ns Unix时间戳，起点是1970-1-1 0:0:0
-	dModbusTime:ULINT;//Modbus临时外部时间
-	iCountRemote:INT; //上位机锁定判断时间常数
-	dCountRemote:ULINT;//上位机时间滑动平均常数
-	dLastRTime:ULINT;//上位机上一次外部时间 单位ns Unix时间戳，起点是1970-1-1 0:0:0
-	iDiffRTime:DINT;//上位机时间差值
-	dDelRTime:LINT;
-	dMeanDelRTime:LINT;
-	rTriger:Standard.R_TRIG;//上升沿触发器
-	
-	iDiff:DINT;//实际时间差值
-	iDiffLocal:DINT;//本地时间差值
-	iDiffETime:DINT;//外部时间差值
-	ulACUTimeStamp : ULINT;
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>0b5beffa-6cbc-47c3-a7af-f447ebc0dec9</ObjectId>
                   </data>
@@ -16214,38 +12259,6 @@ END_VAR
                         <INT />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM XPTOD_SerialCom
-VAR
-        com_init:gcan.FB_Com_Init;                      //gcan.FB_Com_Init为串口初始化功能块，可设定串口端口号，串口波特率等参数
-        com_read:gcan.FB_Com_Read ;                                //gcan.FB_Com_Read为串口接收功能块，用于通过接收串口发送给PLC的数据
-        com_write:gcan.FB_Com_Write ;                        //gcan.FB_Com_Write为串口发送功能块，用于发送串口数据
-        m_uiError:UINT;                                                        //用于承接功能块中报错引脚错误信息的变量
-        m_out:BOOL;                                                                //用于承接功能块中完成标志引脚数据的变量
-        isFirst:BOOL:=TRUE;                                                //用于判断初始化只执行一次的逻辑
-        mPort:BYTE;                                                                //程序中用作设定串口端口号
-        recSize:UINT;                                                        //接收数据长度，单位：字节
-        recBuf:ARRAY[0..239] OF BYTE;                        //用于存放接收到的串口数据的数组
-        iYear: INT;                             //年
-        iMonth: INT;                            //月
-        iDay: INT;                              //日
-        iHour: INT;                             //时
-        iMinute: INT;                           //分
-        iSecond: INT;                           //秒
-    bChecksumValid: BOOL := FALSE;                //校验和
-        nFrameHeadPos: INT := 0;                //帧头索引          
-    nPos        : INT;                      //帧头位置
-    nChecksumRx : BYTE := 0;                //和校验
-        strDateTimeNow : STRING;
-        gnssTimestamp: ULINT;
-        gnssTimestamplast:ULINT;
-        icount:INT;
-END_VAR</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -16324,36 +12337,6 @@ END_IF</xhtml>
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM XPTOD_SerialCom
-VAR
-        com_init:gcan.FB_Com_Init;                      //gcan.FB_Com_Init为串口初始化功能块，可设定串口端口号，串口波特率等参数
-        com_read:gcan.FB_Com_Read ;                                //gcan.FB_Com_Read为串口接收功能块，用于通过接收串口发送给PLC的数据
-        com_write:gcan.FB_Com_Write ;                        //gcan.FB_Com_Write为串口发送功能块，用于发送串口数据
-        m_uiError:UINT;                                                        //用于承接功能块中报错引脚错误信息的变量
-        m_out:BOOL;                                                                //用于承接功能块中完成标志引脚数据的变量
-        isFirst:BOOL:=TRUE;                                                //用于判断初始化只执行一次的逻辑
-        mPort:BYTE;                                                                //程序中用作设定串口端口号
-        recSize:UINT;                                                        //接收数据长度，单位：字节
-        recBuf:ARRAY[0..239] OF BYTE;                        //用于存放接收到的串口数据的数组
-        iYear: INT;                             //年
-        iMonth: INT;                            //月
-        iDay: INT;                              //日
-        iHour: INT;                             //时
-        iMinute: INT;                           //分
-        iSecond: INT;                           //秒
-    bChecksumValid: BOOL := FALSE;                //校验和
-        nFrameHeadPos: INT := 0;                //帧头索引          
-    nPos        : INT;                      //帧头位置
-    nChecksumRx : BYTE := 0;                //和校验
-        strDateTimeNow : STRING;
-        gnssTimestamp: ULINT;
-        gnssTimestamplast:ULINT;
-        icount:INT;
-END_VAR</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>dc7b0634-a40b-404b-aa19-e715947ffee5</ObjectId>
                   </data>
@@ -16553,38 +12536,6 @@ END_VAR</xhtml>
                         <INT />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM GPRMC_1_1
-VAR
-        com_init:gcan.FB_Com_Init;                      //gcan.FB_Com_Init为串口初始化功能块，可设定串口端口号，串口波特率等参数
-        com_read:gcan.FB_Com_Read ;                                //gcan.FB_Com_Read为串口接收功能块，用于通过接收串口发送给PLC的数据
-        com_write:gcan.FB_Com_Write ;                        //gcan.FB_Com_Write为串口发送功能块，用于发送串口数据
-        m_uiError:UINT;                                                        //用于承接功能块中报错引脚错误信息的变量
-        m_out:BOOL;                                                                //用于承接功能块中完成标志引脚数据的变量
-        isFirst:BOOL:=TRUE;                                                //用于判断初始化只执行一次的逻辑
-        mPort:BYTE;                                                                //程序中用作设定串口端口号
-        recSize:UINT;                                                        //接收数据长度，单位：字节
-        recBuf:ARRAY[0..120] OF BYTE;                        //用于存放接收到的串口数据的数组
-        iYear: INT;                             //年
-        iMonth: INT;                            //月
-        iDay: INT;                              //日
-        iHour: INT;                             //时
-        iMinute: INT;                           //分
-        iSecond: INT;                           //秒
-    bChecksumValid: BOOL := FALSE;                //校验和
-        nFrameHeadPos: INT := 0;                //帧头索引          
-    nPos        : INT;                      //帧头位置
-    nChecksumRx : BYTE := 0;                //和校验
-        strDateTimeNow : STRING;
-        gnssTimestamp: ULINT;
-        gnssTimestamplast:ULINT;
-        icount:INT;
-END_VAR</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -16663,36 +12614,6 @@ END_IF</xhtml>
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM GPRMC_1_1
-VAR
-        com_init:gcan.FB_Com_Init;                      //gcan.FB_Com_Init为串口初始化功能块，可设定串口端口号，串口波特率等参数
-        com_read:gcan.FB_Com_Read ;                                //gcan.FB_Com_Read为串口接收功能块，用于通过接收串口发送给PLC的数据
-        com_write:gcan.FB_Com_Write ;                        //gcan.FB_Com_Write为串口发送功能块，用于发送串口数据
-        m_uiError:UINT;                                                        //用于承接功能块中报错引脚错误信息的变量
-        m_out:BOOL;                                                                //用于承接功能块中完成标志引脚数据的变量
-        isFirst:BOOL:=TRUE;                                                //用于判断初始化只执行一次的逻辑
-        mPort:BYTE;                                                                //程序中用作设定串口端口号
-        recSize:UINT;                                                        //接收数据长度，单位：字节
-        recBuf:ARRAY[0..120] OF BYTE;                        //用于存放接收到的串口数据的数组
-        iYear: INT;                             //年
-        iMonth: INT;                            //月
-        iDay: INT;                              //日
-        iHour: INT;                             //时
-        iMinute: INT;                           //分
-        iSecond: INT;                           //秒
-    bChecksumValid: BOOL := FALSE;                //校验和
-        nFrameHeadPos: INT := 0;                //帧头索引          
-    nPos        : INT;                      //帧头位置
-    nChecksumRx : BYTE := 0;                //和校验
-        strDateTimeNow : STRING;
-        gnssTimestamp: ULINT;
-        gnssTimestamplast:ULINT;
-        icount:INT;
-END_VAR</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>a8e8fb54-74d1-4d0f-ac1d-638337e67bb7</ObjectId>
                   </data>
@@ -16748,63 +12669,6 @@ END_VAR</xhtml>
                         <BOOL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK SpiralScan
-
-VAR_INPUT
-    enable : BOOL;
-    delta : REAL;
-    delta1 : REAL;
-    n_steps : REAL;
-    agc : REAL;
-    locked : BOOL;
-    AzError : REAL;
-    ELError : REAL;
-    bTrackState : BOOL;
-END_VAR
-
-VAR_OUTPUT
-    azimuth : REAL;
-    elevation : REAL;
-    done : BOOL;
-    bType : BOOL;
-END_VAR
-
-VAR
-    lock_count : INT;
-    best_agc : REAL;
-    best_az : REAL;
-    best_el : REAL;
-    bInit : BOOL;
-    icount0 : INT;
-    icount1 : INT;
-    x : REAL;
-    y : REAL;
-    dx : REAL;
-    dy : REAL;
-    step_len : REAL;
-    step_count : REAL;
-    segment_progress : REAL;
-    move_count : REAL;
-    state : INT;
-    az0 : REAL;
-    el0 : REAL;
-    az1 : REAL;
-    el1 : REAL;
-    segment_az_step : REAL;
-    segment_el_step : REAL;
-    side_repeat : REAL;
-    icountInit : INT;
-    iSearchMax : INT;
-    iCountSearch : INT;
-    rTemp : REAL;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inputVars>
                   <outputVars>
                     <variable name="azimuth">
@@ -16827,63 +12691,6 @@ END_VAR
                         <BOOL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK SpiralScan
-
-VAR_INPUT
-    enable : BOOL;
-    delta : REAL;
-    delta1 : REAL;
-    n_steps : REAL;
-    agc : REAL;
-    locked : BOOL;
-    AzError : REAL;
-    ELError : REAL;
-    bTrackState : BOOL;
-END_VAR
-
-VAR_OUTPUT
-    azimuth : REAL;
-    elevation : REAL;
-    done : BOOL;
-    bType : BOOL;
-END_VAR
-
-VAR
-    lock_count : INT;
-    best_agc : REAL;
-    best_az : REAL;
-    best_el : REAL;
-    bInit : BOOL;
-    icount0 : INT;
-    icount1 : INT;
-    x : REAL;
-    y : REAL;
-    dx : REAL;
-    dy : REAL;
-    step_len : REAL;
-    step_count : REAL;
-    segment_progress : REAL;
-    move_count : REAL;
-    state : INT;
-    az0 : REAL;
-    el0 : REAL;
-    az1 : REAL;
-    el1 : REAL;
-    segment_az_step : REAL;
-    segment_el_step : REAL;
-    side_repeat : REAL;
-    icountInit : INT;
-    iSearchMax : INT;
-    iCountSearch : INT;
-    rTemp : REAL;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </outputVars>
                   <localVars>
                     <variable name="lock_count">
@@ -17021,63 +12828,6 @@ END_VAR
                         <REAL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK SpiralScan
-
-VAR_INPUT
-    enable : BOOL;
-    delta : REAL;
-    delta1 : REAL;
-    n_steps : REAL;
-    agc : REAL;
-    locked : BOOL;
-    AzError : REAL;
-    ELError : REAL;
-    bTrackState : BOOL;
-END_VAR
-
-VAR_OUTPUT
-    azimuth : REAL;
-    elevation : REAL;
-    done : BOOL;
-    bType : BOOL;
-END_VAR
-
-VAR
-    lock_count : INT;
-    best_agc : REAL;
-    best_az : REAL;
-    best_el : REAL;
-    bInit : BOOL;
-    icount0 : INT;
-    icount1 : INT;
-    x : REAL;
-    y : REAL;
-    dx : REAL;
-    dy : REAL;
-    step_len : REAL;
-    step_count : REAL;
-    segment_progress : REAL;
-    move_count : REAL;
-    state : INT;
-    az0 : REAL;
-    el0 : REAL;
-    az1 : REAL;
-    el1 : REAL;
-    segment_az_step : REAL;
-    segment_el_step : REAL;
-    side_repeat : REAL;
-    icountInit : INT;
-    iSearchMax : INT;
-    iCountSearch : INT;
-    rTemp : REAL;
-END_VAR
-</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -17190,61 +12940,6 @@ END_IF;
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK SpiralScan
-
-VAR_INPUT
-    enable : BOOL;
-    delta : REAL;
-    delta1 : REAL;
-    n_steps : REAL;
-    agc : REAL;
-    locked : BOOL;
-    AzError : REAL;
-    ELError : REAL;
-    bTrackState : BOOL;
-END_VAR
-
-VAR_OUTPUT
-    azimuth : REAL;
-    elevation : REAL;
-    done : BOOL;
-    bType : BOOL;
-END_VAR
-
-VAR
-    lock_count : INT;
-    best_agc : REAL;
-    best_az : REAL;
-    best_el : REAL;
-    bInit : BOOL;
-    icount0 : INT;
-    icount1 : INT;
-    x : REAL;
-    y : REAL;
-    dx : REAL;
-    dy : REAL;
-    step_len : REAL;
-    step_count : REAL;
-    segment_progress : REAL;
-    move_count : REAL;
-    state : INT;
-    az0 : REAL;
-    el0 : REAL;
-    az1 : REAL;
-    el1 : REAL;
-    segment_az_step : REAL;
-    segment_el_step : REAL;
-    side_repeat : REAL;
-    icountInit : INT;
-    iSearchMax : INT;
-    iCountSearch : INT;
-    rTemp : REAL;
-END_VAR
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>6fc58782-b739-42b8-933a-169e9b52e654</ObjectId>
                   </data>
@@ -17290,57 +12985,6 @@ END_VAR
                         <REAL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK SpiralScan_1
-
-VAR_INPUT
-    enable : BOOL;
-    delta : REAL;
-    n_steps : REAL;
-    agc : REAL;
-    locked : BOOL;
-    AzError : REAL;
-    ELError : REAL;
-END_VAR
-
-VAR_OUTPUT
-    azimuth : REAL;
-    elevation : REAL;
-    done : BOOL;
-    bType : BOOL;
-END_VAR
-
-VAR
-    lock_count : INT;
-    best_agc : REAL;
-    best_az : REAL;
-    best_el : REAL;
-    bInit : BOOL;
-    icount0 : INT;
-    icount1 : INT;
-    x : REAL;
-    y : REAL;
-    dx : REAL;
-    dy : REAL;
-    step_len : REAL;
-    step_count : REAL;
-    segment_progress : REAL;
-    move_count : REAL;
-    state : INT;
-    az0 : REAL;
-    el0 : REAL;
-    az1 : REAL;
-    el1 : REAL;
-    segment_az_step : REAL;
-    segment_el_step : REAL;
-    side_repeat : REAL;
-    icountInit : INT;
-END_VAR</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </inputVars>
                   <outputVars>
                     <variable name="azimuth">
@@ -17363,57 +13007,6 @@ END_VAR</xhtml>
                         <BOOL />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK SpiralScan_1
-
-VAR_INPUT
-    enable : BOOL;
-    delta : REAL;
-    n_steps : REAL;
-    agc : REAL;
-    locked : BOOL;
-    AzError : REAL;
-    ELError : REAL;
-END_VAR
-
-VAR_OUTPUT
-    azimuth : REAL;
-    elevation : REAL;
-    done : BOOL;
-    bType : BOOL;
-END_VAR
-
-VAR
-    lock_count : INT;
-    best_agc : REAL;
-    best_az : REAL;
-    best_el : REAL;
-    bInit : BOOL;
-    icount0 : INT;
-    icount1 : INT;
-    x : REAL;
-    y : REAL;
-    dx : REAL;
-    dy : REAL;
-    step_len : REAL;
-    step_count : REAL;
-    segment_progress : REAL;
-    move_count : REAL;
-    state : INT;
-    az0 : REAL;
-    el0 : REAL;
-    az1 : REAL;
-    el1 : REAL;
-    segment_az_step : REAL;
-    segment_el_step : REAL;
-    side_repeat : REAL;
-    icountInit : INT;
-END_VAR</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </outputVars>
                   <localVars>
                     <variable name="lock_count">
@@ -17536,57 +13129,6 @@ END_VAR</xhtml>
                         <INT />
                       </type>
                     </variable>
-                    <addData>
-                      <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                        <InterfaceAsPlainText>
-                          <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK SpiralScan_1
-
-VAR_INPUT
-    enable : BOOL;
-    delta : REAL;
-    n_steps : REAL;
-    agc : REAL;
-    locked : BOOL;
-    AzError : REAL;
-    ELError : REAL;
-END_VAR
-
-VAR_OUTPUT
-    azimuth : REAL;
-    elevation : REAL;
-    done : BOOL;
-    bType : BOOL;
-END_VAR
-
-VAR
-    lock_count : INT;
-    best_agc : REAL;
-    best_az : REAL;
-    best_el : REAL;
-    bInit : BOOL;
-    icount0 : INT;
-    icount1 : INT;
-    x : REAL;
-    y : REAL;
-    dx : REAL;
-    dy : REAL;
-    step_len : REAL;
-    step_count : REAL;
-    segment_progress : REAL;
-    move_count : REAL;
-    state : INT;
-    az0 : REAL;
-    el0 : REAL;
-    az1 : REAL;
-    el1 : REAL;
-    segment_az_step : REAL;
-    segment_el_step : REAL;
-    side_repeat : REAL;
-    icountInit : INT;
-END_VAR</xhtml>
-                        </InterfaceAsPlainText>
-                      </data>
-                    </addData>
                   </localVars>
                 </interface>
                 <body>
@@ -17700,55 +13242,6 @@ END_IF;
                   </ST>
                 </body>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">FUNCTION_BLOCK SpiralScan_1
-
-VAR_INPUT
-    enable : BOOL;
-    delta : REAL;
-    n_steps : REAL;
-    agc : REAL;
-    locked : BOOL;
-    AzError : REAL;
-    ELError : REAL;
-END_VAR
-
-VAR_OUTPUT
-    azimuth : REAL;
-    elevation : REAL;
-    done : BOOL;
-    bType : BOOL;
-END_VAR
-
-VAR
-    lock_count : INT;
-    best_agc : REAL;
-    best_az : REAL;
-    best_el : REAL;
-    bInit : BOOL;
-    icount0 : INT;
-    icount1 : INT;
-    x : REAL;
-    y : REAL;
-    dx : REAL;
-    dy : REAL;
-    step_len : REAL;
-    step_count : REAL;
-    segment_progress : REAL;
-    move_count : REAL;
-    state : INT;
-    az0 : REAL;
-    el0 : REAL;
-    az1 : REAL;
-    el1 : REAL;
-    segment_az_step : REAL;
-    segment_el_step : REAL;
-    side_repeat : REAL;
-    icountInit : INT;
-END_VAR</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>c7031715-f3ba-44a8-b5e5-5f20bbd550de</ObjectId>
                   </data>
@@ -17786,20 +13279,6 @@ END_VAR</xhtml>
                   </type>
                 </variable>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">TYPE Word2Bit :
-UNION
-	Apart_Word:WORD;
-	Apart_Byte:ARRAY[1..2]OF BYTE;
-	//Apart_Bit:ARRAY[1..32]OF BIT;
-	Apart_Real:REAL;
-	Apart_Int:INT;
-END_UNION
-END_TYPE
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>fb167d7f-ecdb-4734-91ae-00e252401442</ObjectId>
                   </data>
@@ -17847,21 +13326,6 @@ END_TYPE
                   </type>
                 </variable>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">TYPE Dword2Bit :
-UNION
-	Apart_Dword:DWORD;
-	Apart_Word:ARRAY[1..2] OF WORD ;
-	Apart_Byte:ARRAY[1..4]OF BYTE;
-	//Apart_Bit:ARRAY[1..32]OF BIT;
-	Apart_Real:REAL;
-	Apart_Int:INT;
-END_UNION
-END_TYPE
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>fa475412-910c-4306-908f-1bc1752d295c</ObjectId>
                   </data>
@@ -17929,21 +13393,6 @@ END_TYPE
                   </type>
                 </variable>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">TYPE float2bit :
-UNION
-        Apart_ulint:ULINT;
-        Apart_dword:ARRAY[1..2]OF DWORD;
-        Apart_word:ARRAY[1..4]OF WORD;
-        Apart_byte:ARRAY[1..8]OF BYTE;
-       // Apart_bit:ARRAY[1..64]OF Util.BIT_AS_DWORD;
-        Apart_real:ARRAY[1..2]OF REAL;
-        Apart_int:ARRAY[1..4]OF INT;
-END_UNION
-END_TYPE</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>fb1975a4-30ce-4fc5-8a4a-17f31b1eac5f</ObjectId>
                   </data>
@@ -17968,17 +13417,6 @@ END_TYPE</xhtml>
                   </type>
                 </variable>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">TYPE UnionLREAL_WORD :
-UNION
-	lrealValue : LREAL;
-    words : ARRAY[1..4] OF WORD;
-END_UNION
-END_TYPE
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>031d41aa-c5aa-40e3-9821-1274f25a7983</ObjectId>
                   </data>
@@ -18018,19 +13456,6 @@ END_TYPE
                   </type>
                 </variable>
                 <addData>
-                  <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
-                    <InterfaceAsPlainText>
-                      <xhtml xmlns="http://www.w3.org/1999/xhtml">TYPE Time2Word : // ULINT转Word类型转换联合体
-UNION
-	uliData:ULINT;
-	wWords:ARRAY [1..4] OF WORD;
-	lrReal:LREAL;
-	arReal:ARRAY [0..1] OF REAL;
-END_UNION
-END_TYPE
-</xhtml>
-                    </InterfaceAsPlainText>
-                  </data>
                   <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
                     <ObjectId>88e7e191-4b86-4d8b-a147-f465a151161e</ObjectId>
                   </data>

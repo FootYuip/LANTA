@@ -11,9 +11,9 @@ VAR
     iState : INT;
     rAzSum : LREAL;
     rElSum : LREAL;
-    rDirSenFac : REAL;
+    rDirSenFac : REAL := 12;
     rCurentEl : LREAL;
-    rk : LREAL;
+    rk : LREAL := 1/15.0;
     rChanUaLocal : REAL;
     rChanUeLocal : REAL;
 END_VAR

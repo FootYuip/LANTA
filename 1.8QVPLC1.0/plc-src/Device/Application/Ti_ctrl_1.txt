@@ -14,20 +14,20 @@ VAR
     Stop3_Count : INT;
     bStop_3 : BOOL;
     rPosModeStepBias : LREAL;
-    rPosModeStep : LREAL;
-    rStepBiasMax : LREAL;
+    rPosModeStep : LREAL := 0.005;
+    rStepBiasMax : LREAL := 2;
     rStepBias : LREAL;
-    rStep : LREAL;
+    rStep : LREAL := 0.004;
     rAuToStepBias : LREAL;
-    rAutoStep : LREAL;
+    rAutoStep : LREAL := 0.01;
     TbAutoTrigger : Standard.F_TRIG;
     RbAutoTrigger : Standard.R_TRIG;
-    rAutoTrackingBiasMax : LREAL;
+    rAutoTrackingBiasMax : LREAL := 300;
     rLocalInitPosModeSpeed : REAL;
     rRemoteInitPosModeSpeed : REAL;
     iCountOffAuto : INT;
-    iCasePBAutoTrack : INT;
-    rKAuToStepBias : LREAL;
+    iCasePBAutoTrack : INT := 2;
+    rKAuToStepBias : LREAL := 0.16;
     bVisError : BOOL;
 END_VAR
 

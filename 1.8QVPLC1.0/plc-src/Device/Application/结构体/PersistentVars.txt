@@ -5,27 +5,27 @@
 # objectId=fb1321bc-080e-49dc-9b7c-a517f16632af
 
 VAR_GLOBAL
-    TiOffset : REAL;
-    ElOffset : REAL;
-    rAzKpBase : REAL;
-    rAzKiBase : REAL;
-    rAzKpscale : REAL;
-    rAzKiscale : REAL;
-    rElKpBase : REAL;
-    rElKiBase : REAL;
-    rElKpscale : REAL;
-    rElKiscale : REAL;
-    rAzKpMax : REAL;
-    rAzKiMax : REAL;
-    rElKpMax : REAL;
-    rElKiMax : REAL;
-    rAzThre : REAL;
-    rElThre : REAL;
-    bTrackingMode : BOOL;
-    bSearchType : BOOL;
-    rErrorThre : REAL;
-    rStartThre : REAL;
-    rAzScanRange : REAL;
-    rElScanRange : REAL;
-    rStep : REAL;
+    TiOffset : REAL := 0;
+    ElOffset : REAL := 0;
+    rAzKpBase : REAL := 0.9;
+    rAzKiBase : REAL := 0.009;
+    rAzKpscale : REAL := 0.02;
+    rAzKiscale : REAL := 0.002;
+    rElKpBase : REAL := 1;
+    rElKiBase : REAL := 0.01;
+    rElKpscale : REAL := 0.01;
+    rElKiscale : REAL := 0.001;
+    rAzKpMax : REAL := 2.5;
+    rAzKiMax : REAL := 0.03;
+    rElKpMax : REAL := 1.5;
+    rElKiMax : REAL := 0.03;
+    rAzThre : REAL := 80.0;
+    rElThre : REAL := 80.0;
+    bTrackingMode : BOOL := FALSE; // 0 ACU转自跟踪；1 自己转
+    bSearchType : BOOL := FALSE; // 0 直线扫；1 螺旋扫
+    rErrorThre : REAL := 6.0;
+    rStartThre : REAL := 0.5;
+    rAzScanRange : REAL := 0.3;
+    rElScanRange : REAL := 0;
+    rStep : REAL := 0.0015;
 END_VAR

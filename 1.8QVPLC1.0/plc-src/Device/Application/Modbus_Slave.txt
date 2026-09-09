@@ -573,8 +573,7 @@ ELSE
 			  B14:=GVL.Chan1Online,
 			  B13:=GVL.Chan2Lock,
 			  B12:=GVL.Chan2Online,
-			  //B11:=GVL.bStartTrack,
-			  B11:=Read_485.bEBN0Lock,
+			  B11:=GVL.bStartTrack, // 实际上报自跟踪状态，不用 Eb/N0 锁定冒充
 			  B10:=0,
 			  B09:=0,
 			  B08:=0,

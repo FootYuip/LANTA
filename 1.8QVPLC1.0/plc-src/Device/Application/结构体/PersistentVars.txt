@@ -23,10 +23,10 @@ VAR_GLOBAL
     rElThre : REAL := 80.0;
     bTrackingMode : BOOL := FALSE; // 0 ACU转自跟踪；1 自己转
     bSearchType : BOOL := FALSE; // 0 直线扫；1 螺旋扫
-    rErrorThre : REAL := 6.0;
+    rErrorThre : REAL := 3.0; // 扫描找到中心：√(Ua²+Ue²) 门限(V)，可视化可下发
     rStartThre : REAL := 0.5;
     rAzScanRange : REAL := 1.0;
     rElScanRange : REAL := 1.0;
     rStep : REAL := 0.0015;
-    rEbN0LockThre : REAL := 28.0; // 扫描合格/提前结束：Eb/N0 门限
+    rEbN0LockThre : REAL := 20.0; // 扫描找到中心：Eb/N0 门限，可视化可下发
 END_VAR

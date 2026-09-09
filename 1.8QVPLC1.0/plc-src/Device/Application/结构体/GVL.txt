@@ -128,23 +128,24 @@ VAR_GLOBAL
     Ti : REAL;
     El : REAL;
     bTimeSwich : BOOL;
-    rvAzKpBase : REAL;
-    rvAzKiBase : REAL;
-    rvAzKpscale : REAL;
-    rvAzKiscale : REAL;
-    rvElKpBase : REAL;
-    rvElKiBase : REAL;
-    rvElKpscale : REAL;
-    rvElKiscale : REAL;
-    rvAzKpMax : REAL;
-    rvAzKiMax : REAL;
-    rvElKpMax : REAL;
-    rvElKiMax : REAL;
-    rvAzThre : REAL;
-    rvElThre : REAL;
-    bTrackingModeTemp : BOOL;
-    rAzScanRangeTemp : REAL;
-    rElScanRangeTemp : REAL;
-    rErrorTherTemp : REAL;
-    rStepTemp : REAL;
+    rvAzKpBase : REAL := 1;
+    rvAzKiBase : REAL := 0.01;
+    rvAzKpscale : REAL := 0.01;
+    rvAzKiscale : REAL := 0.01;
+    rvElKpBase : REAL := 1;
+    rvElKiBase : REAL := 0.01;
+    rvElKpscale : REAL := 0.01;
+    rvElKiscale : REAL := 0.01;
+    rvAzKpMax : REAL := 1;
+    rvAzKiMax : REAL := 0.01;
+    rvElKpMax : REAL := 1;
+    rvElKiMax : REAL := 0.01;
+    rvAzThre : REAL := 10.0;
+    rvElThre : REAL := 10.0;
+    bTrackingModeTemp : BOOL := FALSE; // 0 ACU转自跟踪；1 自己转
+    rAzScanRangeTemp : REAL := 0.3;
+    rElScanRangeTemp : REAL := 0;
+    rErrorTherTemp : REAL := 3.0;
+    rStepTemp : REAL := 0.0015;
+    rEbN0LockThreEdit : REAL := 20.0; // 可视化编辑，写入 PersistentVars.rEbN0LockThre
 END_VAR

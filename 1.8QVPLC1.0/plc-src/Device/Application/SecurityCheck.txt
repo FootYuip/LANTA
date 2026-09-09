@@ -207,11 +207,11 @@ ELSE
 END_IF
 
 // =============================================================================
-// 段 9: 扫描合格点 — Eb/N0>rEbN0LockThre 且基带锁定（recBuf[1]）
+// 段 9: 扫描找到中心 — 基带锁 且 Eb/N0>rEbN0LockThre 且 √(Ua²+Ue²)<=rErrorThre
 // =============================================================================
 bBaseLock := (READ_485.recBuf[1] = 1);
-bLockSearch := (READ_485.Chan1EB_N0 > PersistentVars.rEbN0LockThre) AND bBaseLock;
 bErrorLock  := (SQRT(GVL.Chan1Ua * GVL.Chan1Ua + GVL.Chan1Ue * GVL.Chan1Ue) <= PersistentVars.rErrorThre);
+bLockSearch := (READ_485.Chan1EB_N0 > PersistentVars.rEbN0LockThre) AND bBaseLock AND bErrorLock;
 
 // =============================================================================
 // 段 10: 启扫 — 双轴程引、未自跟踪、基带锁连续 2s（200×10ms）触发一次
@@ -252,7 +252,7 @@ IF rStep < 1.0E-6 THEN
 END_IF
 
 // =============================================================================
-// 段 11: 调用扫描 FB — 直线或螺旋；合格点 locked=Eb/N0>rEbN0LockThre 且基带锁
+// 段 11: 调用扫描 FB — 直线或螺旋；locked=找到中心，连续10拍（约100ms）锁存
 // =============================================================================
 IF NOT PersistentVars.bSearchType THEN
 	fbScan(

@@ -1,0 +1,7 @@
+﻿source=D:\工作\项目\蓝塔光传2.4米测控信关站\LANTA-main\LANTA\EbN0扫描捕获_1度波束扫描及误差电压EbN0双门限 - 副本.project
+Traceback (most recent call last):
+  File "D:\工作\项目\蓝塔光传2.4米测控信关站\LANTA-main\LANTA\1.8QVPLC1.0\phase-calibration\apply_in_codesys.py", line 194, in <module>
+    main()
+  File "D:\工作\项目\蓝塔光传2.4米测控信关站\LANTA-main\LANTA\1.8QVPLC1.0\phase-calibration\apply_in_codesys.py", line 100, in main
+    raise RuntimeError(u'Wrong source project. Expected: ' + EXPECTED)
+RuntimeError: Wrong source project. Expected: EbN0扫描捕获_1度波束扫描及自跟踪优化 - 副本.project

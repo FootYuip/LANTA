@@ -1,0 +1,253 @@
+# kind=program
+# name=El_ctrl_1
+# objectId=606036f3-9e29-4a9f-a89f-c2eaefee70cf
+
+VAR
+    Axis1_Ctrl : El_Ctrl_FB;
+    bRemote2LocalStop : BOOL;
+    bLocal2RemoteStop : BOOL;
+    Error : INT;
+    Axis1Limit_pos : REAL;
+    Axis1Limit_Neg : REAL;
+    bRTriger : Standard.R_TRIG;
+    bFTriger : Standard.F_TRIG;
+    Stop1_Count : INT;
+    bStop_1 : BOOL;
+    rPosModeStepBias : LREAL;
+    rPosModeStep : LREAL;
+    rStepBiasMax : LREAL;
+    rStepBias : LREAL;
+    rStep : LREAL;
+    rAuToStepBias : LREAL;
+    rAuToStepBiasTemp : LREAL;
+    rAutoStep : LREAL;
+    TbAutoTrigger : Standard.F_TRIG;
+    RbAutoTrigger : Standard.R_TRIG;
+    rAutoTrackingBiasMax : LREAL;
+    rLocalInitPosModeSpeed : REAL;
+    rRemoteInitPosModeSpeed : REAL;
+    iCountOffAuto : INT;
+    iCasePBAutoTrack : INT;
+    rKAuToStepBias : LREAL;
+    agcmaxsearch_tb : AGCMaxSearch_PB_1;
+    rSearchNextStepTarget_tb : REAL;
+    agcmaxsearch_pb : AGCMaxSearch_PB_1;
+    rElthreshold : REAL;
+    toN1 : Standard.Ton;
+    ttime1 : TIME;
+    bstartagcmaxsearch : BOOL;
+    rSearchNextStepTarget : REAL;
+    rMaxPosTest : REAL;
+END_VAR
+
+// --- implementation (ST) ---
+(*
+//远控轴参量赋值
+Axis1Remote.iMode:=Modbus_Slave.iMode_1;
+Axis1Remote.rVelCmd:=Modbus_Slave.rVelcmd_1;
+Axis1Remote.rPosCmd:=Modbus_Slave.rPosCmd_1;
+Axis1Remote.rP:=Modbus_Slave.rP_1;
+Axis1Remote.rI:=Modbus_Slave.rI_1;
+Axis1Remote.rD:=Modbus_Slave.rD_1;
+Axis1Remote.rPIDThre:=Modbus_Slave.rThreshold_1;
+Axis1Remote.rAcceleration:=Modbus_Slave.rAcceleration_1;
+Axis1Remote.rDeceleration:=Modbus_Slave.rDeceleration_1;
+Axis1Remote.rVel_Limit:=Modbus_Slave.rVelLim_1;
+*)
+// 方位状态写入
+Axis1Status.Error := GVL.bElStsBit3;
+Axis1Status.ErrorID := GVL.eElErrorcode;
+Axis1Status.bServo_Enable := GVL.bElStsBit0 AND GVL.bElStsBit1 AND GVL.bElStsBit2;
+Axis1Status.bBrake := NOT (GVL.bElStsBit0 AND GVL.bElStsBit1 AND GVL.bElStsBit2);
+Axis1Status.Disabled := NOT (GVL.bElStsBit0 AND GVL.bElStsBit1 AND GVL.bElStsBit2);
+Axis1Remote.rSoft_limit_Negative:=93;Axis1Remote.rSoft_limit_Postive:=180;
+Axis1Local.rSoft_limit_Negative:=93;Axis1Local.rSoft_limit_Postive:=180;
+
+//速度的写入
+rFctVelReal_1:=DINT_TO_REAL(diElActVel)/524288.0*360.0;
+//位置的写入，方位0对应编码器0，所以实际方位是：-1*编码器值
+//rFctPosReal_1:=DINT_TO_REAL(diElActPos)/524288.0*360.0 + 5.339;
+rFctPosReal_1:=DINT_TO_REAL(diElActPos)/524288.0*360.0 + modbus_slave.lrElOffset;
+//软限位控制
+Axis1Limit_pos:=180;
+Axis1Limit_Neg:=93;
+IF Axis1Remote.rPosCmd>Axis1Limit_pos THEN
+	Axis1Remote.rPosCmd:=180;
+ELSIF Axis1Remote.rPosCmd<Axis1Limit_Neg THEN
+	 Axis1Remote.rPosCmd:=93;  
+END_IF
+
+IF Axis1Local.rPosCmd>Axis1Limit_pos THEN
+	Axis1Local.rPosCmd:=180;
+ELSIF Axis1Local.rPosCmd<Axis1Limit_Neg THEN
+	 Axis1Local.rPosCmd:=93;  
+END_IF
+
+//停止标志符号判断
+IF  ABS(rFctVelReal_1)<0.035 THEN
+	Stop1_Count:=Stop1_Count+1;
+	IF Stop1_Count>100 THEN
+		Stop1_Count:=101;
+		bStop_1:=TRUE;;
+	END_IF
+ELSE
+	Stop1_Count:=0;
+	bStop_1:=FALSE;
+END_IF
+Axis1Status.Moving := NOT bStop_1;
+//PID使能赋值
+IF Axis1Remote.iMode=2 OR Axis1Remote.iMode=4 THEN
+	Axis1Remote.bPIDEnable:=TRUE;
+ELSE
+	Axis1Remote.bPIDEnable:=FALSE;
+END_IF
+
+//本远控逻辑保护
+//远控切本控逻辑保护
+bRTriger(CLK:=GVL.bLocalCtrl);
+bFTriger(CLK:=GVL.bLocalCtrl);
+
+IF Axis1Status.bServo_Enable AND (bRTriger.Q ) THEN//如果速度不为0且本控发生切换，则减速停止标识为True
+	bRemote2LocalStop:=TRUE;
+END_IF
+IF bRemote2LocalStop  THEN //若减速停止标识符为True 
+	
+	IF  bStop_1=TRUE THEN//且电机速度不为0 开始减速 减速完成后下使能，下使能完成后复位标识符复位
+		Axis1Local.iMode:=0;
+		Axis1Remote.iMode:=0;
+		IF Axis1Status.bServo_Enable=FALSE THEN
+			bRemote2LocalStop:=FALSE;
+		END_IF
+	ELSE
+		Axis1Local.iMode:=7;
+		Axis1Remote.iMode:=7;
+	END_IF
+END_IF
+
+//本控切远控
+IF Axis1Status.bServo_Enable AND (bFTriger.Q ) THEN//如果速度不为0且本控发生切换，则减速停止标识为True
+	bLocal2RemoteStop:=TRUE;
+END_IF
+IF bLocal2RemoteStop  THEN //若减速停止标识符为True 
+	
+	IF  bStop_1=TRUE THEN//且电机速度不为0 开始减速 减速完成后下使能，下使能完成后复位标识符复位
+		Axis1Local.iMode:=0;
+		Axis1Remote.iMode:=0;
+		IF Axis1Status.bServo_Enable=FALSE THEN
+			bLocal2RemoteStop:=FALSE;
+		END_IF
+	ELSE
+		Axis1Remote.iMode:=7;
+		Axis1Local.iMode:=7;
+	END_IF
+END_IF
+(*
+//自跟踪
+IF GVL.bStartTrack THEN
+	Axis1Remote.bStartAutoTrack := TRUE;
+	Axis1Remote.rChanU := AutoTrackingCal.rChanUe;
+ELSE
+	Axis1Remote.bStartAutoTrack := FALSE;	
+	Axis1Remote.rChanU := 0;
+END_IF
+*)
+IF Axis1Remote.iMode=2 THEN
+			IF GVL.Chan1AGC>=(GVL.Chanthreshold-0.1) THEN
+					agcmaxsearch_pb(bstart:=Az_ctrl_1.agcmaxsearch_tb.bSucess,rAGCNow:=GVL.Chan1AGC,btrig:=Az_ctrl_1.bstartSearchEl,
+						rCurrentPos:=rFctPosReal_1,rInterPos:=Axis1Remote.rPosCmd,
+				//rOutStepBias:=rStepBias,	
+				rStepBiasNow:=rStepBias,bAutoTracking:=GVL.bStartTrack,bStop:=FALSE,
+				rStepBias=>rSearchNextStepTarget_tb,rAGCMaxBias=>rMaxPosTest,bSucess=>);
+			ELSE
+				bstartagcmaxsearch:=FALSE;
+				agcmaxsearch_pb(bstart:=Az_ctrl_1.agcmaxsearch_tb.bSucess,rAGCNow:=GVL.Chan1AGC,btrig:=Az_ctrl_1.bstartSearchEl,
+				rCurrentPos:=rFctPosReal_1,rInterPos:=Axis1Remote.rPosCmd,
+				//rOutStepBias:=rStepBias,
+				rStepBiasNow:=rStepBias,bAutoTracking:=GVL.bStartTrack,bStop:=FALSE,
+				rStepBias=>rSearchNextStepTarget_tb,rAGCMaxBias=>rMaxPosTest,bSucess=>);
+			END_IF
+		ELSIF Axis1Remote.iMode=4 AND rFctPosReal_1-90>rElthreshold  THEN
+			IF GVL.Chan1AGC>=(GVL.Chanthreshold-0.1) THEN
+					agcmaxsearch_pb(bstart:=Az_ctrl_1.agcmaxsearch_pb.bSucess,rAGCNow:=GVL.Chan1AGC,btrig:=Az_ctrl_1.bstartSearchEl,
+						rCurrentPos:=rFctPosReal_1,rInterPos:=RealTimePosCal.rInterElPos,
+				//rOutStepBias:=rStepBias,	
+				rStepBiasNow:=rStepBias,bAutoTracking:=GVL.bStartTrack,bStop:=FALSE,
+				rStepBias=>rSearchNextStepTarget,rAGCMaxBias=>rMaxPosTest,bSucess=>);
+			ELSE
+				bstartagcmaxsearch:=FALSE;
+				agcmaxsearch_pb(bstart:=Az_ctrl_1.agcmaxsearch_pb.bSucess,rAGCNow:=GVL.Chan1AGC,btrig:=Az_ctrl_1.bstartSearchEl,
+				rCurrentPos:=rFctPosReal_1,rInterPos:=RealTimePosCal.rInterElPos,
+				//rOutStepBias:=rStepBias,
+				rStepBiasNow:=rStepBias,bAutoTracking:=GVL.bStartTrack,bStop:=FALSE,
+				rStepBias=>rSearchNextStepTarget,rAGCMaxBias=>rMaxPosTest,bSucess=>);
+			END_IF
+			//把rSearchNextStepTarget附加到AzCtrl.rPIDCmdPos上
+		ELSIF Axis1Remote.iMode =0  OR Axis1Remote.iMode =7 THEN
+			bstartagcmaxsearch:=FALSE;
+			//rSearchNextStepTarget:=0;
+			agcmaxsearch_pb(bstart:=Az_ctrl_1.agcmaxsearch_pb.bSucess,rAGCNow:=GVL.Chan1AGC,btrig:=Az_ctrl_1.bstartSearchEl,
+			rCurrentPos:=rFctPosReal_1,rInterPos:=RealTimePosCal.rInterElPos,	
+			//rOutStepBias:=rStepBias,
+			rStepBiasNow:=rStepBias,bAutoTracking:=GVL.bStartTrack,bStop:=FALSE,
+			rStepBias=>rSearchNextStepTarget,rAGCMaxBias=>rMaxPosTest,bSucess=>);
+		END_IF
+// 程引模式下自跟踪拉偏
+IF GVL.bStartTrack AND Axis1Remote.iMode=4 THEN
+	Axis1Remote.bStartAutoTrack := TRUE;
+	IF rAuToStepBias > rAutoTrackingBiasMax THEN
+		rAuToStepBias := rAutoTrackingBiasMax;
+	ELSIF rAuToStepBias < -rAutoTrackingBiasMax THEN
+		rAuToStepBias := -rAutoTrackingBiasMax;
+	ELSE
+		rAuToStepBiasTemp:=0.02*AutoTrackingCal.rDirSenFac*AutoTrackingCal.rChanUe;
+		rAuToStepBias:=rAuToStepBias+AutoTrackingCal.rDirSenFac*rKAuToStepBias*AutoTrackingCal.rChanUe/1000.0;
+	END_IF
+ELSIF NOT GVL.bStartTrack AND Axis1Remote.iMode=4 THEN
+	IF 	rAuToStepBias>0 THEN//关闭自跟踪后自跟踪拉偏量逐渐归0
+		rAuToStepBias:=rAuToStepBias-rAutoStep;
+	ELSIF rAuToStepBias<0 THEN
+		rAuToStepBias:=rAuToStepBias+rAutoStep;
+	ELSE
+		rAuToStepBias:=0;
+	END_IF
+	
+	IF Modbus_Slave.rBias_1>rStepBias THEN
+		rStepBias:=rStepBias+rStep;
+		IF rStepBias>=Modbus_Slave.rBias_1 THEN
+			rStepBias:=Modbus_Slave.rBias_1;
+		END_IF
+	ELSIF Modbus_Slave.rBias_1<rStepBias THEN
+		rStepBias:=rStepBias-rStep;
+		IF rStepBias<=Modbus_Slave.rBias_1 THEN
+			rStepBias:=Modbus_Slave.rBias_1;
+		END_IF
+	END_IF
+	rAuToStepBiasTemp:=0;
+ELSIF GVL.bStartTrack AND Axis1Remote.iMode=2 THEN
+	Axis1Remote.bStartAutoTrack := TRUE;
+	Axis1Remote.rChanU := AutoTrackingCal.rChanUe;
+ELSE
+	Axis1Remote.bStartAutoTrack := FALSE;	
+	rAuToStepBias:=0;
+	rStepBias:=0;
+	rAuToStepBiasTemp:=0;
+END_IF
+
+//本控自跟踪
+IF GVL.bStartLocalAutoTrack AND Axis1Local.iMode = 4 THEN
+	Axis1Local.bStartAutoTrack := TRUE;
+	Axis1Local.rChanU := AutoTrackingCal.rChanUeLocal;
+ELSE
+	Axis1Local.bStartAutoTrack := FALSE;
+END_IF
+
+//拉偏
+Axis1Remote.rPIDCmdPos:=RealTimePosCal.rInterElPos+rStepBias+rAuToStepBias+rSearchNextStepTarget+SECURITYCHECK.el_out+rAuToStepBiasTemp;
+//限位
+IF Axis1Remote.rPIDCmdPos<93 THEN
+	Axis1Remote.rPIDCmdPos:=93;
+ELSIF Axis1Remote.rPIDCmdPos>180 THEN
+	Axis1Remote.rPIDCmdPos:=180;
+END_IF
+
+Axis1_Ctrl(sLocal:=Axis1Local, sCtrl:=Axis1Remote, sStatus:=Axis1Status, sVisible:=Axis1Visible, rRealPos:=rFctPosReal_1, rPosLimK:=0.34);

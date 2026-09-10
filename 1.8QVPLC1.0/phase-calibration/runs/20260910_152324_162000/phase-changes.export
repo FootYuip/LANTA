@@ -1,0 +1,1182 @@
+<ExportFile>
+  <StructuredView Guid="{d9b2b2cc-ea99-4c3b-aa42-1e5c49e65b84}">
+<Single xml:space="preserve" Type="{3daac5e4-660e-42e4-9cea-3711b98bfb63}" Method="IArchivable">
+  <Null Name="Profile" />
+  <List2 Name="EntryList">
+    <Single Type="{6198ad31-4b98-445c-927f-3258a0e82fe3}" Method="IArchivable">
+      <Single Name="IsRoot" Type="bool">True</Single>
+      <Single Name="MetaObject" Type="{81297157-7ec9-45ce-845e-84cab2b88ade}" Method="IArchivable">
+        <Single Name="Guid" Type="System.Guid">bf0b9152-755b-4529-9d6a-65e584178361</Single>
+        <Single Name="ParentGuid" Type="System.Guid">49085721-e2f3-443d-be92-6caf07f84b13</Single>
+        <Single Name="Name" Type="string">READ_485</Single>
+        <Dictionary Type="{2c41fa04-1834-41c1-816e-303c7aa2c05b}" Name="Properties" />
+        <Single Name="TypeGuid" Type="System.Guid">6f9dac99-8de1-4efc-8465-68ac443b7d08</Single>
+        <Array Name="EmbeddedTypeGuids" Type="System.Guid">
+          <Single Type="System.Guid">a9ed5b7e-75c5-4651-af16-d2c27e98cb94</Single>
+          <Single Type="System.Guid">3b83b776-fb25-43b8-99f2-3c507c9143fc</Single>
+        </Array>
+        <Single Name="Timestamp" Type="long">639246506083952280</Single>
+      </Single>
+      <Single Name="Object" Type="{6f9dac99-8de1-4efc-8465-68ac443b7d08}" Method="IArchivable">
+        <Single Name="SpecialFunc" Type="{0db3d7bb-cde0-4416-9a7b-ce49a0124323}">None</Single>
+        <Single Name="Implementation" Type="{3b83b776-fb25-43b8-99f2-3c507c9143fc}" Method="IArchivable">
+          <Single Name="TextDocument" Type="{f3878285-8e4f-490b-bb1b-9acbb7eb04db}" Method="IArchivable">
+            <Single Name="TextBlobForSerialisation" Type="string">mPort:=2;								//串口端口号设定，GCAN-PLC-400、GCAN-PLC-510、GCAN-PLC-511，1为232，2为485
+										//GCAN-PLC-324、GCAN-PLC-326，1为第一路485，2为第2路485
+IF isFirst THEN
+	com_init(							//串口初始化功能块
+	EN_IN:=TRUE,						//串口初始化功能块使能
+	xEnable:=TRUE,						//串口功能使能
+	bPort:=mPort,						//串口端口号设定
+	uiBaudrate:=19200,					//串口波特率设定
+	bParity:=0,							//串口奇偶校验设定，0为无校验，1为奇校验，2为偶检验
+	bDatabits:=8,						//数据位设定
+	bStopbits:=1,						//停止位设定
+	EN_OUT=&gt;m_out,						//串口初始化功能块执行完成标志位
+	uiError=&gt;m_uiError);				//串口初始化功能块执行错误信息
+	isfirst:=FALSE;						//执行一次初始化后关闭IF的条件使其之后进入ELSE程序段运行
+
+ELSE
+	com_read(						//串口读取功能块
+	EN_in:=TRUE,					//读取功能块使能，为TRUE执行读取
+	bPort:=mPort,					//串口端口号设定
+	p_brxdata:=ADR(recBuf),			//读取到的串口数据引脚为指针类型，使用ADR()指向自建数组将数据存放到数组中
+	uiMaxsize:=20,					//设定最大读取长度
+	EN_out=&gt;m_out,					//串口读取功能块执行完成标志位******功能块执行完成不代表接收完成********
+	uiRecSize=&gt;recSize,				//串口接收数据长度，单位：字节，大于0时说明接收到数据可用于判断是否接收
+	uierror=&gt;m_uierror);			//串口读取功能块执行错误信息
+	
+	//GVL.Chan1Lock := BYTE_TO_BOOL(recBuf[1]);
+	IF recBuf[1] = 1 AND GVL.Chan1AGC &gt;= GVL.Chanthreshold THEN
+		GVL.Chan1Lock := TRUE;
+	ELSE
+		GVL.Chan1Lock := FALSE;
+	END_IF
+	Word2Bit1.Apart_Byte[1] := recBuf[2];
+	Word2Bit1.Apart_Byte[2] := recBuf[3];
+	wAGC:=Word2Bit1.Apart_Word;
+	
+	Word2Bit2.Apart_Byte[1] := recBuf[4];
+	Word2Bit2.Apart_Byte[2] := recBuf[5];
+	iUa:=Word2Bit2.Apart_INT;
+	
+	Word2Bit3.Apart_Byte[1] := recBuf[6];
+	Word2Bit3.Apart_Byte[2] := recBuf[7];
+	iUe:=Word2Bit3.Apart_INT;
+	IF ABS(INT_TO_REAL(iUa) * 5 / 2048) &lt;= 5 AND ABS(INT_TO_REAL(iUe) * 5 / 2048) &lt;= 5 AND ABS((WORD_TO_REAL(wAGC) * 5 / 76)) &lt;=5 THEN
+		GVL.Chan1Ua := INT_TO_REAL(iUa) * 5 / 2048;
+		GVL.Chan1Ue := INT_TO_REAL(iUe) * 5 / 2048;
+		GVL.Chan1AGC := 5 - (WORD_TO_REAL(wAGC) * 5 / 76);
+	END_IF
+	
+	(*
+	Dword2Bit1.Apart_Byte[4] := recBuf[8];
+	Dword2Bit1.Apart_Byte[3] := recBuf[9];
+	Dword2Bit1.Apart_Byte[2] := recBuf[10];
+	Dword2Bit1.Apart_Byte[1] := recBuf[11];	
+	
+	
+	Dword2Bit2.Apart_Byte[4] := recBuf[12];
+	Dword2Bit2.Apart_Byte[3] := recBuf[13];
+	Dword2Bit2.Apart_Byte[2] := recBuf[14];
+	Dword2Bit2.Apart_Byte[1] := recBuf[15];	
+	*)
+	
+	Dword2Bit1.Apart_Byte[3] := recBuf[8];
+	Dword2Bit1.Apart_Byte[4] := recBuf[9];
+	Dword2Bit1.Apart_Byte[1] := recBuf[10];
+	Dword2Bit1.Apart_Byte[2] := recBuf[11];	
+	
+	
+	Dword2Bit2.Apart_Byte[3] := recBuf[12];
+	Dword2Bit2.Apart_Byte[4] := recBuf[13];
+	Dword2Bit2.Apart_Byte[1] := recBuf[14];
+	Dword2Bit2.Apart_Byte[2] := recBuf[15];	
+	
+	rQData:=DWORD_TO_REAL(Dword2Bit2.Apart_DWORD);
+	rSData:=DWORD_TO_REAL(Dword2Bit1.Apart_DWORD)-rQData;
+	//rSData:=INT_TO_REAL(Dword2Bit1.Apart_INT) - rQData;
+	
+	IF rSData&lt;&gt;0  AND rQData&lt;&gt;0  THEN
+		Chan1EB_N0 := 10*LOG(ABS(rSData/rQData))+3.8;
+	ELSE
+		Chan1EB_N0 := 0;
+	END_IF
+	
+	//程引、位置模式下，信噪比大于29；或上位机下发自跟踪
+	IF ((GVL.Axis1Remote.iMode = 2 OR GVL.Axis1Remote.iMode = 4) AND Chan1EB_N0 &gt;= 29)AND READ_485.recBuf[1] = 1 OR Modbus_Slave.bStartTrackAcu THEN
+		icount0:=0;
+		bEBN0Lock := TRUE;
+	END_IF
+	IF ( GVL.Axis1Remote.iMode = 4 or GVL.Axis1Remote.iMode =2 ) AND recBuf[1] = 0 THEN
+		icount0:=icount0+1;
+	END_IF
+	IF icount0 &gt; 400 OR (GVL.Axis1Remote.iMode = 0 OR GVL.Axis1Remote.iMode = 0) THEN
+		icount0 := 401;
+		bEBN0Lock := FALSE;
+	END_IF
+(* PHASE_CAL_RX_BEGIN: passive diagnostics; original decoder above is unchanged.
+   Assumes each eligible read starts at original recBuf[0]. Not a frame parser.
+   Admission requires separate operator protocol/alignment confirmation. *)
+GVL_PhaseCal.uiReadSize:=recSize;
+GVL_PhaseCal.uiSerialError:=m_uiError;
+IF recSize&gt;0 THEN
+    IF GVL_PhaseCal.udiReadCount&gt;=4294967294 THEN
+        GVL_PhaseCal.udiReadCount:=0;
+    END_IF;
+    GVL_PhaseCal.udiReadCount:=GVL_PhaseCal.udiReadCount+1;
+    IF recSize&lt;16 THEN
+        IF GVL_PhaseCal.udiShortReadCount&gt;=4294967294 THEN
+            GVL_PhaseCal.udiShortReadCount:=0;
+        END_IF;
+        GVL_PhaseCal.udiShortReadCount:=GVL_PhaseCal.udiShortReadCount+1;
+    END_IF;
+END_IF;
+IF recSize&gt;=16 AND recSize&lt;=20 AND m_uiError=0 AND
+   ABS(INT_TO_REAL(iUa)*5/2048)&lt;=5 AND
+   ABS(INT_TO_REAL(iUe)*5/2048)&lt;=5 AND
+   ABS(WORD_TO_REAL(wAGC)*5/76)&lt;=5 THEN
+    IF GVL_PhaseCal.udiRxSeq&gt;=4294967294 THEN
+        GVL_PhaseCal.udiRxSeq:=1;
+    ELSE
+        GVL_PhaseCal.udiRxSeq:=GVL_PhaseCal.udiRxSeq+1;
+    END_IF;
+    GVL_PhaseCal.lrRxUa:=REAL_TO_LREAL(GVL.Chan1Ua);
+    GVL_PhaseCal.lrRxUe:=REAL_TO_LREAL(GVL.Chan1Ue);
+    GVL_PhaseCal.lrRxEbN0:=REAL_TO_LREAL(Chan1EB_N0);
+    GVL_PhaseCal.lrRxAz:=-REAL_TO_LREAL(GVL.rFctPosReal_2);
+    GVL_PhaseCal.lrRxEl:=REAL_TO_LREAL(GVL.rFctPosReal_1)-90;
+    GVL_PhaseCal.xRxLock:=(recBuf[1]=1);
+    GVL_PhaseCal.udiRxSeq:=GVL_PhaseCal.udiRxSeq+1;
+END_IF;
+(* PHASE_CAL_RX_END *)
+END_IF
+(*
+//加校验
+iChan1DataLen:=recSize-1; //数据长度
+	IF iChan1DataLen &gt; 0 THEN
+		FOR chan1_i:=0 TO iChan1DataLen BY 1 DO
+			
+			IF recBuf[chan1_i] = 16#7E THEN
+				chan1_j:=0;
+			END_IF
+			recData[chan1_j]:=recBuf[chan1_i];
+			
+			chan1_j:=chan1_j+1;
+			IF chan1_j=8 THEN
+				Word2Bit1.Apart_Byte[1] := recData[2];
+				Word2Bit1.Apart_Byte[2] := recData[3];
+				wAGC:=Word2Bit1.Apart_Word;
+				
+				Word2Bit2.Apart_Byte[1] := recData[4];
+				Word2Bit2.Apart_Byte[2] := recData[5];
+				iUa:=Word2Bit2.Apart_INT;
+				
+				Word2Bit3.Apart_Byte[1] := recData[6];
+				Word2Bit3.Apart_Byte[2] := recData[7];
+				iUe:=Word2Bit3.Apart_INT;
+				rUaTemp := INT_TO_REAL(iUa) * 5 / 2048;
+				rUeTemp := INT_TO_REAL(iUe) * 5 / 2048;
+				rUagcTemp := WORD_TO_REAL(wAGC) * 5 / 76;
+				
+				IF ABS(rUagcTemp)&lt;=5 AND ABS(rUaTemp)&lt;=5 AND ABS(rUeTemp)&lt;=5THEN 
+					GVL.Chan1Ua := rUaTemp;
+					GVL.Chan1Ue := rUeTemp;
+					GVL.Chan1AGC := rUagcTemp;
+					IF recData[1] = 1 THEN
+						GVL.Chan1Lock := TRUE;
+					ELSE
+						GVL.Chan1Lock := FALSE;
+					END_IF
+				END_IF
+(* 
+				IF ABS(GVL.Chan1AGC)&gt;5 THEN GVL.Chan1AGC:=5;
+				END_IF
+				IF ABS(GVL.Chan1Ua)&gt;5 THEN GVL.Chan1Ua:=0;
+				END_IF
+				IF ABS(GVL.Chan1Ue)&gt;5 THEN GVL.Chan1Ue:=0;
+				END_IF
+				*)
+				chan1_j:=0;
+			END_IF
+		END_FOR
+	END_IF
+	
+	
+END_IF
+*)</Single>
+            <Single Name="LineInfoPersistence" Type="string">bf0b9152-755b-4529-9d6a-65e584178361_Impl_LineIds</Single>
+          </Single>
+        </Single>
+        <Single Name="Interface" Type="{a9ed5b7e-75c5-4651-af16-d2c27e98cb94}" Method="IArchivable">
+          <Single Name="TextDocument" Type="{f3878285-8e4f-490b-bb1b-9acbb7eb04db}" Method="IArchivable">
+            <Single Name="TextBlobForSerialisation" Type="string">PROGRAM READ_485
+VAR
+	com_init:gcan.FB_Com_Init;      		//gcan.FB_Com_Init为串口初始化功能块，可设定串口端口号，串口波特率等参数
+	com_read:gcan.FB_Com_Read ;				//gcan.FB_Com_Read为串口接收功能块，用于通过接收串口发送给PLC的数据
+	com_write:gcan.FB_Com_Write ;			//gcan.FB_Com_Write为串口发送功能块，用于发送串口数据
+	m_uiError:UINT;							//用于承接功能块中报错引脚错误信息的变量
+	m_out:BOOL;								//用于承接功能块中完成标志引脚数据的变量
+	isFirst:BOOL:=TRUE;						//用于判断初始化只执行一次的逻辑
+	mPort:BYTE;								//程序中用作设定串口端口号
+	recSize:UINT;							//接收数据长度，单位：字节
+	recBuf:ARRAY[0..19] OF BYTE;			//用于存放接收到的串口数据的数组
+	recData:ARRAY[0..8] OF BYTE;			//用于存放整帧数据
+	wAGC:WORD; // agc，电平值
+	iUa:INT; // 方位误差电压，mV
+	iUe:INT; // 俯仰误差电压，mV
+	iChan1DataLen: UINT;
+	chan1_i: INT;
+	chan1_j: INT;
+	Word2Bit1:Word2Bit;
+	Word2Bit2:Word2Bit;
+	Word2Bit3:Word2Bit;
+	rUagcTemp:REAL;
+	rUaTemp:REAL;
+	rUeTemp:REAL;
+	btest:BOOL;
+	btest2:BOOL;
+	
+	rSData:REAL;
+	rQData:REAL;
+	Dword2Bit1:Dword2Bit;
+	Dword2Bit2:Dword2Bit;
+	Chan1EB_N0: REAL;
+	bEBN0Lock:BOOL;
+	icount0:INT;
+END_VAR</Single>
+            <Single Name="LineInfoPersistence" Type="string">bf0b9152-755b-4529-9d6a-65e584178361_Decl_LineIds</Single>
+          </Single>
+        </Single>
+        <Single Name="UniqueIdGenerator" Type="string">583</Single>
+        <Single Name="POULevel" Type="{8e575c5b-1d37-49c6-941b-5c0ec7874787}">Standard</Single>
+        <List Name="ChildObjectGuids" Type="System.Collections.ArrayList" />
+        <Single Name="AddAttributeSubsequent" Type="bool">False</Single>
+      </Single>
+      <Single Name="ParentSVNodeGuid" Type="System.Guid">49085721-e2f3-443d-be92-6caf07f84b13</Single>
+      <Array Name="Path" Type="string">
+        <Single Type="string">Device</Single>
+        <Single Type="string">PLC逻辑</Single>
+        <Single Type="string">Application</Single>
+      </Array>
+      <Single Name="Index" Type="int">-1</Single>
+    </Single>
+    <Single Type="{6198ad31-4b98-445c-927f-3258a0e82fe3}" Method="IArchivable">
+      <Single Name="IsRoot" Type="bool">True</Single>
+      <Single Name="MetaObject" Type="{81297157-7ec9-45ce-845e-84cab2b88ade}" Method="IArchivable">
+        <Single Name="Guid" Type="System.Guid">01e0f185-d49a-4d6d-9268-6e70a0d1342e</Single>
+        <Single Name="ParentGuid" Type="System.Guid">49085721-e2f3-443d-be92-6caf07f84b13</Single>
+        <Single Name="Name" Type="string">SecurityCheck</Single>
+        <Dictionary Type="{2c41fa04-1834-41c1-816e-303c7aa2c05b}" Name="Properties" />
+        <Single Name="TypeGuid" Type="System.Guid">6f9dac99-8de1-4efc-8465-68ac443b7d08</Single>
+        <Array Name="EmbeddedTypeGuids" Type="System.Guid">
+          <Single Type="System.Guid">a9ed5b7e-75c5-4651-af16-d2c27e98cb94</Single>
+          <Single Type="System.Guid">3b83b776-fb25-43b8-99f2-3c507c9143fc</Single>
+        </Array>
+        <Single Name="Timestamp" Type="long">639246506084975116</Single>
+      </Single>
+      <Single Name="Object" Type="{6f9dac99-8de1-4efc-8465-68ac443b7d08}" Method="IArchivable">
+        <Single Name="SpecialFunc" Type="{0db3d7bb-cde0-4416-9a7b-ce49a0124323}">None</Single>
+        <Single Name="Implementation" Type="{3b83b776-fb25-43b8-99f2-3c507c9143fc}" Method="IArchivable">
+          <Single Name="TextDocument" Type="{f3878285-8e4f-490b-bb1b-9acbb7eb04db}" Method="IArchivable">
+            <Single Name="TextBlobForSerialisation" Type="string">// --- implementation (ST) ---
+// =============================================================================
+// 段 1: 安全逻辑用位置（与显示用 rFctPosReal 可能差符号/零点）
+// =============================================================================
+rAz_realpos := -1 * GVL.rFctPosReal_2;
+rEl_realpos := GVL.rFctPosReal_1 - 90;
+
+// =============================================================================
+// 段 2: 三轴伺服电流监测（仅使能时读 AD，%IW×%ID/1e6）
+// %IW10/%ID4=俯仰, %IW20/%ID9=方位, %IW30/%ID14=倾斜
+// =============================================================================
+IF Axis1Status.bServo_Enable THEN
+	rELCurrent:=DINT_TO_REAL((INT_TO_DINT(%IW10)* %ID4))/1000000.0;  //俯仰轴电流监测
+ELSE
+	rELCurrent:=0;
+END_IF
+
+IF Axis2Status.bServo_Enable THEN
+	rAzCurrent:=DINT_TO_REAL((INT_TO_DINT(%IW20)* %ID9))/1000000.0;  //方位轴电流监测
+ELSE
+	rAzCurrent:=0;
+END_IF
+
+IF Axis3Status.bServo_Enable THEN
+	rTlCurrent:=DINT_TO_REAL((INT_TO_DINT(%IW30)* %ID14))/1000000.0;  //倾斜轴电流监测
+ELSE
+	rTlCurrent:=0;
+END_IF
+
+// =============================================================================
+// 段 3: 跟踪误差（供 SpiralScan 判断扫描方向与完成度）
+// mode2 指向: 命令位置 vs 实际位置
+// mode4 程引: 插值目标+偏置 vs 实际位置（含手动/自跟踪偏置）
+// =============================================================================
+IF Axis2Remote.iMode = 2 THEN
+	AzError:=(-1) * (Axis2Remote.rPosCmd-rFctPosReal_2);
+	ElError:=Axis1Remote.rPosCmd-rFctPosReal_1;	
+END_IF
+
+IF Axis2Remote.iMode = 4 THEN
+	AzError:=rFctPosReal_2-RealTimePosCal.rInterazPos-(az_ctrl_1.rStepBias+az_ctrl_1.rAuToStepBias);
+	ElError:=RealTimePosCal.rInterElPos-rFctPosReal_1+ (El_ctrl_1.rStepBias+EL_ctrl_1.rAuToStepBias);
+END_IF
+(*
+rAzErrorReal := rAzErrorReal + rAlpha * (AzError - rAzErrorReal);
+rElErrorReal := rElErrorReal + rAlpha * (ElError - rElErrorReal);
+*)
+
+// =============================================================================
+// 段 4: 远控故障复位（Modbus bCommReset → GVL.bError_Reset）
+// =============================================================================
+IF NOT GVL.bLocalCtrl THEN
+	IF Modbus_Slave.bCommReset THEN
+		GVL.bError_Reset:=TRUE;
+	ELSE
+		GVL.bError_Reset:=FALSE;
+	END_IF
+END_IF
+
+// =============================================================================
+// 段 5: 远控 rPosCmd 赋值（含 AGC 搜索偏置或测试扫描偏置）
+// 非 bSearch: Modbus 目标 + eltest/aztest
+// bSearch:   Modbus 目标 + *_ctrl_1 的 rSearchNextStepTarget_tb
+// =============================================================================
+IF NOT modbus_slave.bSearch THEN
+	Axis1Remote.rPosCmd:=Modbus_Slave.rPosCmd_1 + eltest;
+	Axis2Remote.rPosCmd:=Modbus_Slave.rPosCmd_2 - aztest;
+ELSE
+	Axis1Remote.rPosCmd:=Modbus_Slave.rPosCmd_1 + El_ctrl_1.rSearchNextStepTarget_tb;
+	Axis2Remote.rPosCmd:=Modbus_Slave.rPosCmd_2 + Az_ctrl_1.rSearchNextStepTarget_tb;
+END_IF
+
+// =============================================================================
+// 段 6: 远控三轴命令参量 — Modbus_Slave → AxisXRemote（核心汇总）
+// 俯仰/方位 rPosCmd 已在段 5 赋值；此处写 mode/速度/PID/加减速等
+// =============================================================================
+Axis1Remote.iMode:=Modbus_Slave.iMode_1;
+Axis1Remote.rVelCmd:=Modbus_Slave.rVelcmd_1;
+//Axis1Remote.rPosCmd:=Modbus_Slave.rPosCmd_1;
+Axis1Remote.rP:=Modbus_Slave.rP_1;
+Axis1Remote.rI:=Modbus_Slave.rI_1;
+Axis1Remote.rD:=Modbus_Slave.rD_1;
+Axis1Remote.rPIDThre:=Modbus_Slave.rThreshold_1;
+Axis1Remote.rAcceleration:=Modbus_Slave.rAcceleration_1;
+Axis1Remote.rDeceleration:=Modbus_Slave.rDeceleration_1;
+Axis1Remote.rVel_Limit:=Modbus_Slave.rVelLim_1;
+
+Axis2Remote.iMode:=Modbus_Slave.iMode_2;
+Axis2Remote.rVelCmd:=Modbus_Slave.rVelcmd_2;
+//Axis2Remote.rPosCmd:=Modbus_Slave.rPosCmd_2;
+Axis2Remote.rP:=Modbus_Slave.rP_2;
+Axis2Remote.rI:=Modbus_Slave.rI_2;
+Axis2Remote.rD:=Modbus_Slave.rD_2;
+Axis2Remote.rPIDThre:=Modbus_Slave.rThreshold_2;
+Axis2Remote.rAcceleration:=Modbus_Slave.rAcceleration_2;
+Axis2Remote.rDeceleration:=Modbus_Slave.rDeceleration_2;
+Axis2Remote.rVel_Limit:=Modbus_Slave.rVelLim_2;
+
+Axis3Remote.iMode:=Modbus_Slave.iMode_3;
+Axis3Remote.rVelCmd:=Modbus_Slave.rVelcmd_3;
+Axis3Remote.rPosCmd:=Modbus_Slave.rPosCmd_3;
+Axis3Remote.rP:=Modbus_Slave.rP_3;
+Axis3Remote.rI:=Modbus_Slave.rI_3;
+Axis3Remote.rD:=Modbus_Slave.rD_3;
+Axis3Remote.rPIDThre:=Modbus_Slave.rThreshold_3;
+Axis3Remote.rAcceleration:=Modbus_Slave.rAcceleration_3;
+Axis3Remote.rDeceleration:=Modbus_Slave.rDeceleration_3;
+
+(* 本控 HMI 赋值块已注释，本控参数由其他 POU 写入 AxisXLocal *)
+
+// =============================================================================
+// 段 7: 俯仰预限位 → Error_code 201(正)/202(负)，置位上报标志
+// bPrelimit_1 由硬件 IO 映射；触发后根据当前位置方向区分正负限位
+// =============================================================================
+IF bPrelimit_1 THEN
+	IF rFctPosReal_1&gt;0 THEN
+		bPrelimit_Positive_1:=TRUE;
+		Error_code:=201;
+	ELSE
+		bPrelimit_Negative_1:=TRUE;
+		Error_code:=202;
+	END_IF;
+ELSE
+	bPrelimit_Negative_1:=FALSE;
+	bPrelimit_Positive_1:=FALSE;
+	;
+END_IF
+
+// =============================================================================
+// 段 8: 方位预限位（仅置标志，Error_code 203/204 已注释）
+// =============================================================================
+IF bPrelimit_2 THEN
+	IF rFctPosReal_2&gt;0 THEN
+		//Error_code:=203;
+		bPrelimit_Positive_2:=TRUE;;
+	ELSE
+		//Error_code:=204;
+		bPrelimit_Negative_2:=TRUE;;
+	END_IF;
+ELSE
+	bPrelimit_Negative_2:=FALSE;
+	bPrelimit_Positive_2:=FALSE;
+	;
+END_IF
+
+// =============================================================================
+// 段 9: 扫描找到中心 — 基带锁 且 Eb/N0&gt;rEbN0LockThre 且 √(Ua²+Ue²)&lt;=rErrorThre
+// =============================================================================
+bBaseLock := (READ_485.recBuf[1] = 1);
+bErrorLock  := (SQRT(GVL.Chan1Ua * GVL.Chan1Ua + GVL.Chan1Ue * GVL.Chan1Ue) &lt;= PersistentVars.rErrorThre);
+bLockSearch := (READ_485.Chan1EB_N0 &gt; PersistentVars.rEbN0LockThre) AND bBaseLock AND bErrorLock;
+
+// =============================================================================
+// 段 10: 启扫 — 双轴程引、未自跟踪、基带锁连续 2s（200×10ms）触发一次
+// 扫描过程中允许短暂掉锁；找到合格点后本程引周期内不再重扫
+// 退出程引则清锁存
+// =============================================================================
+IF Axis1Remote.iMode = 4 AND Axis2Remote.iMode = 4 THEN
+	IF NOT GVL.bStartTrack AND NOT bScanRun AND NOT bScanFound THEN
+		IF bBaseLock THEN
+			icountBaseLock := icountBaseLock + 1;
+			IF icountBaseLock &gt;= 200 THEN
+				icountBaseLock := 200;
+				bScanRun := TRUE;
+			END_IF
+		ELSE
+			icountBaseLock := 0;
+		END_IF
+	ELSE
+		icountBaseLock := 0;
+	END_IF
+	enable := bScanRun AND NOT GVL.bStartTrack;
+ELSE
+	enable := FALSE;
+	bScanRun := FALSE;
+	bScanDoneOnce := FALSE;
+	bScanFound := FALSE;
+	az_latch := 0.0;
+	el_latch := 0.0;
+	icountBaseLock := 0;
+END_IF
+
+// 螺旋局部参数（与直线 PersistentVars.rStep 量纲不同：此处为每格周期数）
+IF rdelta &lt; 1.0E-6 THEN
+	rdelta := 0.25;
+END_IF
+IF rStep &lt; 1.0E-6 THEN
+	rStep := 12.0;
+END_IF
+
+// =============================================================================
+// 段 11: 调用扫描 FB — 直线或螺旋；locked=找到中心，连续10拍（约100ms）锁存
+// =============================================================================
+IF NOT PersistentVars.bSearchType THEN
+	fbScan(
+		enable      := enable,
+		delta       := PersistentVars.rAzScanRange,
+		delta1      := PersistentVars.rElScanRange,
+		n_steps     := PersistentVars.rStep,
+		agc      := READ_485.Chan1EB_N0,
+		locked     := bLockSearch,
+		AzError := AzError,
+		elError := elError,
+		bTrackState := GVL.bStartTrack,
+		azimuth     =&gt; az_out,
+		elevation   =&gt; el_out,
+		done        =&gt; done_out,
+		bType  =&gt;bType_out
+	);
+ELSE
+	fbScan1(
+		enable      := enable,
+		delta       := rdelta,
+		n_steps     := rStep,
+		agc      := READ_485.Chan1EB_N0,
+		locked     := bLockSearch,
+		AzError := AzError,
+		elError := elError,
+		azimuth     =&gt; az_out,
+		elevation   =&gt; el_out,
+		done        =&gt; done_out,
+		bType  =&gt;bType_out
+	);
+END_IF
+
+// 扫描结束：找到则锁存 -Error；未找到锁存 0。此后 az_out/el_out 用锁存值
+IF bScanRun AND done_out THEN
+	bScanRun := FALSE;
+	bScanDoneOnce := TRUE;
+	IF bType_out THEN
+		az_latch := az_out;
+		el_latch := el_out;
+		bScanFound := TRUE;
+	ELSE
+		az_latch := 0.0;
+		el_latch := 0.0;
+		bScanFound := FALSE;
+	END_IF
+END_IF
+IF GVL.bStartTrack AND bScanRun THEN
+	bScanRun := FALSE;
+	bScanDoneOnce := TRUE;
+END_IF
+IF NOT bScanRun THEN
+	az_out := az_latch;
+	el_out := el_latch;
+END_IF
+
+// =============================================================================
+// 段 12: 自跟踪只跟 ACU HR[7].B10（上升沿开、下降沿关），扫描结束不置位
+// =============================================================================
+IF Axis1Remote.iMode = 4 AND Axis2Remote.iMode = 4 THEN
+	RiseEdge(CLK := Modbus_Slave.bStartTrackAcu);
+	FallEdge(CLK := Modbus_Slave.bStartTrackAcu);
+	IF RiseEdge.Q THEN
+		GVL.bStartTrack := TRUE;
+	END_IF;
+	IF FallEdge.Q THEN
+		GVL.bStartTrack := FALSE;
+	END_IF;
+ELSE
+	GVL.bStartTrack := Modbus_Slave.bStartTrackAcu;
+	icountLostLocking := 0;
+	icountLostLocking1 := 0;
+	Iconutwait := 0;
+END_IF
+
+(* fbScantest 测试块已注释 *)
+
+(* PHASE_CAL_HOOK: once per 10 ms, LAST call. *)
+PRG_PhaseCalibration();</Single>
+            <Single Name="LineInfoPersistence" Type="string">01e0f185-d49a-4d6d-9268-6e70a0d1342e_Impl_LineIds</Single>
+          </Single>
+        </Single>
+        <Single Name="Interface" Type="{a9ed5b7e-75c5-4651-af16-d2c27e98cb94}" Method="IArchivable">
+          <Single Name="TextDocument" Type="{f3878285-8e4f-490b-bb1b-9acbb7eb04db}" Method="IArchivable">
+            <Single Name="TextBlobForSerialisation" Type="string">PROGRAM SecurityCheck
+VAR
+    bPrelimit_Positive_1 : BOOL;
+    bPrelimit_Negative_1 : BOOL;
+    bPrelimit_Positive_2 : BOOL;
+    bPrelimit_Negative_2 : BOOL;
+    bPrelimit_1 : BOOL;
+    bPrelimit_2 : BOOL;
+    bFinallimit_1 : BOOL;
+    bFinallimit_2 : BOOL;
+    AzError : REAL;
+    ElError : REAL;
+    rELCurrent : REAL;
+    rAzCurrent : REAL;
+    rTlCurrent : REAL;
+    rAz_realpos : REAL;
+    rEL_realpos : REAL;
+    fbScan : SpiralScan;
+    fbScan1 : SpiralScan_1;
+    fbScantest : SpiralScan;
+    enabletest : BOOL;
+    aztest : REAL;
+    eltest : REAL;
+    enable : BOOL;
+    delta : REAL;
+    n_steps : REAL;
+    agc_sim : REAL;
+    lock_sim : BOOL;
+    cycle_cnt : INT;
+    sim_done : BOOL;
+    az_out : REAL;
+    el_out : REAL;
+    done_out : BOOL;
+    bLockSearch : BOOL;
+    rSearchThre : REAL;
+    rSearchThreTemp : REAL;
+    bStartTrackTemp : BOOL;
+    RiseEdge : R_TRIG;
+    FallEdge : F_TRIG;
+    bAcuTrackInhibit : BOOL;
+    icountLostLocking : INT;
+    bErrorLock : BOOL;
+    icountLostLocking1 : INT;
+    bType_out : BOOL;
+    iconutwait : INT;
+    rdelta : REAL := 0.25;         // 螺旋每格边长(°)，4*rdelta=±1°（1°波束）
+    rStep : REAL := 12.0;          // 螺旋每格拍数，对齐2.4
+    bFinish : BOOL;
+    rAzErrorReal : REAL;
+    rElErrorReal : REAL;
+    rAlpha : REAL;
+    icountBaseLock : INT;
+    bScanRun : BOOL;
+    bScanDoneOnce : BOOL;
+    bScanFound : BOOL;
+    az_latch : REAL;
+    el_latch : REAL;
+    bBaseLock : BOOL;
+END_VAR</Single>
+            <Single Name="LineInfoPersistence" Type="string">01e0f185-d49a-4d6d-9268-6e70a0d1342e_Decl_LineIds</Single>
+          </Single>
+        </Single>
+        <Single Name="UniqueIdGenerator" Type="string">6704</Single>
+        <Single Name="POULevel" Type="{8e575c5b-1d37-49c6-941b-5c0ec7874787}">Standard</Single>
+        <List Name="ChildObjectGuids" Type="System.Collections.ArrayList" />
+        <Single Name="AddAttributeSubsequent" Type="bool">False</Single>
+      </Single>
+      <Single Name="ParentSVNodeGuid" Type="System.Guid">49085721-e2f3-443d-be92-6caf07f84b13</Single>
+      <Array Name="Path" Type="string">
+        <Single Type="string">Device</Single>
+        <Single Type="string">PLC逻辑</Single>
+        <Single Type="string">Application</Single>
+      </Array>
+      <Single Name="Index" Type="int">-1</Single>
+    </Single>
+    <Single Type="{6198ad31-4b98-445c-927f-3258a0e82fe3}" Method="IArchivable">
+      <Single Name="IsRoot" Type="bool">True</Single>
+      <Single Name="MetaObject" Type="{81297157-7ec9-45ce-845e-84cab2b88ade}" Method="IArchivable">
+        <Single Name="Guid" Type="System.Guid">72925486-a412-4a3b-a1da-832b43c968a8</Single>
+        <Single Name="ParentGuid" Type="System.Guid">49085721-e2f3-443d-be92-6caf07f84b13</Single>
+        <Single Name="Name" Type="string">GVL_PhaseCal</Single>
+        <Dictionary Type="{2c41fa04-1834-41c1-816e-303c7aa2c05b}" Name="Properties" />
+        <Single Name="TypeGuid" Type="System.Guid">ffbfa93a-b94d-45fc-a329-229860183b1d</Single>
+        <Array Name="EmbeddedTypeGuids" Type="System.Guid">
+          <Single Type="System.Guid">a9ed5b7e-75c5-4651-af16-d2c27e98cb94</Single>
+        </Array>
+        <Single Name="Timestamp" Type="long">639246506091644675</Single>
+      </Single>
+      <Single Name="Object" Type="{ffbfa93a-b94d-45fc-a329-229860183b1d}" Method="IArchivable">
+        <Single Name="Interface" Type="{a9ed5b7e-75c5-4651-af16-d2c27e98cb94}" Method="IArchivable">
+          <Single Name="TextDocument" Type="{f3878285-8e4f-490b-bb1b-9acbb7eb04db}" Method="IArchivable">
+            <Single Name="TextBlobForSerialisation" Type="string">{attribute 'qualified_only'}
+VAR_GLOBAL
+    (* Commands: non-retained. Never FORCE these or axis commands. *)
+    xStart : BOOL;
+    xAbort : BOOL;
+    xReset : BOOL;
+    (* Commissioning interlock: confirm aligned reads with the actual protocol first.
+       recSize&gt;=16 alone is NOT a frame/header/checksum verification. *)
+    xRxAlignmentConfirmed : BOOL := FALSE;
+    lrCurrentPhaseDeg : LREAL := 0;
+    iPhaseDirection : INT := 0; (* unknown=0, CCW=+1, CW=-1 *)
+    lrRadiusDeg : LREAL := 0.05; (* maximum radial distance, not each leg *)
+    lrLegTimeSec : LREAL := 10;
+    lrSettleSec : LREAL := 1;
+    lrMinEbN0 : LREAL := 29;
+
+    xReady, xBusy, xDone, xFault, xAborted : BOOL;
+    xFitValid, xSuggestedValid : BOOL;
+    uiError, uiFitError, uiState : UINT;
+    udiSamples : UDINT;
+    lrAzBias, lrElBias, lrRxAgeSec : LREAL;
+    lrResponseAngleDeg, lrCorrectionDeg, lrSuggestedDeg : LREAL;
+    lrCandidatePlusDeg, lrCandidateMinusDeg : LREAL;
+    lrOrthErrorDeg, lrResidualAz, lrResidualEl : LREAL;
+    lrKaa, lrKae, lrKea, lrKee : LREAL;
+
+    (* SerialCom single writer; Canopen single reader. Even/odd sequence lock.
+       Positions are PLC feedback at receive time, not sender timestamps. *)
+    udiRxSeq : UDINT;
+    uiReadSize, uiSerialError : UINT;
+    udiReadCount, udiShortReadCount : UDINT;
+    lrRxUa, lrRxUe, lrRxEbN0, lrRxAz, lrRxEl : LREAL;
+    xRxLock : BOOL;
+END_VAR</Single>
+            <Single Name="LineInfoPersistence" Type="string">72925486-a412-4a3b-a1da-832b43c968a8_Decl_LineIds</Single>
+          </Single>
+        </Single>
+        <Null Name="NetVarProperties" />
+        <Single Name="ParameterList" Type="bool">False</Single>
+        <Single Name="AddAttributeSubsequent" Type="bool">False</Single>
+      </Single>
+      <Single Name="ParentSVNodeGuid" Type="System.Guid">49085721-e2f3-443d-be92-6caf07f84b13</Single>
+      <Array Name="Path" Type="string">
+        <Single Type="string">Device</Single>
+        <Single Type="string">PLC逻辑</Single>
+        <Single Type="string">Application</Single>
+      </Array>
+      <Single Name="Index" Type="int">-1</Single>
+    </Single>
+    <Single Type="{6198ad31-4b98-445c-927f-3258a0e82fe3}" Method="IArchivable">
+      <Single Name="IsRoot" Type="bool">True</Single>
+      <Single Name="MetaObject" Type="{81297157-7ec9-45ce-845e-84cab2b88ade}" Method="IArchivable">
+        <Single Name="Guid" Type="System.Guid">2e7aac65-9478-4ee7-97e5-2ad922cad390</Single>
+        <Single Name="ParentGuid" Type="System.Guid">49085721-e2f3-443d-be92-6caf07f84b13</Single>
+        <Single Name="Name" Type="string">FB_PhaseFit</Single>
+        <Dictionary Type="{2c41fa04-1834-41c1-816e-303c7aa2c05b}" Name="Properties" />
+        <Single Name="TypeGuid" Type="System.Guid">6f9dac99-8de1-4efc-8465-68ac443b7d08</Single>
+        <Array Name="EmbeddedTypeGuids" Type="System.Guid">
+          <Single Type="System.Guid">a9ed5b7e-75c5-4651-af16-d2c27e98cb94</Single>
+          <Single Type="System.Guid">3b83b776-fb25-43b8-99f2-3c507c9143fc</Single>
+        </Array>
+        <Single Name="Timestamp" Type="long">639246506096275514</Single>
+      </Single>
+      <Single Name="Object" Type="{6f9dac99-8de1-4efc-8465-68ac443b7d08}" Method="IArchivable">
+        <Single Name="SpecialFunc" Type="{0db3d7bb-cde0-4416-9a7b-ce49a0124323}">None</Single>
+        <Single Name="Implementation" Type="{3b83b776-fb25-43b8-99f2-3c507c9143fc}" Method="IArchivable">
+          <Single Name="TextDocument" Type="{f3878285-8e4f-490b-bb1b-9acbb7eb04db}" Method="IArchivable">
+            <Single Name="TextBlobForSerialisation" Type="string">pi := 3.141592653589793;
+IF xReset THEN
+    sx:=0; sy:=0; su:=0; sv:=0; sxx:=0; syy:=0; sxy:=0;
+    sxu:=0; syu:=0; sxv:=0; syv:=0; suu:=0; svv:=0;
+    udiSamples:=0; uiError:=0; xFitValid:=FALSE; xSuggestedValid:=FALSE;
+    lrKaa:=0; lrKae:=0; lrKea:=0; lrKee:=0;
+    lrInterceptAz:=0; lrInterceptEl:=0; lrResponseAngleDeg:=0;
+    lrCorrectionDeg:=0; lrSuggestedDeg:=0;
+    lrCandidatePlusDeg:=0; lrCandidateMinusDeg:=0;
+    lrOrthErrorDeg:=0; lrResidualAz:=0; lrResidualEl:=0;
+    lrCrossAz:=0; lrCrossEl:=0;
+ELSIF xSample AND NOT xFinish THEN
+    IF udiSamples &lt; 100000 THEN
+        udiSamples:=udiSamples+1;
+        sx:=sx+lrAz; sy:=sy+lrEl; su:=su+lrUa; sv:=sv+lrUe;
+        sxx:=sxx+lrAz*lrAz; syy:=syy+lrEl*lrEl; sxy:=sxy+lrAz*lrEl;
+        sxu:=sxu+lrAz*lrUa; syu:=syu+lrEl*lrUa;
+        sxv:=sxv+lrAz*lrUe; syv:=syv+lrEl*lrUe;
+        suu:=suu+lrUa*lrUa; svv:=svv+lrUe*lrUe;
+    ELSE
+        uiError:=1;
+    END_IF;
+END_IF;
+
+IF xFinish AND NOT finishOld AND NOT xReset THEN
+    xFitValid:=FALSE; xSuggestedValid:=FALSE;
+    IF udiSamples &lt; 30 OR uiError &lt;&gt; 0 THEN
+        uiError:=2;
+    ELSE
+        n:=UDINT_TO_LREAL(udiSamples);
+        xx:=sxx-sx*sx/n; yy:=syy-sy*sy/n; xy:=sxy-sx*sy/n;
+        xu:=sxu-sx*su/n; yu:=syu-sy*su/n;
+        xv:=sxv-sx*sv/n; yv:=syv-sy*sv/n;
+        uu:=suu-su*su/n; vv:=svv-sv*sv/n;
+        det:=xx*yy-xy*xy;
+        IF xx &lt;= 1E-12 OR yy &lt;= 1E-12 OR det &lt;= 0.01*xx*yy THEN
+            uiError:=3; (* insufficient two-axis excitation *)
+        ELSE
+            lrKaa:=(xu*yy-yu*xy)/det;
+            lrKae:=(yu*xx-xu*xy)/det;
+            lrKea:=(xv*yy-yv*xy)/det;
+            lrKee:=(yv*xx-xv*xy)/det;
+            lrInterceptAz:=(su-lrKaa*sx-lrKae*sy)/n;
+            lrInterceptEl:=(sv-lrKea*sx-lrKee*sy)/n;
+            ga:=SQRT(lrKaa*lrKaa+lrKea*lrKea);
+            ge:=SQRT(lrKae*lrKae+lrKee*lrKee);
+            sse:=MAX(0.0,uu-lrKaa*xu-lrKae*yu);
+            lrResidualAz:=SQRT(sse/n);
+            sse:=MAX(0.0,vv-lrKea*xv-lrKee*yv);
+            lrResidualEl:=SQRT(sse/n);
+            IF ga &lt; 1E-6 OR ge &lt; 1E-6 OR (uu+vv) &lt; 1E-10 THEN
+                uiError:=4; (* no usable response *)
+            ELSIF (lrKaa*lrKee-lrKae*lrKea) &lt;= 0 THEN
+                uiError:=5; (* reflection/polarity mismatch; common rotation cannot fix *)
+            ELSE
+                dot:=(lrKaa*lrKae+lrKea*lrKee)/(ga*ge);
+                dot:=LIMIT(-1.0,dot,1.0);
+                lrOrthErrorDeg:=ABS(90.0-ACOS(dot)*180.0/pi);
+                (* Normalize columns to prevent unequal axis gains dominating angle.
+                   For M=R(phi)*diag(-ga,-ge), a=2*cos(phi), b=2*sin(phi). *)
+                a:=-lrKaa/ga-lrKee/ge;
+                b:=-lrKea/ga+lrKae/ge;
+                IF ABS(a)+ABS(b)&lt;1E-9 THEN
+                    uiError:=6;
+                ELSE
+                    IF ABS(a)&lt;1E-12 THEN
+                        IF b&gt;=0 THEN phi:=pi/2; ELSE phi:=-pi/2; END_IF;
+                    ELSE
+                        phi:=ATAN(b/a);
+                        IF a&lt;0 THEN
+                            IF b&gt;=0 THEN phi:=phi+pi; ELSE phi:=phi-pi; END_IF;
+                        END_IF;
+                    END_IF;
+                    lrResponseAngleDeg:=phi*180.0/pi;
+                    (* Finite diagnostic ratio; 1E6 means a vanishing main channel. *)
+                    lrCrossAz:=ABS(lrKea)/MAX(ABS(lrKaa),ga*1E-6);
+                    lrCrossEl:=ABS(lrKae)/MAX(ABS(lrKee),ge*1E-6);
+                    IF lrOrthErrorDeg&gt;10.0 OR
+                       (lrResidualAz*lrResidualAz+lrResidualEl*lrResidualEl)*n &gt; 0.1*(uu+vv) THEN
+                        uiError:=7; (* diagnostic fit retained, correction rejected *)
+                    ELSIF lrCurrentPhaseDeg&lt;0 OR lrCurrentPhaseDeg&gt;360 THEN
+                        uiError:=8;
+                    ELSE
+                        xFitValid:=TRUE;
+                        base:=lrCurrentPhaseDeg;
+                        lrCandidatePlusDeg:=base+lrResponseAngleDeg;
+                        lrCandidateMinusDeg:=base-lrResponseAngleDeg;
+                        IF lrCandidatePlusDeg&lt;0 THEN lrCandidatePlusDeg:=lrCandidatePlusDeg+360; END_IF;
+                        IF lrCandidatePlusDeg&gt;=360 THEN lrCandidatePlusDeg:=lrCandidatePlusDeg-360; END_IF;
+                        IF lrCandidateMinusDeg&lt;0 THEN lrCandidateMinusDeg:=lrCandidateMinusDeg+360; END_IF;
+                        IF lrCandidateMinusDeg&gt;=360 THEN lrCandidateMinusDeg:=lrCandidateMinusDeg-360; END_IF;
+                        IF iPhaseDirection=1 OR iPhaseDirection=-1 THEN
+                            lrCorrectionDeg:=-lrResponseAngleDeg/INT_TO_LREAL(iPhaseDirection);
+                            lrSuggestedDeg:=base+lrCorrectionDeg;
+                            IF lrSuggestedDeg&lt;0 THEN lrSuggestedDeg:=lrSuggestedDeg+360; END_IF;
+                            IF lrSuggestedDeg&gt;=360 THEN lrSuggestedDeg:=lrSuggestedDeg-360; END_IF;
+                            xSuggestedValid:=TRUE;
+                        END_IF;
+                    END_IF;
+                END_IF;
+            END_IF;
+        END_IF;
+    END_IF;
+END_IF;
+finishOld:=xFinish AND NOT xReset;</Single>
+            <Single Name="LineInfoPersistence" Type="string">2e7aac65-9478-4ee7-97e5-2ad922cad390_Impl_LineIds</Single>
+          </Single>
+        </Single>
+        <Single Name="Interface" Type="{a9ed5b7e-75c5-4651-af16-d2c27e98cb94}" Method="IArchivable">
+          <Single Name="TextDocument" Type="{f3878285-8e4f-490b-bb1b-9acbb7eb04db}" Method="IArchivable">
+            <Single Name="TextBlobForSerialisation" Type="string">FUNCTION_BLOCK FB_PhaseFit
+(* Offline candidate. Feed ONE coherent, validated sample per xSample pulse.
+   Coordinates: positive Az=right, positive El=up. Desired response is -I.
+   eAz/eEl must already have consistent signed engineering units.
+   Do not subtract 2.5 from the existing signed serial values without protocol proof. *)
+VAR_INPUT
+    xReset : BOOL;
+    xSample : BOOL;
+    xFinish : BOOL;
+    lrAz : LREAL;
+    lrEl : LREAL;
+    lrUa : LREAL;
+    lrUe : LREAL;
+    lrCurrentPhaseDeg : LREAL;
+    (* +1: increasing hardware phase rotates measured response CCW; -1: CW; 0: unknown *)
+    iPhaseDirection : INT;
+END_VAR
+VAR_OUTPUT
+    xFitValid : BOOL;
+    xSuggestedValid : BOOL;
+    uiError : UINT;
+    udiSamples : UDINT;
+    lrKaa, lrKae, lrKea, lrKee : LREAL;
+    lrInterceptAz, lrInterceptEl : LREAL;
+    lrResponseAngleDeg : LREAL;
+    lrCorrectionDeg, lrSuggestedDeg : LREAL;
+    lrCandidatePlusDeg, lrCandidateMinusDeg : LREAL;
+    lrOrthErrorDeg : LREAL;
+    lrResidualAz, lrResidualEl : LREAL;
+    lrCrossAz, lrCrossEl : LREAL;
+END_VAR
+VAR
+    sx, sy, su, sv, sxx, syy, sxy, sxu, syu, sxv, syv, suu, svv : LREAL;
+    n, xx, yy, xy, xu, yu, xv, yv, uu, vv, det : LREAL;
+    ga, ge, dot, a, b, phi, pi, base, sse : LREAL;
+    finishOld : BOOL;
+END_VAR</Single>
+            <Single Name="LineInfoPersistence" Type="string">2e7aac65-9478-4ee7-97e5-2ad922cad390_Decl_LineIds</Single>
+          </Single>
+        </Single>
+        <Single Name="UniqueIdGenerator" Type="string">149</Single>
+        <Single Name="POULevel" Type="{8e575c5b-1d37-49c6-941b-5c0ec7874787}">Standard</Single>
+        <List Name="ChildObjectGuids" Type="System.Collections.ArrayList" />
+        <Single Name="AddAttributeSubsequent" Type="bool">False</Single>
+      </Single>
+      <Single Name="ParentSVNodeGuid" Type="System.Guid">49085721-e2f3-443d-be92-6caf07f84b13</Single>
+      <Array Name="Path" Type="string">
+        <Single Type="string">Device</Single>
+        <Single Type="string">PLC逻辑</Single>
+        <Single Type="string">Application</Single>
+      </Array>
+      <Single Name="Index" Type="int">-1</Single>
+    </Single>
+    <Single Type="{6198ad31-4b98-445c-927f-3258a0e82fe3}" Method="IArchivable">
+      <Single Name="IsRoot" Type="bool">True</Single>
+      <Single Name="MetaObject" Type="{81297157-7ec9-45ce-845e-84cab2b88ade}" Method="IArchivable">
+        <Single Name="Guid" Type="System.Guid">e52b8d23-d02b-44df-b266-cee7e7a5bbad</Single>
+        <Single Name="ParentGuid" Type="System.Guid">49085721-e2f3-443d-be92-6caf07f84b13</Single>
+        <Single Name="Name" Type="string">FB_PhaseTriangle</Single>
+        <Dictionary Type="{2c41fa04-1834-41c1-816e-303c7aa2c05b}" Name="Properties" />
+        <Single Name="TypeGuid" Type="System.Guid">6f9dac99-8de1-4efc-8465-68ac443b7d08</Single>
+        <Array Name="EmbeddedTypeGuids" Type="System.Guid">
+          <Single Type="System.Guid">a9ed5b7e-75c5-4651-af16-d2c27e98cb94</Single>
+          <Single Type="System.Guid">3b83b776-fb25-43b8-99f2-3c507c9143fc</Single>
+        </Array>
+        <Single Name="Timestamp" Type="long">639246506100766201</Single>
+      </Single>
+      <Single Name="Object" Type="{6f9dac99-8de1-4efc-8465-68ac443b7d08}" Method="IArchivable">
+        <Single Name="SpecialFunc" Type="{0db3d7bb-cde0-4416-9a7b-ce49a0124323}">None</Single>
+        <Single Name="Implementation" Type="{3b83b776-fb25-43b8-99f2-3c507c9143fc}" Method="IArchivable">
+          <Single Name="TextDocument" Type="{f3878285-8e4f-490b-bb1b-9acbb7eb04db}" Method="IArchivable">
+            <Single Name="TextBlobForSerialisation" Type="string">xCollect:=FALSE;
+IF xResetHeld AND NOT xPermit AND uiState=900 THEN
+    uiState:=0; xBusy:=FALSE; xFault:=FALSE;
+    lrAzBias:=0; lrElBias:=0;
+END_IF;
+IF xStart AND NOT startOld AND NOT xBusy AND uiState&lt;&gt;900 THEN
+    xDone:=FALSE; xAborted:=FALSE; xFault:=FALSE;
+    (* 0.1 is an unvalidated commissioning ceiling, NOT a proven linear range. *)
+    IF NOT xPermit OR lrRadiusDeg&lt;=0 OR lrRadiusDeg&gt;0.1 OR
+       lrLegTimeSec&lt;2 OR lrSettleSec&lt;0.1 OR lrSettleSec&gt;30 THEN
+        xFault:=TRUE;
+    ELSE
+        side:=lrRadiusDeg/SQRT(2.0);
+        leg:=lrLegTimeSec; settle:=lrSettleSec;
+        elapsed:=0; lrAzBias:=0; lrElBias:=0;
+        uiState:=10; xBusy:=TRUE;
+    END_IF;
+END_IF;
+startOld:=xStart;
+
+IF xBusy AND uiState&lt;&gt;900 THEN
+    IF NOT xPermit OR lrDtSec&lt;=0 OR lrDtSec&gt;0.1 THEN
+        xFault:=TRUE; uiState:=900;
+    ELSE
+        IF xAbort AND uiState&lt;&gt;800 THEN
+            fromAz:=lrAzBias; fromEl:=lrElBias;
+            toAz:=0; toEl:=0; elapsed:=0;
+            xAborted:=TRUE; uiState:=800;
+        END_IF;
+        elapsed:=elapsed+lrDtSec;
+        CASE uiState OF
+            10,30,50,70:
+                xCollect:=TRUE; (* caller still gates new-frame, quality, position settling *)
+                IF elapsed&gt;=settle THEN
+                    elapsed:=0; fromAz:=lrAzBias; fromEl:=lrElBias;
+                    CASE uiState OF
+                        10: toAz:=0; toEl:=side; uiState:=20;
+                        30: toAz:=side; toEl:=side; uiState:=40;
+                        50: toAz:=0; toEl:=0; uiState:=60;
+                        70: xBusy:=FALSE; xDone:=TRUE; uiState:=0;
+                    END_CASE;
+                END_IF;
+            20,40,60,800:
+                u:=LIMIT(0.0,elapsed/leg,1.0);
+                blend:=u*u*u*(10.0+u*(-15.0+6.0*u));
+                lrAzBias:=fromAz+(toAz-fromAz)*blend;
+                lrElBias:=fromEl+(toEl-fromEl)*blend;
+                xCollect:=(uiState&lt;&gt;800) AND (u&gt;0.1) AND (u&lt;0.9);
+                IF u&gt;=1 THEN
+                    elapsed:=0;
+                    IF uiState=800 THEN
+                        xBusy:=FALSE; uiState:=0;
+                    ELSE
+                        uiState:=uiState+10;
+                    END_IF;
+                END_IF;
+        END_CASE;
+    END_IF;
+END_IF;</Single>
+            <Single Name="LineInfoPersistence" Type="string">e52b8d23-d02b-44df-b266-cee7e7a5bbad_Impl_LineIds</Single>
+          </Single>
+        </Single>
+        <Single Name="Interface" Type="{a9ed5b7e-75c5-4651-af16-d2c27e98cb94}" Method="IArchivable">
+          <Single Name="TextDocument" Type="{f3878285-8e4f-490b-bb1b-9acbb7eb04db}" Method="IArchivable">
+            <Single Name="TextBlobForSerialisation" Type="string">FUNCTION_BLOCK FB_PhaseTriangle
+(* Pure offset generator. Does NOT write axis commands or change operating modes.
+   Caller supplies elapsed seconds and motion permission; xStart is rising-edge.
+   xAbort returns offsets smoothly while permission remains valid.
+   Permission loss holds offsets and sets xFault: existing axis safety owns stopping.
+   Release a held offset only after the caller has safely transferred command ownership. *)
+VAR_INPUT
+    xStart, xAbort, xPermit : BOOL;
+    xResetHeld : BOOL;
+    lrDtSec : LREAL;
+    lrRadiusDeg : LREAL := 0.05;
+    lrLegTimeSec : LREAL := 10.0;
+    lrSettleSec : LREAL := 1.0;
+END_VAR
+VAR_OUTPUT
+    xBusy, xDone, xAborted, xFault : BOOL;
+    uiState : UINT;
+    lrAzBias, lrElBias : LREAL;
+    xCollect : BOOL;
+END_VAR
+VAR
+    startOld : BOOL;
+    elapsed, leg, settle, side, u, blend : LREAL;
+    fromAz, fromEl, toAz, toEl : LREAL;
+END_VAR</Single>
+            <Single Name="LineInfoPersistence" Type="string">e52b8d23-d02b-44df-b266-cee7e7a5bbad_Decl_LineIds</Single>
+          </Single>
+        </Single>
+        <Single Name="UniqueIdGenerator" Type="string">91</Single>
+        <Single Name="POULevel" Type="{8e575c5b-1d37-49c6-941b-5c0ec7874787}">Standard</Single>
+        <List Name="ChildObjectGuids" Type="System.Collections.ArrayList" />
+        <Single Name="AddAttributeSubsequent" Type="bool">False</Single>
+      </Single>
+      <Single Name="ParentSVNodeGuid" Type="System.Guid">49085721-e2f3-443d-be92-6caf07f84b13</Single>
+      <Array Name="Path" Type="string">
+        <Single Type="string">Device</Single>
+        <Single Type="string">PLC逻辑</Single>
+        <Single Type="string">Application</Single>
+      </Array>
+      <Single Name="Index" Type="int">-1</Single>
+    </Single>
+    <Single Type="{6198ad31-4b98-445c-927f-3258a0e82fe3}" Method="IArchivable">
+      <Single Name="IsRoot" Type="bool">True</Single>
+      <Single Name="MetaObject" Type="{81297157-7ec9-45ce-845e-84cab2b88ade}" Method="IArchivable">
+        <Single Name="Guid" Type="System.Guid">bf36a439-16da-45d2-8e62-cc535b7d8364</Single>
+        <Single Name="ParentGuid" Type="System.Guid">49085721-e2f3-443d-be92-6caf07f84b13</Single>
+        <Single Name="Name" Type="string">PRG_PhaseCalibration</Single>
+        <Dictionary Type="{2c41fa04-1834-41c1-816e-303c7aa2c05b}" Name="Properties" />
+        <Single Name="TypeGuid" Type="System.Guid">6f9dac99-8de1-4efc-8465-68ac443b7d08</Single>
+        <Array Name="EmbeddedTypeGuids" Type="System.Guid">
+          <Single Type="System.Guid">a9ed5b7e-75c5-4651-af16-d2c27e98cb94</Single>
+          <Single Type="System.Guid">3b83b776-fb25-43b8-99f2-3c507c9143fc</Single>
+        </Array>
+        <Single Name="Timestamp" Type="long">639246506104130670</Single>
+      </Single>
+      <Single Name="Object" Type="{6f9dac99-8de1-4efc-8465-68ac443b7d08}" Method="IArchivable">
+        <Single Name="SpecialFunc" Type="{0db3d7bb-cde0-4416-9a7b-ce49a0124323}">None</Single>
+        <Single Name="Implementation" Type="{3b83b776-fb25-43b8-99f2-3c507c9143fc}" Method="IArchivable">
+          <Single Name="TextDocument" Type="{f3878285-8e4f-490b-bb1b-9acbb7eb04db}" Method="IArchivable">
+            <Single Name="TextBlobForSerialisation" Type="string">startPulse:=GVL_PhaseCal.xStart AND NOT startOld;
+startOld:=GVL_PhaseCal.xStart;
+accepted:=FALSE; sample:=FALSE; newRx:=FALSE;
+age:=MIN(age+0.01,999.0);
+sampleTime:=MIN(sampleTime+0.01,1.0);
+seq:=GVL_PhaseCal.udiRxSeq;
+IF seq&lt;&gt;lastSeq AND seq MOD 2=0 THEN
+    ua:=GVL_PhaseCal.lrRxUa; ue:=GVL_PhaseCal.lrRxUe;
+    eb:=GVL_PhaseCal.lrRxEbN0;
+    az:=GVL_PhaseCal.lrRxAz; el:=GVL_PhaseCal.lrRxEl;
+    rxLock:=GVL_PhaseCal.xRxLock;
+    IF seq=GVL_PhaseCal.udiRxSeq THEN
+        lastSeq:=seq; age:=0; newRx:=TRUE;
+    END_IF;
+END_IF;
+
+ownership:=NOT GVL.bLocalCtrl AND GVL.Axis1Remote.iMode=2 AND
+    GVL.Axis2Remote.iMode=2 AND NOT GVL.bStartTrack AND
+    NOT GVL.bStartLocalAutoTrack AND NOT Modbus_Slave.bStartTrackAcu AND
+    NOT Modbus_Slave.bSearch AND NOT SecurityCheck.bScanRun AND
+    ABS(SecurityCheck.aztest)&lt;0.00001 AND ABS(SecurityCheck.eltest)&lt;0.00001;
+permit:=ownership AND GVL.Axis1Status.bServo_Enable AND
+    GVL.Axis2Status.bServo_Enable AND NOT GVL.Axis1Status.Error AND
+    NOT GVL.Axis2Status.Error AND NOT GVL.Axis1Status.ErrorStop AND
+    NOT GVL.Axis2Status.ErrorStop AND GVL.eAzErrorcode=0 AND GVL.eElErrorcode=0 AND
+    NOT SecurityCheck.bPrelimit_1 AND NOT SecurityCheck.bPrelimit_2 AND
+    NOT SecurityCheck.bFinallimit_1 AND NOT SecurityCheck.bFinallimit_2;
+IF path.xBusy THEN
+    (* Never mask a changed ACU target by holding the old calibration center. *)
+    permit:=permit AND ABS(REAL_TO_LREAL(Modbus_Slave.rPosCmd_2)-baseAz)&lt;0.00001 AND
+        ABS(REAL_TO_LREAL(Modbus_Slave.rPosCmd_1)-baseEl)&lt;0.00001;
+END_IF;
+quality:=age&lt;0.3 AND rxLock AND ABS(ua)&lt;4.5 AND ABS(ue)&lt;4.5 AND
+    GVL_PhaseCal.uiSerialError=0 AND GVL_PhaseCal.xRxAlignmentConfirmed;
+GVL_PhaseCal.xReady:=permit AND quality AND eb&gt;=GVL_PhaseCal.lrMinEbN0 AND
+    NOT path.xBusy AND NOT GVL_PhaseCal.xFault AND NOT GVL_PhaseCal.xAbort AND
+    ABS(REAL_TO_LREAL(GVL.rFctPosReal_2)-REAL_TO_LREAL(Modbus_Slave.rPosCmd_2))&lt;0.01 AND
+    ABS(REAL_TO_LREAL(GVL.rFctPosReal_1)-REAL_TO_LREAL(Modbus_Slave.rPosCmd_1))&lt;0.01 AND
+    ABS(REAL_TO_LREAL(Modbus_Slave.rPosCmd_2))&lt;274.8 AND
+    Modbus_Slave.rPosCmd_1&gt;93.2 AND Modbus_Slave.rPosCmd_1&lt;179.8;
+
+IF GVL_PhaseCal.xReset AND NOT path.xBusy THEN
+    GVL_PhaseCal.xFault:=FALSE; GVL_PhaseCal.uiError:=0;
+END_IF;
+IF startPulse AND NOT path.xBusy THEN
+    GVL_PhaseCal.xDone:=FALSE;
+    GVL_PhaseCal.xFitValid:=FALSE; GVL_PhaseCal.xSuggestedValid:=FALSE;
+    IF NOT GVL_PhaseCal.xReady OR GVL_PhaseCal.lrCurrentPhaseDeg&lt;0 OR
+       GVL_PhaseCal.lrCurrentPhaseDeg&gt;360 OR GVL_PhaseCal.lrMinEbN0&lt;0 OR
+       GVL_PhaseCal.lrRadiusDeg&lt;=0 OR GVL_PhaseCal.lrRadiusDeg&gt;0.1 OR
+       GVL_PhaseCal.lrLegTimeSec&lt;2 OR GVL_PhaseCal.lrLegTimeSec&gt;60 OR
+       GVL_PhaseCal.lrSettleSec&lt;0.1 OR GVL_PhaseCal.lrSettleSec&gt;30 THEN
+        GVL_PhaseCal.uiError:=10; GVL_PhaseCal.xFault:=TRUE;
+    ELSE
+        baseAz:=REAL_TO_LREAL(Modbus_Slave.rPosCmd_2);
+        baseEl:=REAL_TO_LREAL(Modbus_Slave.rPosCmd_1);
+        centerAz:=-baseAz; centerEl:=baseEl-90;
+        phase:=GVL_PhaseCal.lrCurrentPhaseDeg;
+        direction:=GVL_PhaseCal.iPhaseDirection; minEb:=GVL_PhaseCal.lrMinEbN0;
+        accepted:=TRUE; sampleTime:=0;
+        GVL_PhaseCal.uiError:=0; GVL_PhaseCal.xFault:=FALSE;
+    END_IF;
+END_IF;
+
+abortRun:=GVL_PhaseCal.xAbort;
+IF path.xBusy AND path.uiState&lt;&gt;800 AND path.uiState&lt;&gt;900 THEN
+    IF NOT quality OR eb&lt;minEb THEN
+        abortRun:=TRUE; GVL_PhaseCal.uiError:=20; GVL_PhaseCal.xFault:=TRUE;
+    END_IF;
+    IF ABS(-REAL_TO_LREAL(GVL.rFctPosReal_2)-centerAz-path.lrAzBias)&gt;0.1 OR
+       ABS(REAL_TO_LREAL(GVL.rFctPosReal_1)-90-centerEl-path.lrElBias)&gt;0.1 THEN
+        abortRun:=TRUE; GVL_PhaseCal.uiError:=21; GVL_PhaseCal.xFault:=TRUE;
+    END_IF;
+END_IF;
+path(xStart:=accepted, xAbort:=abortRun, xPermit:=permit,
+    xResetHeld:=GVL_PhaseCal.xReset AND NOT GVL.Axis1Status.bServo_Enable AND
+        NOT GVL.Axis2Status.bServo_Enable,
+    lrDtSec:=0.01, lrRadiusDeg:=GVL_PhaseCal.lrRadiusDeg,
+    lrLegTimeSec:=GVL_PhaseCal.lrLegTimeSec, lrSettleSec:=GVL_PhaseCal.lrSettleSec);
+IF path.xFault THEN
+    GVL_PhaseCal.xFault:=TRUE; GVL_PhaseCal.uiError:=22;
+END_IF;
+IF path.xBusy AND permit AND path.uiState&lt;&gt;900 THEN
+    (* Same signs as existing eltest/aztest target offsets. *)
+    GVL.Axis1Remote.rPosCmd:=LREAL_TO_REAL(baseEl+path.lrElBias);
+    GVL.Axis2Remote.rPosCmd:=LREAL_TO_REAL(baseAz-path.lrAzBias);
+END_IF;
+IF path.xBusy AND path.xCollect AND quality AND eb&gt;=minEb AND
+   newRx AND sampleTime&gt;=0.05 AND NOT GVL_PhaseCal.xFault AND NOT path.xAborted THEN
+    sample:=TRUE; sampleTime:=0;
+END_IF;
+finish:=path.xDone AND NOT doneOld AND NOT GVL_PhaseCal.xFault;
+IF finish AND (ABS(-REAL_TO_LREAL(GVL.rFctPosReal_2)-centerAz)&gt;0.01 OR
+              ABS(REAL_TO_LREAL(GVL.rFctPosReal_1)-90-centerEl)&gt;0.01) THEN
+    finish:=FALSE; GVL_PhaseCal.xFault:=TRUE; GVL_PhaseCal.uiError:=31;
+END_IF;
+doneOld:=path.xDone;
+fit(xReset:=accepted, xSample:=sample, xFinish:=finish,
+    lrAz:=az-centerAz, lrEl:=el-centerEl, lrUa:=ua, lrUe:=ue,
+    lrCurrentPhaseDeg:=phase, iPhaseDirection:=direction);
+IF finish THEN
+    GVL_PhaseCal.xDone:=TRUE;
+    GVL_PhaseCal.xFitValid:=fit.xFitValid;
+    GVL_PhaseCal.xSuggestedValid:=fit.xSuggestedValid;
+    IF NOT fit.xFitValid THEN
+        GVL_PhaseCal.xFault:=TRUE; GVL_PhaseCal.uiError:=30;
+    END_IF;
+END_IF;
+GVL_PhaseCal.xBusy:=path.xBusy; GVL_PhaseCal.xAborted:=path.xAborted;
+GVL_PhaseCal.uiState:=path.uiState; GVL_PhaseCal.uiFitError:=fit.uiError;
+GVL_PhaseCal.lrAzBias:=path.lrAzBias; GVL_PhaseCal.lrElBias:=path.lrElBias;
+GVL_PhaseCal.lrRxAgeSec:=age; GVL_PhaseCal.udiSamples:=fit.udiSamples;
+GVL_PhaseCal.lrResponseAngleDeg:=fit.lrResponseAngleDeg;
+GVL_PhaseCal.lrCorrectionDeg:=fit.lrCorrectionDeg;
+GVL_PhaseCal.lrSuggestedDeg:=fit.lrSuggestedDeg;
+GVL_PhaseCal.lrCandidatePlusDeg:=fit.lrCandidatePlusDeg;
+GVL_PhaseCal.lrCandidateMinusDeg:=fit.lrCandidateMinusDeg;
+GVL_PhaseCal.lrOrthErrorDeg:=fit.lrOrthErrorDeg;
+GVL_PhaseCal.lrResidualAz:=fit.lrResidualAz; GVL_PhaseCal.lrResidualEl:=fit.lrResidualEl;
+GVL_PhaseCal.lrKaa:=fit.lrKaa; GVL_PhaseCal.lrKae:=fit.lrKae;
+GVL_PhaseCal.lrKea:=fit.lrKea; GVL_PhaseCal.lrKee:=fit.lrKee;</Single>
+            <Single Name="LineInfoPersistence" Type="string">bf36a439-16da-45d2-8e62-cc535b7d8364_Impl_LineIds</Single>
+          </Single>
+        </Single>
+        <Single Name="Interface" Type="{a9ed5b7e-75c5-4651-af16-d2c27e98cb94}" Method="IArchivable">
+          <Single Name="TextDocument" Type="{f3878285-8e4f-490b-bb1b-9acbb7eb04db}" Method="IArchivable">
+            <Single Name="TextBlobForSerialisation" Type="string">PROGRAM PRG_PhaseCalibration
+(* Called ONLY at the end of SecurityCheck, once per Canopen 10 ms cycle.
+   Fixed position mode only. No writes to modes, enables, tracking or persistence.
+   Loss of ownership gives command control back to the existing program immediately.
+   This is not an emergency-stop/safety function. *)
+VAR
+    path : FB_PhaseTriangle;
+    fit : FB_PhaseFit;
+    startOld, startPulse, accepted, permit, ownership, quality : BOOL;
+    sample, finish, newRx, rxLock, doneOld, abortRun : BOOL;
+    seq, lastSeq : UDINT;
+    age : LREAL := 999;
+    sampleTime : LREAL;
+    ua, ue, eb, az, el, centerAz, centerEl : LREAL;
+    baseAz, baseEl, phase, minEb : LREAL;
+    direction : INT;
+END_VAR</Single>
+            <Single Name="LineInfoPersistence" Type="string">bf36a439-16da-45d2-8e62-cc535b7d8364_Decl_LineIds</Single>
+          </Single>
+        </Single>
+        <Single Name="UniqueIdGenerator" Type="string">141</Single>
+        <Single Name="POULevel" Type="{8e575c5b-1d37-49c6-941b-5c0ec7874787}">Standard</Single>
+        <List Name="ChildObjectGuids" Type="System.Collections.ArrayList" />
+        <Single Name="AddAttributeSubsequent" Type="bool">False</Single>
+      </Single>
+      <Single Name="ParentSVNodeGuid" Type="System.Guid">49085721-e2f3-443d-be92-6caf07f84b13</Single>
+      <Array Name="Path" Type="string">
+        <Single Type="string">Device</Single>
+        <Single Type="string">PLC逻辑</Single>
+        <Single Type="string">Application</Single>
+      </Array>
+      <Single Name="Index" Type="int">-1</Single>
+    </Single>
+  </List2>
+  <Null Name="ProfileName" />
+</Single>  </StructuredView>
+</ExportFile>

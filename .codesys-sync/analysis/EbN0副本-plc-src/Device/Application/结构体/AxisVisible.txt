@@ -1,0 +1,21 @@
+# kind=struct
+# name=AxisVisible
+# objectId=83fa676e-90cc-48ab-95f1-c09fab895d66
+
+TYPE AxisVisible :
+STRUCT
+    bJog_Forward : BOOL := FALSE;
+    bJog_Backward : BOOL := FALSE;
+    bVel_Run : BOOL := FALSE;
+    bPos_Run : BOOL := FALSE;
+    bEnable : BOOL;
+    bUnable : BOOL;
+    bLocalCtrl : BOOL;
+    bRemoteCtrl : BOOL;
+    bStop : BOOL;
+    bmoveLight : BOOL;
+    bErrLight : BOOL;
+    rLocalPosCmd : REAL;
+    rLocalVelCmd : REAL;
+END_STRUCT
+END_TYPE

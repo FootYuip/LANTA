@@ -1,0 +1,75 @@
+# kind=program
+# name=GetACUTime
+# objectId=0b5beffa-6cbc-47c3-a7af-f447ebc0dec9
+
+VAR
+    tp : TP;
+    toggle : BOOL;
+    clk : BOOL;
+    tick_ms : TIME;
+    Result : RTS_IEC_RESULT;
+    stUTC_Timestamp : SYSTIME;
+    dRTime : ULINT;
+    dModbusTime : ULINT;
+    iCountRemote : INT;
+    dCountRemote : ULINT;
+    dLastRTime : ULINT;
+    iDiffRTime : DINT;
+    dDelRTime : UNKNOWN;
+    dMeanDelRTime : UNKNOWN;
+    rTriger : Standard.R_TRIG;
+    iDiff : DINT;
+    iDiffLocal : DINT;
+    iDiffETime : DINT;
+    ulACUTimeStamp : ULINT;
+END_VAR
+
+// --- implementation (ST) ---
+// 每次TP结束时翻转状态
+IF NOT tp.Q THEN
+    toggle := NOT toggle;
+    tp.IN := TRUE;
+    tp.PT := tick_ms;
+ELSE
+    tp.IN := FALSE;
+END_IF
+
+tp();
+
+Result := SysTimeRtcHighResGet(stUTC_Timestamp);
+rTriger(CLK:=toggle);
+IF rTriger.Q THEN
+	dRTime := modbus_slave.UTC_New;
+	iDiffRTime:=ULINT_TO_DINT(dRTime-dLastRTime);
+	IF ABS(iDiffRTime)>500 THEN //两次PTP时间差如果大于500毫秒,则判断为上位机时间失锁
+		iCountRemote:=0;
+		dCountRemote:=0;
+		GVL.bRemoteTimeLock:=FALSE;
+	ELSE//否则判断为上位机时间锁定并累计1分钟
+		iCountRemote:=iCountRemote+1;
+	END_IF
+	
+	IF iCountRemote>=20 THEN //累计20s认为时间可用
+		iCountRemote:=20;
+		dDelRTime := TO_ULINT(stUTC_Timestamp) - (dRTime + 8 * 3600 *1000);
+		GVL.bRemoteTimeLock:=TRUE;
+		//对外部和本机时间差做1分钟的均值滤波
+	END_IF
+	//GVL.dRemoteTime:=stUTC_Timestamp*1000000 - dMeanDelRTime;
+	dLastRTime:=dRTime;
+	(*
+	IF GVL.bRemoteTimeLock THEN
+		dCountRemote:= dCountRemote + 1;
+		IF dCountRemote < 10000 THEN
+			dMeanDelRTime := (dMeanDelRTime*(dCountRemote-1) + dDelRTime)/dCountRemote;
+		ELSE
+			dCountRemote := 10000;
+			dMeanDelRTime := (dMeanDelRTime*(dCountRemote-1) + dDelRTime)/dCountRemote; 	
+			//iDiff:=ULINT_TO_DINT(Gvl.dPTPCSTTime-dLastCSTtime);
+			//dLastCSTtime:=dCSTTime;
+		END_IF
+	END_IF
+	*)
+END_IF
+
+ulACUTimeStamp := stUTC_Timestamp - dDelRTime;

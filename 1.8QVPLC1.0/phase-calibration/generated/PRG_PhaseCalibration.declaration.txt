@@ -1,0 +1,17 @@
+﻿PROGRAM PRG_PhaseCalibration
+(* Called ONLY at the end of SecurityCheck, once per Canopen 10 ms cycle.
+   Fixed position mode only. No writes to modes, enables, tracking or persistence.
+   Loss of ownership gives command control back to the existing program immediately.
+   This is not an emergency-stop/safety function. *)
+VAR
+    path : FB_PhaseTriangle;
+    fit : FB_PhaseFit;
+    startOld, startPulse, accepted, permit, ownership : BOOL;
+    sample, finish, newRx, rxLock, doneOld, abortRun : BOOL;
+    seq, lastSeq : UDINT;
+    age : LREAL := 999;
+    sampleTime : LREAL;
+    ua, ue, eb, az, el, centerAz, centerEl : LREAL;
+    baseAz, baseEl, phase : LREAL;
+    direction : INT;
+END_VAR

@@ -1,0 +1,35 @@
+﻿PROGRAM READ_485
+VAR
+	com_init:gcan.FB_Com_Init;      		//gcan.FB_Com_Init为串口初始化功能块，可设定串口端口号，串口波特率等参数
+	com_read:gcan.FB_Com_Read ;				//gcan.FB_Com_Read为串口接收功能块，用于通过接收串口发送给PLC的数据
+	com_write:gcan.FB_Com_Write ;			//gcan.FB_Com_Write为串口发送功能块，用于发送串口数据
+	m_uiError:UINT;							//用于承接功能块中报错引脚错误信息的变量
+	m_out:BOOL;								//用于承接功能块中完成标志引脚数据的变量
+	isFirst:BOOL:=TRUE;						//用于判断初始化只执行一次的逻辑
+	mPort:BYTE;								//程序中用作设定串口端口号
+	recSize:UINT;							//接收数据长度，单位：字节
+	recBuf:ARRAY[0..19] OF BYTE;			//用于存放接收到的串口数据的数组
+	recData:ARRAY[0..8] OF BYTE;			//用于存放整帧数据
+	wAGC:WORD; // agc，电平值
+	iUa:INT; // 方位误差电压，mV
+	iUe:INT; // 俯仰误差电压，mV
+	iChan1DataLen: UINT;
+	chan1_i: INT;
+	chan1_j: INT;
+	Word2Bit1:Word2Bit;
+	Word2Bit2:Word2Bit;
+	Word2Bit3:Word2Bit;
+	rUagcTemp:REAL;
+	rUaTemp:REAL;
+	rUeTemp:REAL;
+	btest:BOOL;
+	btest2:BOOL;
+	
+	rSData:REAL;
+	rQData:REAL;
+	Dword2Bit1:Dword2Bit;
+	Dword2Bit2:Dword2Bit;
+	Chan1EB_N0: REAL;
+	bEBN0Lock:BOOL;
+	icount0:INT;
+END_VAR

@@ -1,0 +1,32 @@
+# kind=struct
+# name=AxisCrtlStruct
+# objectId=2c4cb9db-f1b2-4a86-ae3f-b53babea604b
+
+TYPE AxisCrtlStruct :
+STRUCT
+    iMode : INT;
+    rPosCmd : REAL;
+    rVelCmd : REAL;
+    rPIDCmdVel : LREAL;
+    rPIDCmdPos : LREAL;
+    bPIDEnable : BOOL;
+    bStartAutoTrack : BOOL;
+    rChanU : REAL;
+    rP : REAL := 1.0;
+    rI : REAL := 0;
+    rD : REAL := 0;
+    rPIDThre : INT := 1;
+    rP_AutoTrack : REAL := 3.0;
+    rI_AutoTrack : REAL := 0.02;
+    rAcceleration : REAL := 3;
+    rDeceleration : REAL := 3;
+    rJogVel : LREAL := 2;
+    Pos_Vel : REAL := 4;
+    rPos_Limit : LREAL;
+    rVel_Limit : LREAL := 3;
+    rSoft_limit_Postive : REAL;
+    rSoft_limit_Negative : REAL;
+    rLimitionNegative : LREAL;
+    rLimitionPositive : LREAL;
+END_STRUCT
+END_TYPE

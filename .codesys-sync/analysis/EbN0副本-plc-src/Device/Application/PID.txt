@@ -1,0 +1,79 @@
+# kind=functionBlock
+# name=PID
+# objectId=b5e79cdc-cc76-4950-ba1b-cf91b66aab2b
+
+VAR_INPUT
+    rTarget : REAL;
+    rFeedback : REAL;
+    rPosLimPositive : LREAL;
+    rPosLimNegative : LREAL;
+    rKp : REAL;
+    rKi : REAL;
+    rKd : REAL;
+    iThreshold : INT;
+    bPIDEnable : BOOL;
+    rVelLim : LREAL;
+END_VAR
+
+VAR_OUTPUT
+    rPIDOutput : LREAL;
+    rPIDtrace : LREAL;
+END_VAR
+
+VAR
+    rLastError : LREAL;
+    rErrorNow : LREAL;
+    rIntegralNew : LREAL;
+    rDerivativeNew : LREAL;
+    rDelta : LREAL;
+    rProportionNew : LREAL;
+END_VAR
+
+// --- implementation (ST) ---
+IF (bPIDEnable>0) THEN //如果PID使能
+	IF rTarget=rFeedback THEN
+		rPIDOutput:=0;	
+	ELSE
+	
+		rErrorNow:=rTarget-rFeedback;//计算当前误差 en
+		rProportionNew:=rErrorNow;//比例项
+		//积分项
+		IF rFeedback>rPosLimNegative AND rFeedback<rPosLimPositive THEN //若在软限位之内，工作时开启积分项
+			IF (ABS(rTarget-rFeedback)<iThreshold) THEN//位置差小于积分阈值
+				rIntegralNew:= rIntegralNew+rErrorNow; //积分项
+			ELSE
+				rIntegralNew:=0;
+			END_IF;
+		ELSE //不在软限位范围内,则积分项为0
+			rIntegralNew:=0;
+		END_IF
+
+		//PID输出
+		rPIDOutPut:=rKp*rProportionNew+rKi*rIntegralNew;
+		rPIDtrace:=rKp*rProportionNew+rKi*rIntegralNew;
+
+
+		//PID限速
+		
+			IF rPIDOutput<(-rVelLim) THEN
+				rPIDOutput:=-rVelLim;
+			ELSIF rPIDOutput>rVelLim THEN
+				rPIDOutput:=rVelLim;
+			END_IF
+		
+		
+		IF rFeedback>rPosLimPositive AND rPIDOutput>0 THEN 
+			rPIDOutput:=0;
+		END_IF
+		IF rFeedback<rPosLimNegative AND rPIDOutput<0 THEN
+			rPIDOutput:=0;
+		END_IF
+		
+		rLastError:=rErrorNow;//将当前误差赋值给上一次误差
+		
+	END_IF
+ELSE//非使能清零PID各项
+	rProportionNew:=0.0;
+	rIntegralNew:=0.0;
+	rPIDOutput:=0.0;
+END_IF

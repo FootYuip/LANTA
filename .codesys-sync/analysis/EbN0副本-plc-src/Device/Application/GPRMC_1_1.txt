@@ -1,0 +1,102 @@
+# kind=program
+# name=GPRMC_1_1
+# objectId=a8e8fb54-74d1-4d0f-ac1d-638337e67bb7
+
+VAR
+    com_init : gcan.FB_Com_Init;
+    com_read : gcan.FB_Com_Read;
+    com_write : gcan.FB_Com_Write;
+    m_uiError : UINT;
+    m_out : BOOL;
+    isFirst : BOOL;
+    mPort : BYTE;
+    recSize : UINT;
+    recBuf : ARRAY[0..120] OF BYTE;
+    iYear : INT;
+    iMonth : INT;
+    iDay : INT;
+    iHour : INT;
+    iMinute : INT;
+    iSecond : INT;
+    bChecksumValid : BOOL;
+    nFrameHeadPos : INT;
+    nPos : INT;
+    nChecksumRx : BYTE;
+    strDateTimeNow : UNKNOWN;
+    gnssTimestamp : ULINT;
+    gnssTimestamplast : ULINT;
+    icount : INT;
+END_VAR
+
+// --- implementation (ST) ---
+////////////////////////////////////////////////////////////////////////////////////////
+//串口接收TOD报文解析
+//日期：2025/05/15
+//版本：V1.1
+/////////////////////////////////////////////////////////////////////////////////////////
+
+mPort:=1;                                                                //串口端口号设定，GCAN-PLC-400、GCAN-PLC-510、GCAN-PLC-511，1为232，2为485
+                                                                                //GCAN-PLC-324、GCAN-PLC-326，1为第一路485，2为第2路485
+IF isFirst THEN
+        com_init(                                                        //串口初始化功能块
+        EN_IN:=TRUE,                                                //串口初始化功能块使能
+        xEnable:=TRUE,                                                //串口功能使能
+        bPort:=mPort,                                                //串口端口号设定
+        uiBaudrate:=115200,                                        //串口波特率设定
+        bParity:=0,                                                        //串口奇偶校验设定，0为无校验，1为奇校验，2为偶检验
+        bDatabits:=8,                                                //数据位设定
+        bStopbits:=1,                                                //停止位设定
+        EN_OUT=>m_out,                                                //串口初始化功能块执行完成标志位
+        uiError=>m_uiError);                                //串口初始化功能块执行错误信息
+        isfirst:=FALSE;                                                //执行一次初始化后关闭IF的条件使其之后进入ELSE程序段运行
+
+ELSE
+        
+                com_read(                                                //串口读取功能块
+                EN_in:=TRUE,                                        //读取功能块使能，为TRUE执行读取
+                bPort:=mPort,                                        //串口端口号设定
+                p_brxdata:=ADR(recBuf),                        //读取到的串口数据引脚为指针类型，使用ADR()指向自建数组将数据存放到数组中
+                uiMaxsize:=240,                                        //设定最大读取长度
+                EN_out=>m_out,                                        //串口读取功能块执行完成标志位******功能块执行完成不代表接收完成********
+                uiRecSize=>recSize,                                //串口接收数据长度，单位：字节，大于0时说明接收到数据可用于判断是否接收
+                uierror=>m_uierror);                        //串口读取功能块执行错误信息
+                // 查找帧头 $X (36, 88)
+                FOR nPos := 0 TO 119 DO
+                        IF recBuf[nPos] = 36 AND recBuf[nPos + 1] = 88 THEN
+                                nFrameHeadPos := nPos;
+                                EXIT;
+                        END_IF
+                END_FOR
+                //解析时间日期 
+                IF nFrameHeadPos + 26 <= 120 THEN
+                        iYear:=BYTE_TO_INT(recBuf[nFrameHeadPos+23]-48)*1000+BYTE_TO_INT(recBuf[nFrameHeadPos+24]-48)*100+BYTE_TO_INT(recBuf[nFrameHeadPos+25]-48)*10+BYTE_TO_INT(recBuf[26]-48);
+                        iMonth:=BYTE_TO_INT(recBuf[nFrameHeadPos+20]-48)*10+BYTE_TO_INT(recBuf[nFrameHeadPos+21]-48);
+                        iDay:=BYTE_TO_INT(recBuf[nFrameHeadPos+17]-48)*10+BYTE_TO_INT(recBuf[nFrameHeadPos+18]-48);
+                        iHour:=BYTE_TO_INT(recBuf[nFrameHeadPos+7]-48)*10+BYTE_TO_INT(recBuf[nFrameHeadPos+8]-48)+8;
+                        iMinute:=BYTE_TO_INT(recBuf[nFrameHeadPos+9]-48)*10+BYTE_TO_INT(recBuf[nFrameHeadPos+10]-48);
+                        iSecond:=BYTE_TO_INT(recBuf[nFrameHeadPos+11]-48)*10+BYTE_TO_INT(recBuf[nFrameHeadPos+12]-48);
+                        // 计算时间戳                
+                        
+                        strDateTimeNow := CONCAT(STR1 := 'DT#', STR2 := INT_TO_STRING(iYear));
+                        strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := '-');
+                        strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := INT_TO_STRING(iMonth));
+                        strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := '-');
+                        strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := INT_TO_STRING(iDay));
+                        strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := '-');
+                        strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := INT_TO_STRING(iHour));
+                        strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := ':');
+                        strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := INT_TO_STRING(iMinute));
+                        strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := ':');
+                        strDateTimeNow := CONCAT(STR1 := strDateTimeNow, STR2 := INT_TO_STRING(iSecond));
+                        
+                        gnssTimestamplast:=gnssTimestamp;
+                        gnssTimestamp := DT_TO_ULINT(TO_DT(strDateTimeNow)) * 1000;
+                        GVL.stGNSS_Timestap := gnssTimestamp;                        
+                END_IF
+                
+                IF gnssTimestamplast<>gnssTimestamp THEN
+                        icount:=0;
+                ELSE
+                        icount:=icount+1;
+                END_IF        
+END_IF

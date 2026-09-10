@@ -1,0 +1,184 @@
+﻿mPort:=2;								//串口端口号设定，GCAN-PLC-400、GCAN-PLC-510、GCAN-PLC-511，1为232，2为485
+										//GCAN-PLC-324、GCAN-PLC-326，1为第一路485，2为第2路485
+IF isFirst THEN
+	com_init(							//串口初始化功能块
+	EN_IN:=TRUE,						//串口初始化功能块使能
+	xEnable:=TRUE,						//串口功能使能
+	bPort:=mPort,						//串口端口号设定
+	uiBaudrate:=19200,					//串口波特率设定
+	bParity:=0,							//串口奇偶校验设定，0为无校验，1为奇校验，2为偶检验
+	bDatabits:=8,						//数据位设定
+	bStopbits:=1,						//停止位设定
+	EN_OUT=>m_out,						//串口初始化功能块执行完成标志位
+	uiError=>m_uiError);				//串口初始化功能块执行错误信息
+	isfirst:=FALSE;						//执行一次初始化后关闭IF的条件使其之后进入ELSE程序段运行
+
+ELSE
+	com_read(						//串口读取功能块
+	EN_in:=TRUE,					//读取功能块使能，为TRUE执行读取
+	bPort:=mPort,					//串口端口号设定
+	p_brxdata:=ADR(recBuf),			//读取到的串口数据引脚为指针类型，使用ADR()指向自建数组将数据存放到数组中
+	uiMaxsize:=20,					//设定最大读取长度
+	EN_out=>m_out,					//串口读取功能块执行完成标志位******功能块执行完成不代表接收完成********
+	uiRecSize=>recSize,				//串口接收数据长度，单位：字节，大于0时说明接收到数据可用于判断是否接收
+	uierror=>m_uierror);			//串口读取功能块执行错误信息
+	
+	//GVL.Chan1Lock := BYTE_TO_BOOL(recBuf[1]);
+	IF recBuf[1] = 1 AND GVL.Chan1AGC >= GVL.Chanthreshold THEN
+		GVL.Chan1Lock := TRUE;
+	ELSE
+		GVL.Chan1Lock := FALSE;
+	END_IF
+	Word2Bit1.Apart_Byte[1] := recBuf[2];
+	Word2Bit1.Apart_Byte[2] := recBuf[3];
+	wAGC:=Word2Bit1.Apart_Word;
+	
+	Word2Bit2.Apart_Byte[1] := recBuf[4];
+	Word2Bit2.Apart_Byte[2] := recBuf[5];
+	iUa:=Word2Bit2.Apart_INT;
+	
+	Word2Bit3.Apart_Byte[1] := recBuf[6];
+	Word2Bit3.Apart_Byte[2] := recBuf[7];
+	iUe:=Word2Bit3.Apart_INT;
+	IF ABS(INT_TO_REAL(iUa) * 5 / 2048) <= 5 AND ABS(INT_TO_REAL(iUe) * 5 / 2048) <= 5 AND ABS((WORD_TO_REAL(wAGC) * 5 / 76)) <=5 THEN
+		GVL.Chan1Ua := INT_TO_REAL(iUa) * 5 / 2048;
+		GVL.Chan1Ue := INT_TO_REAL(iUe) * 5 / 2048;
+		GVL.Chan1AGC := 5 - (WORD_TO_REAL(wAGC) * 5 / 76);
+	END_IF
+	
+	(*
+	Dword2Bit1.Apart_Byte[4] := recBuf[8];
+	Dword2Bit1.Apart_Byte[3] := recBuf[9];
+	Dword2Bit1.Apart_Byte[2] := recBuf[10];
+	Dword2Bit1.Apart_Byte[1] := recBuf[11];	
+	
+	
+	Dword2Bit2.Apart_Byte[4] := recBuf[12];
+	Dword2Bit2.Apart_Byte[3] := recBuf[13];
+	Dword2Bit2.Apart_Byte[2] := recBuf[14];
+	Dword2Bit2.Apart_Byte[1] := recBuf[15];	
+	*)
+	
+	Dword2Bit1.Apart_Byte[3] := recBuf[8];
+	Dword2Bit1.Apart_Byte[4] := recBuf[9];
+	Dword2Bit1.Apart_Byte[1] := recBuf[10];
+	Dword2Bit1.Apart_Byte[2] := recBuf[11];	
+	
+	
+	Dword2Bit2.Apart_Byte[3] := recBuf[12];
+	Dword2Bit2.Apart_Byte[4] := recBuf[13];
+	Dword2Bit2.Apart_Byte[1] := recBuf[14];
+	Dword2Bit2.Apart_Byte[2] := recBuf[15];	
+	
+	rQData:=DWORD_TO_REAL(Dword2Bit2.Apart_DWORD);
+	rSData:=DWORD_TO_REAL(Dword2Bit1.Apart_DWORD)-rQData;
+	//rSData:=INT_TO_REAL(Dword2Bit1.Apart_INT) - rQData;
+	
+	IF rSData<>0  AND rQData<>0  THEN
+		Chan1EB_N0 := 10*LOG(ABS(rSData/rQData))+3.8;
+	ELSE
+		Chan1EB_N0 := 0;
+	END_IF
+	
+	//程引、位置模式下，信噪比大于29；或上位机下发自跟踪
+	IF ((GVL.Axis1Remote.iMode = 2 OR GVL.Axis1Remote.iMode = 4) AND Chan1EB_N0 >= 29)AND READ_485.recBuf[1] = 1 OR Modbus_Slave.bStartTrackAcu THEN
+		icount0:=0;
+		bEBN0Lock := TRUE;
+	END_IF
+	IF ( GVL.Axis1Remote.iMode = 4 or GVL.Axis1Remote.iMode =2 ) AND recBuf[1] = 0 THEN
+		icount0:=icount0+1;
+	END_IF
+	IF icount0 > 400 OR (GVL.Axis1Remote.iMode = 0 OR GVL.Axis1Remote.iMode = 0) THEN
+		icount0 := 401;
+		bEBN0Lock := FALSE;
+	END_IF
+(* PHASE_CAL_RX_BEGIN: passive diagnostics; original decoder above is unchanged.
+   Assumes each eligible read starts at original recBuf[0]. Not a frame parser.
+   Admission requires separate operator protocol/alignment confirmation. *)
+GVL_PhaseCal.uiReadSize:=recSize;
+GVL_PhaseCal.uiSerialError:=m_uiError;
+IF recSize>0 THEN
+    IF GVL_PhaseCal.udiReadCount>=4294967294 THEN
+        GVL_PhaseCal.udiReadCount:=0;
+    END_IF;
+    GVL_PhaseCal.udiReadCount:=GVL_PhaseCal.udiReadCount+1;
+    IF recSize<16 THEN
+        IF GVL_PhaseCal.udiShortReadCount>=4294967294 THEN
+            GVL_PhaseCal.udiShortReadCount:=0;
+        END_IF;
+        GVL_PhaseCal.udiShortReadCount:=GVL_PhaseCal.udiShortReadCount+1;
+    END_IF;
+END_IF;
+IF recSize>=16 AND recSize<=20 AND m_uiError=0 AND
+   ABS(INT_TO_REAL(iUa)*5/2048)<=5 AND
+   ABS(INT_TO_REAL(iUe)*5/2048)<=5 AND
+   ABS(WORD_TO_REAL(wAGC)*5/76)<=5 THEN
+    IF GVL_PhaseCal.udiRxSeq>=4294967294 THEN
+        GVL_PhaseCal.udiRxSeq:=1;
+    ELSE
+        GVL_PhaseCal.udiRxSeq:=GVL_PhaseCal.udiRxSeq+1;
+    END_IF;
+    GVL_PhaseCal.lrRxUa:=REAL_TO_LREAL(GVL.Chan1Ua);
+    GVL_PhaseCal.lrRxUe:=REAL_TO_LREAL(GVL.Chan1Ue);
+    GVL_PhaseCal.lrRxEbN0:=REAL_TO_LREAL(Chan1EB_N0);
+    GVL_PhaseCal.lrRxAz:=-REAL_TO_LREAL(GVL.rFctPosReal_2);
+    GVL_PhaseCal.lrRxEl:=REAL_TO_LREAL(GVL.rFctPosReal_1)-90;
+    GVL_PhaseCal.xRxLock:=(recBuf[1]=1);
+    GVL_PhaseCal.udiRxSeq:=GVL_PhaseCal.udiRxSeq+1;
+END_IF;
+(* PHASE_CAL_RX_END *)
+END_IF
+(*
+//加校验
+iChan1DataLen:=recSize-1; //数据长度
+	IF iChan1DataLen > 0 THEN
+		FOR chan1_i:=0 TO iChan1DataLen BY 1 DO
+			
+			IF recBuf[chan1_i] = 16#7E THEN
+				chan1_j:=0;
+			END_IF
+			recData[chan1_j]:=recBuf[chan1_i];
+			
+			chan1_j:=chan1_j+1;
+			IF chan1_j=8 THEN
+				Word2Bit1.Apart_Byte[1] := recData[2];
+				Word2Bit1.Apart_Byte[2] := recData[3];
+				wAGC:=Word2Bit1.Apart_Word;
+				
+				Word2Bit2.Apart_Byte[1] := recData[4];
+				Word2Bit2.Apart_Byte[2] := recData[5];
+				iUa:=Word2Bit2.Apart_INT;
+				
+				Word2Bit3.Apart_Byte[1] := recData[6];
+				Word2Bit3.Apart_Byte[2] := recData[7];
+				iUe:=Word2Bit3.Apart_INT;
+				rUaTemp := INT_TO_REAL(iUa) * 5 / 2048;
+				rUeTemp := INT_TO_REAL(iUe) * 5 / 2048;
+				rUagcTemp := WORD_TO_REAL(wAGC) * 5 / 76;
+				
+				IF ABS(rUagcTemp)<=5 AND ABS(rUaTemp)<=5 AND ABS(rUeTemp)<=5THEN 
+					GVL.Chan1Ua := rUaTemp;
+					GVL.Chan1Ue := rUeTemp;
+					GVL.Chan1AGC := rUagcTemp;
+					IF recData[1] = 1 THEN
+						GVL.Chan1Lock := TRUE;
+					ELSE
+						GVL.Chan1Lock := FALSE;
+					END_IF
+				END_IF
+(* 
+				IF ABS(GVL.Chan1AGC)>5 THEN GVL.Chan1AGC:=5;
+				END_IF
+				IF ABS(GVL.Chan1Ua)>5 THEN GVL.Chan1Ua:=0;
+				END_IF
+				IF ABS(GVL.Chan1Ue)>5 THEN GVL.Chan1Ue:=0;
+				END_IF
+				*)
+				chan1_j:=0;
+			END_IF
+		END_FOR
+	END_IF
+	
+	
+END_IF
+*)

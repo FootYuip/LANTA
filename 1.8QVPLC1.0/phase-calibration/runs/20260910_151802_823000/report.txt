@@ -1,0 +1,25 @@
+﻿source=D:\工作\项目\蓝塔光传2.4米测控信关站\LANTA-main\LANTA\EbN0扫描捕获_1度波束扫描及误差电压EbN0双门限 - 副本.project
+lookup=READ_485; all_matches=2; source_matches=1
+lookup=SecurityCheck; all_matches=2; source_matches=1
+lookup=AutoTrackingCal; all_matches=2; source_matches=1
+lookup=Az_ctrl_1; all_matches=2; source_matches=1
+lookup=El_ctrl_1; all_matches=2; source_matches=1
+lookup=Ti_ctrl_1; all_matches=2; source_matches=1
+lookup=Az_Ctrl_FB; all_matches=1; source_matches=1
+lookup=El_Ctrl_FB; all_matches=1; source_matches=1
+lookup=Modbus_Slave; all_matches=2; source_matches=1
+lookup=GVL; all_matches=1; source_matches=1
+lookup=AxisStatus; all_matches=1; source_matches=1
+lookup=Word2Bit; all_matches=1; source_matches=1
+candidate=D:\工作\项目\蓝塔光传2.4米测控信关站\LANTA-main\LANTA\EbN0扫描捕获_1度波束扫描及误差电压EbN0双门限 - 副本.phase-candidate-20260910_151802_823000.project
+lookup=READ_485; all_matches=2; source_matches=1
+updated=READ_485
+lookup=SecurityCheck; all_matches=2; source_matches=1
+updated=SecurityCheck
+updated=GVL_PhaseCal
+Traceback (most recent call last):
+  File "D:\工作\项目\蓝塔光传2.4米测控信关站\LANTA-main\LANTA\1.8QVPLC1.0\phase-calibration\apply_in_codesys.py", line 205, in <module>
+    main()
+  File "D:\工作\项目\蓝塔光传2.4米测控信关站\LANTA-main\LANTA\1.8QVPLC1.0\phase-calibration\apply_in_codesys.py", line 155, in main
+    obj = app.create_function_block(name)
+AttributeError: 'ScriptObject' object has no attribute 'create_function_block'

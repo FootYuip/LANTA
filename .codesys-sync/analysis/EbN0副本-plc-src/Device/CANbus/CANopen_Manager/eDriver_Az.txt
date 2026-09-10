@@ -1,0 +1,6 @@
+# kind=device_node
+# name=eDriver_Az
+# source=projectstructure_only
+# objectId=780a770e-a542-4ac7-8b80-17ab3d8c5862
+
+# note=CANopen 从站 eDriver_Az（方位轴）设备配置。

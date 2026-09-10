@@ -1,0 +1,39 @@
+# kind=functionBlock
+# name=LinearInter
+# objectId=69085cfb-035e-4c25-9217-ef2769397935
+
+VAR_INPUT
+    tLastTime : ULINT;
+    rLastPos : REAL;
+    tCurTime : ULINT;
+    rCurPos : REAL;
+    tTargetTime : ULINT;
+END_VAR
+
+VAR_OUTPUT
+    rTargetpos : REAL;
+END_VAR
+
+VAR
+    iDelCurLastTime : LREAL;
+    iDelTarCurTime : LREAL;
+    rK : REAL;
+END_VAR
+
+// --- implementation (ST) ---
+//tLastTime:=tLastTime/1000000;
+//tCurTime:=tCurTime/1000000;
+//tTargetTime:=tTargetTime/1000000;
+iDelTarCurTime:=ULINT_TO_LREAL(tTargetTime)-ULINT_TO_LREAL(tCurTime); //x1-x
+IF (tCurTime-tLastTime)<>0 THEN
+	iDelCurLastTime:=ULINT_TO_LREAL(tCurTime)-ULINT_TO_LREAL(tLastTime);  //x-x0
+ELSE
+	iDelCurLastTime:=1.0;
+END_IF
+
+IF iDelTarCurTime<>0 THEN
+	rK:=(rCurPos-rLastPos)/(iDelCurLastTime);
+ELSE
+	rK:=0;
+END_IF
+rTargetpos:=rCurPos+rK*iDelTarCurTime;  //y1 + ((y1-y0)/(x1-x0))*(x-x1)

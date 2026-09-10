@@ -1,0 +1,332 @@
+# kind=program
+# name=SecurityCheck
+# objectId=01e0f185-d49a-4d6d-9268-6e70a0d1342e
+
+VAR
+    bPrelimit_Positive_1 : BOOL;
+    bPrelimit_Negative_1 : BOOL;
+    bPrelimit_Positive_2 : BOOL;
+    bPrelimit_Negative_2 : BOOL;
+    bPrelimit_1 : BOOL;
+    bPrelimit_2 : BOOL;
+    bFinallimit_1 : BOOL;
+    bFinallimit_2 : BOOL;
+    AzError : REAL;
+    ElError : REAL;
+    rELCurrent : REAL;
+    rAzCurrent : REAL;
+    rTlCurrent : REAL;
+    rAz_realpos : REAL;
+    rEL_realpos : REAL;
+    fbScan : SpiralScan;
+    fbScan1 : SpiralScan_1;
+    fbScantest : SpiralScan;
+    enabletest : BOOL;
+    aztest : REAL;
+    eltest : REAL;
+    enable : BOOL;
+    delta : REAL;
+    n_steps : REAL;
+    agc_sim : REAL;
+    lock_sim : BOOL;
+    cycle_cnt : INT;
+    sim_done : BOOL;
+    az_out : REAL;
+    el_out : REAL;
+    done_out : BOOL;
+    bLockSearch : BOOL;
+    rSearchThre : REAL;
+    rSearchThreTemp : REAL;
+    bStartTrackTemp : BOOL;
+    RiseEdge : R_TRIG;
+    FallEdge : F_TRIG;
+    bAcuTrackInhibit : BOOL;
+    icountLostLocking : INT;
+    bErrorLock : BOOL;
+    icountLostLocking1 : INT;
+    bType_out : BOOL;
+    iconutwait : INT;
+    rdelta : REAL;
+    rStep : REAL;
+    bFinish : BOOL;
+    rAzErrorReal : REAL;
+    rElErrorReal : REAL;
+    rAlpha : REAL;
+    icountBaseLock : INT;
+    bScanRun : BOOL;
+    bScanDoneOnce : BOOL;
+    bScanFound : BOOL;
+    az_latch : REAL;
+    el_latch : REAL;
+    bBaseLock : BOOL;
+END_VAR
+
+// --- implementation (ST) ---
+// --- implementation (ST) ---
+// =============================================================================
+// 段 1: 安全逻辑用位置（与显示用 rFctPosReal 可能差符号/零点）
+// =============================================================================
+rAz_realpos := -1 * GVL.rFctPosReal_2;
+rEl_realpos := GVL.rFctPosReal_1 - 90;
+
+// =============================================================================
+// 段 2: 三轴伺服电流监测（仅使能时读 AD，%IW×%ID/1e6）
+// %IW10/%ID4=俯仰, %IW20/%ID9=方位, %IW30/%ID14=倾斜
+// =============================================================================
+IF Axis1Status.bServo_Enable THEN
+	rELCurrent:=DINT_TO_REAL((INT_TO_DINT(%IW10)* %ID4))/1000000.0;  //俯仰轴电流监测
+ELSE
+	rELCurrent:=0;
+END_IF
+
+IF Axis2Status.bServo_Enable THEN
+	rAzCurrent:=DINT_TO_REAL((INT_TO_DINT(%IW20)* %ID9))/1000000.0;  //方位轴电流监测
+ELSE
+	rAzCurrent:=0;
+END_IF
+
+IF Axis3Status.bServo_Enable THEN
+	rTlCurrent:=DINT_TO_REAL((INT_TO_DINT(%IW30)* %ID14))/1000000.0;  //倾斜轴电流监测
+ELSE
+	rTlCurrent:=0;
+END_IF
+
+// =============================================================================
+// 段 3: 跟踪误差（供 SpiralScan 判断扫描方向与完成度）
+// mode2 指向: 命令位置 vs 实际位置
+// mode4 程引: 插值目标+偏置 vs 实际位置（含手动/自跟踪偏置）
+// =============================================================================
+IF Axis2Remote.iMode = 2 THEN
+	AzError:=(-1) * (Axis2Remote.rPosCmd-rFctPosReal_2);
+	ElError:=Axis1Remote.rPosCmd-rFctPosReal_1;	
+END_IF
+
+IF Axis2Remote.iMode = 4 THEN
+	AzError:=rFctPosReal_2-RealTimePosCal.rInterazPos-(az_ctrl_1.rStepBias+az_ctrl_1.rAuToStepBias);
+	ElError:=RealTimePosCal.rInterElPos-rFctPosReal_1+ (El_ctrl_1.rStepBias+EL_ctrl_1.rAuToStepBias);
+END_IF
+(*
+rAzErrorReal := rAzErrorReal + rAlpha * (AzError - rAzErrorReal);
+rElErrorReal := rElErrorReal + rAlpha * (ElError - rElErrorReal);
+*)
+
+// =============================================================================
+// 段 4: 远控故障复位（Modbus bCommReset → GVL.bError_Reset）
+// =============================================================================
+IF NOT GVL.bLocalCtrl THEN
+	IF Modbus_Slave.bCommReset THEN
+		GVL.bError_Reset:=TRUE;
+	ELSE
+		GVL.bError_Reset:=FALSE;
+	END_IF
+END_IF
+
+// =============================================================================
+// 段 5: 远控 rPosCmd 赋值（含 AGC 搜索偏置或测试扫描偏置）
+// 非 bSearch: Modbus 目标 + eltest/aztest
+// bSearch:   Modbus 目标 + *_ctrl_1 的 rSearchNextStepTarget_tb
+// =============================================================================
+IF NOT modbus_slave.bSearch THEN
+	Axis1Remote.rPosCmd:=Modbus_Slave.rPosCmd_1 + eltest;
+	Axis2Remote.rPosCmd:=Modbus_Slave.rPosCmd_2 - aztest;
+ELSE
+	Axis1Remote.rPosCmd:=Modbus_Slave.rPosCmd_1 + El_ctrl_1.rSearchNextStepTarget_tb;
+	Axis2Remote.rPosCmd:=Modbus_Slave.rPosCmd_2 + Az_ctrl_1.rSearchNextStepTarget_tb;
+END_IF
+
+// =============================================================================
+// 段 6: 远控三轴命令参量 — Modbus_Slave → AxisXRemote（核心汇总）
+// 俯仰/方位 rPosCmd 已在段 5 赋值；此处写 mode/速度/PID/加减速等
+// =============================================================================
+Axis1Remote.iMode:=Modbus_Slave.iMode_1;
+Axis1Remote.rVelCmd:=Modbus_Slave.rVelcmd_1;
+//Axis1Remote.rPosCmd:=Modbus_Slave.rPosCmd_1;
+Axis1Remote.rP:=Modbus_Slave.rP_1;
+Axis1Remote.rI:=Modbus_Slave.rI_1;
+Axis1Remote.rD:=Modbus_Slave.rD_1;
+Axis1Remote.rPIDThre:=Modbus_Slave.rThreshold_1;
+Axis1Remote.rAcceleration:=Modbus_Slave.rAcceleration_1;
+Axis1Remote.rDeceleration:=Modbus_Slave.rDeceleration_1;
+Axis1Remote.rVel_Limit:=Modbus_Slave.rVelLim_1;
+
+Axis2Remote.iMode:=Modbus_Slave.iMode_2;
+Axis2Remote.rVelCmd:=Modbus_Slave.rVelcmd_2;
+//Axis2Remote.rPosCmd:=Modbus_Slave.rPosCmd_2;
+Axis2Remote.rP:=Modbus_Slave.rP_2;
+Axis2Remote.rI:=Modbus_Slave.rI_2;
+Axis2Remote.rD:=Modbus_Slave.rD_2;
+Axis2Remote.rPIDThre:=Modbus_Slave.rThreshold_2;
+Axis2Remote.rAcceleration:=Modbus_Slave.rAcceleration_2;
+Axis2Remote.rDeceleration:=Modbus_Slave.rDeceleration_2;
+Axis2Remote.rVel_Limit:=Modbus_Slave.rVelLim_2;
+
+Axis3Remote.iMode:=Modbus_Slave.iMode_3;
+Axis3Remote.rVelCmd:=Modbus_Slave.rVelcmd_3;
+Axis3Remote.rPosCmd:=Modbus_Slave.rPosCmd_3;
+Axis3Remote.rP:=Modbus_Slave.rP_3;
+Axis3Remote.rI:=Modbus_Slave.rI_3;
+Axis3Remote.rD:=Modbus_Slave.rD_3;
+Axis3Remote.rPIDThre:=Modbus_Slave.rThreshold_3;
+Axis3Remote.rAcceleration:=Modbus_Slave.rAcceleration_3;
+Axis3Remote.rDeceleration:=Modbus_Slave.rDeceleration_3;
+
+(* 本控 HMI 赋值块已注释，本控参数由其他 POU 写入 AxisXLocal *)
+
+// =============================================================================
+// 段 7: 俯仰预限位 → Error_code 201(正)/202(负)，置位上报标志
+// bPrelimit_1 由硬件 IO 映射；触发后根据当前位置方向区分正负限位
+// =============================================================================
+IF bPrelimit_1 THEN
+	IF rFctPosReal_1>0 THEN
+		bPrelimit_Positive_1:=TRUE;
+		Error_code:=201;
+	ELSE
+		bPrelimit_Negative_1:=TRUE;
+		Error_code:=202;
+	END_IF;
+ELSE
+	bPrelimit_Negative_1:=FALSE;
+	bPrelimit_Positive_1:=FALSE;
+	;
+END_IF
+
+// =============================================================================
+// 段 8: 方位预限位（仅置标志，Error_code 203/204 已注释）
+// =============================================================================
+IF bPrelimit_2 THEN
+	IF rFctPosReal_2>0 THEN
+		//Error_code:=203;
+		bPrelimit_Positive_2:=TRUE;;
+	ELSE
+		//Error_code:=204;
+		bPrelimit_Negative_2:=TRUE;;
+	END_IF;
+ELSE
+	bPrelimit_Negative_2:=FALSE;
+	bPrelimit_Positive_2:=FALSE;
+	;
+END_IF
+
+// =============================================================================
+// 段 9: 扫描合格点 — Eb/N0>28 且基带锁定（recBuf[1]）
+// =============================================================================
+bBaseLock := (READ_485.recBuf[1] = 1);
+bLockSearch := (READ_485.Chan1EB_N0 > 28.0) AND bBaseLock;
+bErrorLock  := (SQRT(GVL.Chan1Ua * GVL.Chan1Ua + GVL.Chan1Ue * GVL.Chan1Ue) <= PersistentVars.rErrorThre);
+
+// =============================================================================
+// 段 10: 启扫 — 双轴程引、未自跟踪、基带锁连续 2s（200×10ms）触发一次
+// 扫描过程中允许短暂掉锁；找到合格点后本程引周期内不再重扫
+// 退出程引则清锁存
+// =============================================================================
+IF Axis1Remote.iMode = 4 AND Axis2Remote.iMode = 4 THEN
+	IF NOT GVL.bStartTrack AND NOT bScanRun AND NOT bScanFound THEN
+		IF bBaseLock THEN
+			icountBaseLock := icountBaseLock + 1;
+			IF icountBaseLock >= 200 THEN
+				icountBaseLock := 200;
+				bScanRun := TRUE;
+			END_IF
+		ELSE
+			icountBaseLock := 0;
+		END_IF
+	ELSE
+		icountBaseLock := 0;
+	END_IF
+	enable := bScanRun AND NOT GVL.bStartTrack;
+ELSE
+	enable := FALSE;
+	bScanRun := FALSE;
+	bScanDoneOnce := FALSE;
+	bScanFound := FALSE;
+	az_latch := 0.0;
+	el_latch := 0.0;
+	icountBaseLock := 0;
+END_IF
+
+// 螺旋局部参数（与直线 PersistentVars.rStep 量纲不同：此处为每格周期数）
+IF rdelta < 1.0E-6 THEN
+	rdelta := 0.25;
+END_IF
+IF rStep < 1.0E-6 THEN
+	rStep := 12.0;
+END_IF
+
+// =============================================================================
+// 段 11: 调用扫描 FB — 直线或螺旋；合格点 locked=Eb/N0>28 且基带锁
+// =============================================================================
+IF NOT PersistentVars.bSearchType THEN
+	fbScan(
+		enable      := enable,
+		delta       := PersistentVars.rAzScanRange,
+		delta1      := PersistentVars.rElScanRange,
+		n_steps     := PersistentVars.rStep,
+		agc      := READ_485.Chan1EB_N0,
+		locked     := bLockSearch,
+		AzError := AzError,
+		elError := elError,
+		bTrackState := GVL.bStartTrack,
+		azimuth     => az_out,
+		elevation   => el_out,
+		done        => done_out,
+		bType  =>bType_out
+	);
+ELSE
+	fbScan1(
+		enable      := enable,
+		delta       := rdelta,
+		n_steps     := rStep,
+		agc      := READ_485.Chan1EB_N0,
+		locked     := bLockSearch,
+		AzError := AzError,
+		elError := elError,
+		azimuth     => az_out,
+		elevation   => el_out,
+		done        => done_out,
+		bType  =>bType_out
+	);
+END_IF
+
+// 扫描结束：找到则锁存 -Error；未找到锁存 0。此后 az_out/el_out 用锁存值
+IF bScanRun AND done_out THEN
+	bScanRun := FALSE;
+	bScanDoneOnce := TRUE;
+	IF bType_out THEN
+		az_latch := az_out;
+		el_latch := el_out;
+		bScanFound := TRUE;
+	ELSE
+		az_latch := 0.0;
+		el_latch := 0.0;
+		bScanFound := FALSE;
+	END_IF
+END_IF
+IF GVL.bStartTrack AND bScanRun THEN
+	bScanRun := FALSE;
+	bScanDoneOnce := TRUE;
+END_IF
+IF NOT bScanRun THEN
+	az_out := az_latch;
+	el_out := el_latch;
+END_IF
+
+// =============================================================================
+// 段 12: 自跟踪只跟 ACU HR[7].B10（上升沿开、下降沿关），扫描结束不置位
+// =============================================================================
+IF Axis1Remote.iMode = 4 AND Axis2Remote.iMode = 4 THEN
+	RiseEdge(CLK := Modbus_Slave.bStartTrackAcu);
+	FallEdge(CLK := Modbus_Slave.bStartTrackAcu);
+	IF RiseEdge.Q THEN
+		GVL.bStartTrack := TRUE;
+	END_IF;
+	IF FallEdge.Q THEN
+		GVL.bStartTrack := FALSE;
+	END_IF;
+ELSE
+	GVL.bStartTrack := Modbus_Slave.bStartTrackAcu;
+	icountLostLocking := 0;
+	icountLostLocking1 := 0;
+	Iconutwait := 0;
+END_IF
+
+(* fbScantest 测试块已注释 *)

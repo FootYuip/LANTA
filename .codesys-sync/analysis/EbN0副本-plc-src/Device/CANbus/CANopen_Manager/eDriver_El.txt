@@ -1,0 +1,6 @@
+# kind=device_node
+# name=eDriver_El
+# source=projectstructure_only
+# objectId=90373268-4ade-48e7-9bf5-1d292f3e5aa3
+
+# note=CANopen 从站 eDriver_El（俯仰轴）设备配置。

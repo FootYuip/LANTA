@@ -1,0 +1,154 @@
+# kind=functionBlock
+# name=SpiralScan_1
+# objectId=c7031715-f3ba-44a8-b5e5-5f20bbd550de
+
+VAR_INPUT
+    enable : BOOL;
+    delta : REAL;
+    n_steps : REAL;
+    agc : REAL;
+    locked : BOOL;
+    AzError : REAL;
+    ELError : REAL;
+END_VAR
+
+VAR_OUTPUT
+    azimuth : REAL;
+    elevation : REAL;
+    done : BOOL;
+    bType : BOOL;
+END_VAR
+
+VAR
+    lock_count : INT;
+    best_agc : REAL;
+    best_az : REAL;
+    best_el : REAL;
+    bInit : BOOL;
+    icount0 : INT;
+    icount1 : INT;
+    x : REAL;
+    y : REAL;
+    dx : REAL;
+    dy : REAL;
+    step_len : REAL;
+    step_count : REAL;
+    segment_progress : REAL;
+    move_count : REAL;
+    state : INT;
+    az0 : REAL;
+    el0 : REAL;
+    az1 : REAL;
+    el1 : REAL;
+    segment_az_step : REAL;
+    segment_el_step : REAL;
+    side_repeat : REAL;
+    icountInit : INT;
+END_VAR
+
+// --- implementation (ST) ---
+IF NOT enable THEN
+    state := 0;
+    azimuth := 0.0;
+    elevation := 0.0;
+    done := FALSE;
+	lock_count := 0;
+	icount0 := 0;
+	segment_progress := 0.0;
+	bInit := FALSE;
+	best_agc := 0.0;
+    best_az := 0.0;
+    best_el := 0.0;
+	icountInit := 0;
+	bType := FALSE;
+ELSE
+    CASE state OF
+        0:
+			state := 1;
+			lock_count := 0;
+        1:
+            IF NOT bInit THEN
+				x := 0.0; y := 0.0;
+				dx := 1.0; dy := 0.0;
+				step_len := 1.0;
+				step_count := 0.0;
+				move_count := 1.0;
+				side_repeat := 0.0;
+				az0 := 0.0; el0 := 0.0;
+				az1 := delta * x;
+				el1 := delta * y;
+				segment_az_step := (az1 - az0) / n_steps;
+				segment_el_step := (el1 - el0) / n_steps;
+				segment_progress := 0.0;
+				bInit := TRUE;
+			ELSE
+				azimuth := az0 + segment_az_step * (segment_progress + 1.0);
+				elevation := el0 + segment_el_step * (segment_progress + 1.0);
+				segment_progress := segment_progress + 1.0;
+
+				IF segment_progress >= n_steps THEN
+					segment_progress := 0.0;
+					az0 := az1;
+					el0 := el1;
+					x := x + dx;
+					y := y + dy;
+					move_count := move_count + 1.0;
+
+					az1 := delta * x;
+					el1 := delta * y;
+					segment_az_step := (az1 - az0) / n_steps;
+					segment_el_step := (el1 - el0) / n_steps;
+
+					step_count := step_count + 1.0;
+					IF step_count >= step_len THEN
+						step_count := 0.0;
+						IF dx = 1.0 AND dy = 0.0 THEN
+							dx := 0.0; dy := 1.0;
+						ELSIF dx = 0.0 AND dy = 1.0 THEN
+							dx := -1.0; dy := 0.0;
+						ELSIF dx = -1.0 AND dy = 0.0 THEN
+							dx := 0.0; dy := -1.0;
+						ELSIF dx = 0.0 AND dy = -1.0 THEN
+							dx := 1.0; dy := 0.0;
+						END_IF
+
+						side_repeat := side_repeat + 1.0;
+						IF side_repeat >= 2.0 THEN
+							side_repeat := 0.0;
+							step_len := step_len + 1.0;
+						END_IF
+					END_IF
+				END_IF
+
+				IF ABS(azimuth - 4 * delta) < 1E-6 AND ABS(elevation) < 1E-6 THEN
+					azimuth := 0.0;
+					elevation := 0.0;
+					done := TRUE;
+					state := 3;
+				ELSE
+					IF locked THEN
+					   lock_count := lock_count + 1;
+					ELSE
+					   lock_count := 0;
+					END_IF
+					IF lock_count >= 10 THEN
+					   azimuth := -Azerror;
+            		   elevation := -elError;
+					   done := TRUE;
+					   state := 2;
+					END_IF
+				END_IF
+			END_IF
+        2:
+            done := TRUE;
+        3:
+            azimuth := 0.0;
+            elevation := 0.0;
+            done := TRUE;
+    END_CASE
+	IF state = 2 THEN
+		bType := TRUE;
+	ELSIF state = 3 THEN
+		bType := FALSE;
+	END_IF
+END_IF;

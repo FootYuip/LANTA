@@ -1,0 +1,63 @@
+# kind=program
+# name=TimeCase
+# objectId=8e7a7244-a61d-4720-a592-6679a8ac64b5
+
+VAR
+    stUTC_Timestamp : SYSTIME;
+    stSYS_Timestamp : ULINT;
+    stGNSS_Timestap : ULINT;
+    Result : RTS_IEC_RESULT;
+    Uptriger : Standard.R_TRIG;
+    Triger AT %IX0.0 : BOOL;
+    Feed AT %QX0.0 : BOOL;
+    TON_F : TON;
+    dDelPTime : DINT;
+    max_DelPTime : DINT;
+    min_DelPTime : DINT;
+    iCount : INT;
+    dtNow : DT;
+    dtGNSS : DT;
+    dtLastGNSS : ULINT;
+    iDiffETime : DINT;
+    DelPTime : DINT;
+END_VAR
+
+// --- implementation (ST) ---
+//计算时间误差序列
+Result := SysTimeRtcHighResGet(stUTC_Timestamp);        
+stSYS_Timestamp := TO_ULINT(stUTC_Timestamp);           // ULINT，获取本地时间
+dtNow := TO_DT(stUTC_Timestamp / 1000); 		        // 转换为DATE_AND_TIME类型
+
+Uptriger(CLK:=Triger);                                  //检测PPS上升沿
+IF Uptriger.Q THEN                                      //上升沿触发后，GPRMC解析，DO0上升沿输出（电平24V）
+	Feed:=TRUE;	
+	dtGNSS := TO_DT(GVL.stGNSS_Timestap / 1000); 	    // 拿到串口时间数据			                                     
+	iDiffETime:=ULINT_TO_DINT(GVL.stGNSS_Timestap-dtLastGNSS);  
+	dtLastGNSS:=GVL.stGNSS_Timestap;                    //缓存上一周期时间戳（ms)  
+	dDelPTime:=ULINT_TO_DINT(GVL.stGNSS_Timestap - stSYS_Timestamp);       //计算误差	              
+	IF iDiffETime = 1000 THEN                           //确保时间更新步进1S
+		IF dDelPTime < 0 THEN                           //更新最小值
+			IF dDelPTime < min_DelPTime THEN
+				min_DelPTime:=dDelPTime;
+				DelPTime:=min_DelPTime;                 
+			END_IF		
+		ELSE                                            //更新最大值
+			IF dDelPTime > max_DelPTime THEN
+				max_DelPTime:=dDelPTime;
+				DelPTime:=max_DelPTime;
+			END_IF
+		END_IF	
+	END_IF				    						
+	iCount:=iCount+1;
+	IF iCount >= 60 THEN                                //一分钟校一次时间
+		GVL.dDelTime:=DelPTime;
+		max_DelPTime:=0;
+		min_DelPTime:=0;	
+		iCount:=0;
+	END_IF
+	
+END_IF
+TON_F(IN:=Feed, PT:=T#100MS, Q=>,ET=>);                 //脉宽200ms（测试时延，为了在示波器看波形）
+IF TON_F.Q THEN
+	Feed:=FALSE;		
+END_IF

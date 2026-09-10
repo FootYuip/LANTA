@@ -1,0 +1,146 @@
+# kind=functionBlock
+# name=vpid
+# objectId=7c72a0b3-617e-4a04-be4b-ecd1af0fd60f
+
+VAR_INPUT
+    rTarget : REAL;
+    rFeedback : REAL;
+    rPosLimPositive : LREAL;
+    rPosLimNegitive : LREAL;
+    rKpBase : REAL;
+    rKiBase : REAL;
+    rVelThreshold : LREAL;
+    rKpScale : REAL;
+    rKiScale : REAL;
+    iThrehold : INT;
+    bPIDEnable : BOOL;
+    rVelLim : LREAL;
+    rKpMax : REAL;
+    rKiMax : REAL;
+    rElPos : REAL;
+END_VAR
+
+VAR_OUTPUT
+    rPIDOutput : LREAL;
+    rPIDOutDir : LREAL;
+END_VAR
+
+VAR
+    rLastFeedback : LREAL;
+    rErrorNow : LREAL;
+    rIntegralNew : LREAL;
+    rDelta : LREAL;
+    rProportionNew : LREAL;
+    rSpeed : REAL;
+    rKp : REAL;
+    rKi : REAL;
+    rInterValueNow : LREAL;
+    rInterValueLast : LREAL;
+    rStep : LREAL;
+    rKpTarget : REAL;
+    rKiTarget : REAL;
+END_VAR
+
+// --- implementation (ST) ---
+IF (bPIDEnable) THEN // 如果PID使能
+    IF rTarget = rFeedback THEN
+        rPIDOutDir := 0;    
+    ELSE
+        rErrorNow := rTarget - rFeedback; // 计算当前误差
+        rProportionNew := rErrorNow;      // 比例项
+		
+		IF rElPos > rVelThreshold THEN
+			rKpTarget := rKpBase + rKpScale * (rElPos - rVelThreshold);
+			rKiTarget := rKiBase + rKiScale * (rElPos - rVelThreshold);
+		ELSE
+			rKpTarget := rKpBase;
+			rKiTarget := rKiBase;
+		END_IF
+//         rInterValueLast := rInterValueNow; // 将当前插值位置值赋值给上一次
+// 		rInterValueNow := RealTimePosCal.ElCubicInter.sout*10000.0;
+//         // 计算当前速度
+//         // rSpeed := ABS(rFeedback - rLastFeedback);
+//         rSpeed := ABS(rInterValueNow - rInterValueLast)/10000.0;
+// 		
+//         // 根据速度调整PI增益
+//         IF rSpeed > rVelThreshold THEN
+//             rKpTarget := rKpBase + rKpScale * (rSpeed - rVelThreshold);
+//             rKiTarget := rKiBase + rKiScale * (rSpeed - rVelThreshold);
+//         ELSE
+//             rKpTarget := rKpBase;
+//             rKiTarget := rKiBase;
+//         END_IF
+        IF rKpTarget > rKpMax THEN
+			rKpTarget := rKpMax;
+		END_IF
+		IF rKiTarget > rKiMax THEN
+			rKiTarget := rKiMax;
+		END_IF
+		
+		IF rKp<=rKpTarget THEN
+			rKp:=rKp+rStep;
+		ELSE
+			rKp:=rKp-rStep;
+		END_IF
+		IF rKi<=rKiTarget THEN
+			rKi:=rKi+(rKiScale/rKpScale)*rStep;
+		ELSE
+			rKi:=rKi-(rKiScale/rKpScale)*rStep;
+		END_IF
+	END_IF
+        // 积分项
+        IF rFeedback > rPosLimNegitive AND rFeedback < rPosLimPositive THEN // 若在软限位之内，工作时开启积分项
+            IF (ABS(rTarget - rFeedback) < iThrehold) THEN // 位置差小于积分阈值
+                rIntegralNew := rIntegralNew + rErrorNow;  // 积分项
+            ELSE
+                rIntegralNew := rIntegralNew;  // 积分项
+            END_IF;
+        ELSE // 不在软限位范围内，则积分项为0
+            rIntegralNew := 0;
+        END_IF
+        (*
+        // 防止目标位置与当前位置偏差过大，导致比例项输出太大，引起震动
+        IF rKp * rProportionNew > 2 THEN
+            rPIDOutput := 2;
+        ELSIF rKp * rProportionNew < -2 THEN
+            rPIDOutput := -2;
+        ELSE
+            rPIDOutput := rKp * rProportionNew + rKi * rIntegralNew / 1000.0; // 由于需求积分项过小，因此积分系数在接口数据上除1000
+        END_IF
+        *)
+		rPIDOutput := rKp * rProportionNew + rKi * rIntegralNew; // 由于需求积分项过小，因此积分系数在接口数据上除1000
+        // 根据方向设置输出
+        IF rPIDOutput < 0 THEN
+
+            rPIDOutDir := rPIDOutput;
+        ELSE
+
+            rPIDOutDir := rPIDOutput;
+        END_IF
+        
+        // PID限速
+        IF (ABS(rPIDOutDir) > rVelLim) THEN
+            IF rPIDOutDir < (-rVelLim) THEN
+                rPIDOutDir := -rVelLim;
+            ELSIF rPIDOutDir > rVelLim THEN
+                rPIDOutDir := rVelLim;
+            END_IF
+        END_IF
+        
+        // 位置限位检查
+        IF rFeedback > rPosLimPositive AND rPIDOutDir > 0  THEN
+            rPIDOutDir := 0;
+        END_IF
+        IF rFeedback < rPosLimNegitive AND rPIDOutDir <= 0 THEN
+            rPIDOutDir := 0;
+        END_IF
+        
+        //rLastFeedback := rFeedback; // 将当前反馈值赋值给上一次反馈值
+		//rInterValueLast := rInterValueNow; // 将当前插值位置值赋值给上一次
+
+ELSE // 非使能清零PID各项
+    rProportionNew := 0.0;
+    rIntegralNew := 0.0;
+    rPIDOutDir := 0.0;
+    rPIDOutput := 0.0;
+END_IF

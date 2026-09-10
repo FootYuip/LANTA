@@ -1,0 +1,25 @@
+﻿FUNCTION_BLOCK FB_PhaseTriangle
+(* Pure offset generator. Does NOT write axis commands or change operating modes.
+   Caller supplies elapsed seconds and motion permission; xStart is rising-edge.
+   xAbort returns offsets smoothly while permission remains valid.
+   Permission loss holds offsets and sets xFault: existing axis safety owns stopping.
+   Release a held offset only after the caller has safely transferred command ownership. *)
+VAR_INPUT
+    xStart, xAbort, xPermit : BOOL;
+    xResetHeld : BOOL;
+    lrDtSec : LREAL;
+    lrRadiusDeg : LREAL := 0.05;
+    lrLegTimeSec : LREAL := 10.0;
+    lrSettleSec : LREAL := 1.0;
+END_VAR
+VAR_OUTPUT
+    xBusy, xDone, xAborted, xFault : BOOL;
+    uiState : UINT;
+    lrAzBias, lrElBias : LREAL;
+    xCollect : BOOL;
+END_VAR
+VAR
+    startOld : BOOL;
+    elapsed, leg, settle, side, u, blend : LREAL;
+    fromAz, fromEl, toAz, toEl : LREAL;
+END_VAR

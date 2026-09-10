@@ -1,0 +1,13 @@
+# kind=union
+# name=Dword2Bit
+# objectId=fa475412-910c-4306-908f-1bc1752d295c
+
+TYPE Dword2Bit :
+UNION
+    Apart_Dword : DWORD;
+    Apart_Word : ARRAY[1..2] OF WORD;
+    Apart_Byte : ARRAY[1..4] OF BYTE;
+    Apart_Real : REAL;
+    Apart_Int : INT;
+END_UNION
+END_TYPE

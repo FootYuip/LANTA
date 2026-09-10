@@ -1,0 +1,59 @@
+﻿xCollect:=FALSE;
+IF xResetHeld AND NOT xPermit AND uiState=900 THEN
+    uiState:=0; xBusy:=FALSE; xFault:=FALSE;
+    lrAzBias:=0; lrElBias:=0;
+END_IF;
+IF xStart AND NOT startOld AND NOT xBusy AND uiState<>900 THEN
+    xDone:=FALSE; xAborted:=FALSE; xFault:=FALSE;
+    (* 0.1 is an unvalidated commissioning ceiling, NOT a proven linear range. *)
+    IF NOT xPermit OR lrRadiusDeg<=0 OR lrRadiusDeg>0.1 OR
+       lrLegTimeSec<2 OR lrSettleSec<0.1 OR lrSettleSec>30 THEN
+        xFault:=TRUE;
+    ELSE
+        side:=lrRadiusDeg/SQRT(2.0);
+        leg:=lrLegTimeSec; settle:=lrSettleSec;
+        elapsed:=0; lrAzBias:=0; lrElBias:=0;
+        uiState:=10; xBusy:=TRUE;
+    END_IF;
+END_IF;
+startOld:=xStart;
+
+IF xBusy AND uiState<>900 THEN
+    IF NOT xPermit OR lrDtSec<=0 OR lrDtSec>0.1 THEN
+        xFault:=TRUE; uiState:=900;
+    ELSE
+        IF xAbort AND uiState<>800 THEN
+            fromAz:=lrAzBias; fromEl:=lrElBias;
+            toAz:=0; toEl:=0; elapsed:=0;
+            xAborted:=TRUE; uiState:=800;
+        END_IF;
+        elapsed:=elapsed+lrDtSec;
+        CASE uiState OF
+            10,30,50,70:
+                xCollect:=TRUE; (* caller still gates new-frame, quality, position settling *)
+                IF elapsed>=settle THEN
+                    elapsed:=0; fromAz:=lrAzBias; fromEl:=lrElBias;
+                    CASE uiState OF
+                        10: toAz:=0; toEl:=side; uiState:=20;
+                        30: toAz:=side; toEl:=side; uiState:=40;
+                        50: toAz:=0; toEl:=0; uiState:=60;
+                        70: xBusy:=FALSE; xDone:=TRUE; uiState:=0;
+                    END_CASE;
+                END_IF;
+            20,40,60,800:
+                u:=LIMIT(0.0,elapsed/leg,1.0);
+                blend:=u*u*u*(10.0+u*(-15.0+6.0*u));
+                lrAzBias:=fromAz+(toAz-fromAz)*blend;
+                lrElBias:=fromEl+(toEl-fromEl)*blend;
+                xCollect:=(uiState<>800) AND (u>0.1) AND (u<0.9);
+                IF u>=1 THEN
+                    elapsed:=0;
+                    IF uiState=800 THEN
+                        xBusy:=FALSE; uiState:=0;
+                    ELSE
+                        uiState:=uiState+10;
+                    END_IF;
+                END_IF;
+        END_CASE;
+    END_IF;
+END_IF;

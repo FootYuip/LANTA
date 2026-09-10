@@ -1,0 +1,22 @@
+# kind=struct
+# name=AxisStatus
+# objectId=e9d1435d-ac4f-407e-8744-02959c4b09b2
+
+TYPE AxisStatus :
+STRUCT
+    Valid : BOOL;
+    Busy : BOOL;
+    Error : BOOL;
+    ErrorID : UINT;
+    ErrorStop : BOOL;
+    Disabled : BOOL;
+    Stopping : BOOL;
+    Homing : BOOL;
+    Standstill : BOOL;
+    DiscreteMotion : BOOL;
+    ContinuousMotion : BOOL;
+    bServo_Enable : BOOL;
+    bBrake : BOOL;
+    Moving : BOOL;
+END_STRUCT
+END_TYPE

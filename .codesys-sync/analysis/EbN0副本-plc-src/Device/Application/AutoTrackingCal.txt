@@ -1,0 +1,84 @@
+# kind=program
+# name=AutoTrackingCal
+# objectId=d31898b0-2e29-4c5d-8ff3-31cd90e84e15
+
+VAR
+    rChanUa : REAL;
+    rChanUe : REAL;
+    rChanAGC : REAL;
+    bChanLock : BOOL;
+    iCountATLock : INT;
+    iState : INT;
+    rAzSum : LREAL;
+    rElSum : LREAL;
+    rDirSenFac : REAL;
+    rCurentEl : LREAL;
+    rk : LREAL;
+    rChanUaLocal : REAL;
+    rChanUeLocal : REAL;
+END_VAR
+
+// --- implementation (ST) ---
+(*
+IF iState=1 THEN
+	rChanUa:=GVL.Chan1Ua;
+	rChanUe:=GVL.Chan1Ue;
+	rChanAGC:=GVL.Chan1AGC;
+	bChanLock:=TRUE;
+ELSIF iState=2 THEN
+	rChanUa:=GVL.Chan2Ua;
+	rChanUe:=GVL.Chan2Ue;
+	rChanAGC:=GVL.Chan2AGC;
+	bChanLock:=TRUE;
+ELSE 
+	bChanLock:=FALSE;
+END_IF
+*)
+
+//iState:=modbusSlave.Trace_Num;//跟踪支路选择
+iState:=1;
+
+CASE iState OF 
+	1://使用跟踪接收机1 且锁定标识为True
+		//
+		//bChanLock:=TRUE;
+		//方位
+		IF GVL.bStartTrack AND (GVL.Chan1Lock OR Securitycheck.bErrorLock) THEN
+			//根据误差电压正负决定拉偏方向
+			rChanUa:=GVL.Chan1Ua;
+			//rChanUa:=rChanUa/UDINT_TO_REAL(modbusSlave.DirSenFac);
+			rChanUa:=rChanUa/rDirSenFac;
+			rCurentEl:=(rFctPosReal_1-90)*3.1415926535897/180.0;
+			rChanUa:=rChanUa/COS(rCurentEl);
+			
+			//俯仰
+			rChanUe:=GVL.Chan1Ue;
+			//rChanUe:=rChanUe/UDINT_TO_REAL(modbusSlave.DirSenFac);;
+			rChanUe:=rChanUe/rDirSenFac;
+			rChanAGC:=GVL.Chan1AGC;
+			
+			//累积量
+			rAzSum:=rAzSum+rk*rChanUa/1000.0;
+			rElSum:=rElSum+rk*rChanUe/1000.0;
+		ELSE
+			rAzSum:=0;
+			rElSum:=0;
+			rChanUa:=0;
+			rChanUe:=0;
+		END_IF
+		
+	2://使用跟踪接收机2 且锁定标识为True
+		//
+		//bChanLock:=TRUE;
+		rChanUa:=GVL.Chan2Ua;
+		rChanUe:=GVL.Chan2Ue;
+		rChanAGC:=GVL.Chan2AGC;
+		//跟踪接收机拉偏量
+		(*
+		rChanUa:=GVL.Chan2Ua/modbusSlave.DirSenFac;
+		rChanUe:=GVL.Chan2Ue/modbusSlave.DirSenFac;
+		*)
+	3://锁定标识符为False
+		//
+		//bChanLock:=FALSE;
+END_CASE

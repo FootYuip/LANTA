@@ -1,0 +1,21 @@
+﻿source=D:\工作\项目\蓝塔光传2.4米测控信关站\LANTA-main\LANTA\EbN0扫描捕获_1度波束扫描及自跟踪优化 - 副本.project
+Traceback (most recent call last):
+  File "D:\工作\项目\蓝塔光传2.4米测控信关站\LANTA-main\LANTA\1.8QVPLC1.0\phase-calibration\apply_in_codesys.py", line 169, in <module>
+    main()
+  File "D:\工作\项目\蓝塔光传2.4米测控信关站\LANTA-main\LANTA\1.8QVPLC1.0\phase-calibration\apply_in_codesys.py", line 85, in main
+    before_xml = export_xml(project, os.path.join(OUT, 'baseline.xml'))
+  File "D:\工作\项目\蓝塔光传2.4米测控信关站\LANTA-main\LANTA\1.8QVPLC1.0\phase-calibration\apply_in_codesys.py", line 52, in export_xml
+    return ET.parse(filename).getroot()
+  File "D:\PLCIDE\CODESYS\ScriptLib\3.5.10.40\xml\etree\ElementTree.py", line 1182, in parse
+    tree.parse(source, parser)
+  File "D:\PLCIDE\CODESYS\ScriptLib\3.5.10.40\xml\etree\ElementTree.py", line 656, in parse
+    parser.feed(data)
+  File "D:\PLCIDE\CODESYS\ScriptLib\3.5.10.40\xml\etree\SimpleXMLTreeBuilder.py", line 84, in feed
+    xmllib.XMLParser.feed(self, data)
+  File "D:\PLCIDE\CODESYS\ScriptLib\3.5.10.40\xmllib.py", line 172, in feed
+    self.goahead(0)
+  File "D:\PLCIDE\CODESYS\ScriptLib\3.5.10.40\xmllib.py", line 263, in goahead
+    self.syntax_error('illegal data at start of file')
+  File "D:\PLCIDE\CODESYS\ScriptLib\3.5.10.40\xmllib.py", line 795, in syntax_error
+    raise Error('Syntax error at line %d: %s' % (self.lineno, message))
+Error: Syntax error at line 1: illegal data at start of file

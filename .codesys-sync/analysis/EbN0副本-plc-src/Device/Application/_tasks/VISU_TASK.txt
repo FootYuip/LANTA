@@ -1,0 +1,9 @@
+# kind=task
+# name=VISU_TASK
+# interval=PT0.1S
+# priority=31
+# intervalSetting=100ms
+# objectId=414e00be-5bf8-42db-bc93-a9501633d88e
+
+# bound POUs:
+#   - VisuElems.Visu_Prg

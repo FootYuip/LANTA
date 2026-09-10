@@ -1,0 +1,193 @@
+# kind=functionBlock
+# name=AGCMaxSearch_PB_1
+# objectId=4787ce3e-a3b4-48e2-bab0-db9748263bc2
+
+VAR_INPUT
+    bstart : BOOL;
+    rAGCNow : REAL;
+    btrig : BOOL;
+    rStepBiasNow : REAL;
+    bAutoTracking : BOOL;
+    bStop : BOOL;
+    rCurrentPos : REAL;
+    rInterPos : REAL;
+END_VAR
+
+VAR_OUTPUT
+    rAGCMaxBias : REAL;
+    bSucess : BOOL;
+    rStepBias : REAL;
+END_VAR
+
+VAR
+    ton : Standard.TON;
+    rTrg : Standard.R_TRIG;
+    rAGCInit : REAL;
+    rPrevAGC : REAL;
+    rBiasInit : REAL;
+    iCountStep : INT;
+    toN1 : Standard.Ton;
+    rDirection : INT;
+    rSearchNextStepTarget : REAL;
+    rStep : REAL;
+    rSensitivity : REAL;
+    iCountStopMax : INT;
+    rLastDirection : INT;
+    iCountDirChange : INT;
+    rAGCMaxPos : REAL;
+    rAGCLastrecord : REAL;
+    iStatus : INT;
+    iCountStop1 : INT;
+    iCountStop2 : INT;
+    rAGCMaxValue : REAL;
+    iCountSearchRight : INT;
+    bSearchRight : BOOL;
+    iCountBlockEnd : INT;
+    iCountBlockEndMax : INT;
+END_VAR
+
+// --- implementation (ST) ---
+rTrg(CLK:=bstart,Q=>);
+
+IF rTrg.Q THEN
+	rAGCInit:=rAGCNow;
+	rAGCMaxValue:=rAGCNow;
+	//rBiasInit:=rCurrentPos-rInterPos;//获取启动时的拉偏量
+END_IF
+
+IF bstart THEN
+	//搜索换向两次
+	IF iCountDirChange=2 THEN
+		rSearchNextStepTarget:=rAGCMaxBias;
+		IF rStepBias< rSearchNextStepTarget THEN 
+			rStepBias:=rStepBias+rStep;
+		ELSIF rStepBias> rSearchNextStepTarget THEN
+			rStepBias:=rStepBias-rStep;
+		ELSE
+			rStepBias:=rStepBias;
+		END_IF
+		
+		IF ABS((rInterPos+rStepBias)-rCurrentPos)<0.002 THEN //若位置达到最强位置，则输出成功 //可能只是路过这里,需要持续
+			//需要判断稳定
+			iCountBlockEnd:=iCountBlockEnd+1;
+		ELSE
+			iCountBlockEnd:=0;
+		END_IF
+		IF iCountBlockEnd>iCountBlockEndMax THEN
+			iCountBlockEnd:=iCountBlockEndMax+1;
+			//用TON1秒后触发
+			ton(IN:=TRUE,PT:=T#1S,Q=>,ET=>);
+		END_IF
+		IF ton.Q THEN
+			bSucess:=TRUE;
+		END_IF
+	ELSE
+		rStepBias:=rStepBias+rDirection*rStep;
+		IF rDirection<0 THEN
+			//若是向小走
+			IF rCurrentPos<rInterPos THEN
+				IF rAGCNow<rAGCMaxValue-rSensitivity THEN
+					iCountStop1:=iCountStop1+1;
+					IF iCountStop1>iCountStopMax THEN
+						iCountStop1:=iCountStopMax+1;
+						IF bSearchRight THEN
+							iCountDirChange:=2;
+						ELSE
+							iCountDirChange:=iCountDirChange+1;
+						END_IF
+						rDirection:=rDirection*(-1);
+					END_IF
+				ELSE
+					iCountStop1:=0;	
+				END_IF
+				
+				//新加的 测试第一阶段搜索正确后不进行第二次搜索
+				IF rAGCNow>rAGCInit+rSensitivity THEN
+					iCountSearchRight:=iCountSearchRight+1;
+				ELSE
+					iCountSearchRight:=0;
+				END_IF
+				IF iCountSearchRight>200 THEN
+					iCountSearchRight:=201;
+					bSearchRight:=TRUE;
+				END_IF
+				
+			END_IF
+		ELSE
+			//若是向正走
+			IF rCurrentPos>rInterPos THEN
+				IF rAGCNow<rAGCMaxValue-rSensitivity THEN
+					iCountStop2:=iCountStop2+1;
+					IF iCountStop2>iCountStopMax THEN
+						iCountStop2:=iCountStopMax+1;
+						IF bSearchRight THEN
+							iCountDirChange:=2;
+						ELSE
+							iCountDirChange:=iCountDirChange+1;
+						END_IF
+						rDirection:=rDirection*(-1);
+					END_IF
+				ELSE
+					iCountStop2:=0;	
+				END_IF
+				
+				//新加的
+				IF rAGCNow>rAGCInit+rSensitivity THEN
+					iCountSearchRight:=iCountSearchRight+1;
+				ELSE
+					iCountSearchRight:=0;
+				END_IF
+				IF iCountSearchRight>200 THEN
+					iCountSearchRight:=201;
+					bSearchRight:=TRUE;
+				END_IF
+				
+			END_IF
+		END_IF
+		(*
+		IF rAGCNow<rAGCInit-0.05 THEN
+			iCountStop1:=iCountStop1+1;
+			IF iCountStop1>150 THEN
+				iCountDirChange:=iCountDirChange+1;
+				rDirection:=rDirection*(-1);
+			END_IF
+		ELSE
+			iCountStop1:=0;	
+		END_IF
+		*)
+		
+		 // 记录最强信号的拉偏量和值
+		//IF rAGCNow >= rAGCInit AND rAGCNow> rAGCMaxValue THEN
+		IF  rAGCNow> rAGCMaxValue THEN
+			rAGCMaxBias := rStepBias;
+			rAGCMaxValue := rAGCNow;
+		END_IF
+	END_IF
+ELSE
+	rStepBias:=0;
+	//清空变量
+	iCountDirChange:=0;
+	rAGCInit:=0;
+	rAGCMaxValue:=0;
+	rAGCMaxBias:=0;
+	rDirection:=1;
+	iCountStop1:=0;
+	iCountStop2:=0;
+	ton(IN:=FALSE,PT:=T#1S,Q=>,ET=>);
+	//rStepBias:=0;
+	rSearchNextStepTarget:=0;
+	bSucess:=FALSE;
+	iCountSearchRight:=0;
+	bSearchRight:=FALSE;
+	iCountBlockEnd:=0;
+END_IF
+
+
+(*
+IF rStepBias< rSearchNextStepTarget THEN 
+	rStepBias:=rStepBias+rStep;
+ELSIF rStepBias> rSearchNextStepTarget THEN
+	rStepBias:=rStepBias-rStep;
+ELSE
+	rStepBias:=rStepBias;
+END_IF*)

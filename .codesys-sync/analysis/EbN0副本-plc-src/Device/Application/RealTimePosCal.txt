@@ -1,0 +1,111 @@
+# kind=program
+# name=RealTimePosCal
+# objectId=d1d353e9-b6ba-4daf-a75d-684630ba06ac
+
+VAR
+    dtReal : DT;
+    sRealTime : UNKNOWN;
+    btestTimeInit : BOOL;
+    AzCubicInter : threesimple2_1;
+    ElCubicInter : threesimple2_1;
+    iErrcode : INT;
+    rInterAzPos : REAL;
+    rInterElPos : REAL;
+    rInterAzPostest : REAL;
+    rInterElPostest : REAL;
+    rPolyAzPos : REAL;
+    rPolyElPos : REAL;
+    AzPoly : Get_AZ;
+    ElPoly : Get_AZ_1;
+    dRTime : ULINT;
+    dLastRTime : ULINT;
+    icount : INT;
+END_VAR
+
+// --- implementation (ST) ---
+//GVL.dRealTime:= TimeCase.stSYS_Timestamp + GVL.dDelTime + 1000 + 56 ;// 矫正后的时间 单位毫秒
+//GVL.dRealTime:= TimeCase.stSYS_Timestamp + GVL.dDelTime;// 矫正后的时间 单位毫秒
+
+//直接从上位机拿数
+dRTime := modbus_slave.UTC_New + 8 * 3600 * 1000;
+IF dRTime <> dLastRTime THEN
+	icount := 0;
+ELSE 
+	icount := icount + 1;
+END_IF
+dLastRTime:=dRTime;
+IF not GVL.bTimeSwich THEN
+	GVL.dRealTime:=GVL.stGNSS_Timestap + 10*timeadd.icount;
+ELSE
+	GVL.dRealTime:=dRTime + 10*icount;
+END_IF
+IF icount > 5000 THEN
+	icount := 0;
+END_IF
+(*
+GVL.dRealTime:=GVL.stGNSS_Timestap + 10*timeadd.icount;
+*)
+dtReal := TO_DT(GVL.dRealTime / 1000);
+sRealTime := TO_STRING(dtReal);
+
+IF Axis1Remote.iMode=4 AND Axis2Remote.iMode=4 THEN//若PTP时间锁定 且时间模式为PTP时间
+		//三次样条插值
+
+		//GVL.dRealTime:= TimeCase.stSYS_Timestamp + GVL.dDelTime + 1000 + 56; // 矫正后的时间 单位毫秒
+		IF NOT GVL.bTimeSwich THEN
+			GVL.dRealTime:=GVL.stGNSS_Timestap + 10*timeadd.icount;
+		ELSE
+			GVL.dRealTime:=dRTime + 10*icount;
+		END_IF
+		AzCubicInter(XModbusUL:=Modbus_Slave.aUTC_TIME,YModbus:=Modbus_Slave.aPosCmd_2,y0:=0,yn:=0,xt:=(ULINT_TO_LREAL(GVL.dRealTime) - 8 * 3600 *1000),sout=>rInterAzPos,ErrCode=>iErrcode);
+		ElCubicInter(XModbusUL:=Modbus_Slave.aUTC_TIME,YModbus:=Modbus_Slave.aPosCmd_1,y0:=0,yn:=0,xt:=(ULINT_TO_LREAL(GVL.dRealTime) - 8 * 3600 *1000),sout=>rInterElPos,ErrCode=>iErrcode);
+		IF iErrcode>0 THEN //模块内错误代码清0 外部维持
+			Error_code:=iErrcode;
+		END_IF
+END_IF
+(*
+//IF Axis1Remote.iMode=4 AND Axis2Remote.iMode=4 AND Modbus_Slave.bIFPoly THEN//若PTP时间锁定 且时间模式为PTP时间
+IF Modbus_Slave.bIFPoly THEN//若PTP时间锁定 且时间模式为PTP时间
+		//多项式拟合
+
+		//GVL.dRealTime:= TimeCase.stSYS_Timestamp + GVL.dDelTime + 1000 + 56; // 矫正后的时间 单位毫秒
+		GVL.dRealTime:= GVL.stGNSS_Timestap +450; // 矫正后的时间 单位毫秒
+	
+		AzPoly(
+		uliRealTime := (ULINT_TO_LREAL(GVL.dRealTime) - 8 * 3600 *1000),
+		lrStartTime := Modbus_Slave.starttime,
+		rNodeTime1 := Modbus_Slave.rNodeTime1_az,
+		rNodeTime2 := Modbus_Slave.rNodeTime2_az,
+		rNodeTime3 := Modbus_Slave.rNodeTime3_az,
+		rNodeTime4 := Modbus_Slave.rNodeTime4_az,
+		rNodeTime5 := Modbus_Slave.rNodeTime5_az,
+		rEndTime := Modbus_Slave.rEndTime,
+		lrFun1 := Modbus_Slave.lrFun1_az,
+		lrFun2 := Modbus_Slave.lrFun2_az,
+		lrFun3 := Modbus_Slave.lrFun3_az,
+		lrFun4 := Modbus_Slave.lrFun4_az,
+		lrFun5 := Modbus_Slave.lrFun5_az,
+		lrFun6 := Modbus_Slave.lrFun6_az,
+		lrFitResult => rPolyAzPos);
+		
+		ElPoly(
+		uliRealTime := (ULINT_TO_LREAL(GVL.dRealTime) - 8 * 3600 *1000),
+		lrStartTime := Modbus_Slave.starttime,
+		rNodeTime1 := Modbus_Slave.rNodeTime1_el,
+		rNodeTime2 := Modbus_Slave.rNodeTime2_el,
+		rNodeTime3 := Modbus_Slave.rNodeTime3_el,
+		rNodeTime4 := Modbus_Slave.rNodeTime4_el,
+		rNodeTime5 := Modbus_Slave.rNodeTime5_el,
+		rEndTime := Modbus_Slave.rEndTime,
+		lrFun1 := Modbus_Slave.lrFun1_el,
+		lrFun2 := Modbus_Slave.lrFun2_el,
+		lrFun3 := Modbus_Slave.lrFun3_el,
+		lrFun4 := Modbus_Slave.lrFun4_el,
+		lrFun5 := Modbus_Slave.lrFun5_el,
+		lrFun6 := Modbus_Slave.lrFun6_el,
+		lrFitResult => rPolyElPos);
+		
+		rInterAzPos := rPolyAzPos * (-1);
+		rInterElPos := rPolyElPos + 90;
+END_IF
+*)

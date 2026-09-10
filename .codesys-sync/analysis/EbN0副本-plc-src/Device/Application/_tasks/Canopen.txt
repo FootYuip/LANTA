@@ -1,0 +1,15 @@
+# kind=task
+# name=Canopen
+# interval=PT0.01S
+# priority=0
+# intervalSetting=10ms
+# objectId=a6cedda4-5f3d-46ea-ad5c-c69c661153ce
+
+# bound POUs:
+#   - TimeAdd
+#   - AutoTrackingCal
+#   - El_ctrl_1
+#   - Az_ctrl_1
+#   - Ti_ctrl_1
+#   - RealTimePosCal
+#   - SecurityCheck

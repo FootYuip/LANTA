@@ -1,0 +1,10 @@
+# kind=union
+# name=UnionLREAL_WORD
+# objectId=031d41aa-c5aa-40e3-9821-1274f25a7983
+
+TYPE UnionLREAL_WORD :
+UNION
+    lrealValue : LREAL;
+    words : ARRAY[1..4] OF WORD;
+END_UNION
+END_TYPE

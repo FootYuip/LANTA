@@ -1,0 +1,9 @@
+# kind=task
+# name=Task
+# interval=PT0.05S
+# priority=31
+# intervalSetting=50ms
+# objectId=af20f8e7-9fc0-4efc-89ab-858ca8f91656
+
+# bound POUs:
+#   (none)

@@ -127,7 +127,7 @@ VAR_GLOBAL
     bRemoteTimeLock : BOOL;
     Ti : REAL;
     El : REAL;
-    bTimeSwich : BOOL;
+    bTimeSwich : BOOL :=TRUE;
     rvAzKpBase : REAL := 1;
     rvAzKiBase : REAL := 0.01;
     rvAzKpscale : REAL := 0.01;

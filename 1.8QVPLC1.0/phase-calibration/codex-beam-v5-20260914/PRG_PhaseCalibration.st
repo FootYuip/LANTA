@@ -1,0 +1,296 @@
+PROGRAM PRG_PhaseCalibration
+(* Called ONLY at the end of SecurityCheck, once per Canopen 10 ms cycle.
+   Fixed position mode only. No writes to modes, enables, tracking or persistence.
+   Loss of ownership gives command control back to the existing program immediately.
+   This is not an emergency-stop/safety function. *)
+VAR
+    path : FB_PhaseTriangle;
+    fit : FB_PhaseFit;
+    startOld, startPulse, accepted, permit, ownership : BOOL;
+    sample, finish, newRx, rxLock, doneOld, abortRun : BOOL;
+    seq, lastSeq : UDINT;
+    age : LREAL := 999;
+    sampleTime : LREAL;
+    ua, ue, eb, az, el, centerAz, centerEl : LREAL;
+    baseAz, baseEl, phase : LREAL;
+    direction : INT;
+    beamAz, beamEl, fraction, targetV, cosEl, azAmplitude, elAmplitude : LREAL;
+    gainAz, gainEl, currentGainAz, currentGainEl, gainMin, gainMax : LREAL;
+    gainOrder : INT;
+    legTime, dwellTime, rxDelay, stableTime, interval, tolerance, orthLimit : LREAL;
+    stableElapsed, normUa, normUe, slopeAz, slopeEl, factorAz, factorEl : LREAL;
+    previousState : UINT;
+    centerCount, elCount, azCount, returnCount : UDINT;
+    geometryOK, configOK : BOOL;
+END_VAR
+
+(* 精简操作入口。GVL_PhaseCal 保留设备调试参数及旧接收接口。
+   已确认：旋转后两路分别乘线性增益。上报电压已包含增益。 *)
+GVL_PhaseCal.xStart:=GVL_PhaseCalSimple.xStart;
+GVL_PhaseCal.xAbort:=GVL_PhaseCalSimple.xAbort;
+GVL_PhaseCal.xReset:=GVL_PhaseCalSimple.xReset;
+IF GVL_PhaseCalSimple.xStart AND NOT startOld AND NOT path.xBusy THEN
+    GVL_PhaseCal.lrBeamAzDeg:=GVL_PhaseCalSimple.lrBeamWidthDeg;
+    GVL_PhaseCal.lrBeamElDeg:=GVL_PhaseCalSimple.lrBeamWidthDeg;
+    GVL_PhaseCal.lrCurrentGainAz:=GVL_PhaseCalSimple.lrAzGain;
+    GVL_PhaseCal.lrCurrentGainEl:=GVL_PhaseCalSimple.lrElGain;
+    GVL_PhaseCal.lrCurrentPhaseDeg:=GVL_PhaseCalSimple.lrPhaseDeg;
+    GVL_PhaseCal.iGainUnit:=0;
+    GVL_PhaseCal.iGainOrder:=2;
+    GVL_PhaseCal.lrScanFraction:=0.2;
+    GVL_PhaseCal.lrTargetVolt:=1;
+    GVL_PhaseCalSimple.wsMessage:="";
+END_IF;
+
+startPulse:=GVL_PhaseCal.xStart AND NOT startOld;
+startOld:=GVL_PhaseCal.xStart;
+accepted:=FALSE; sample:=FALSE; newRx:=FALSE;
+age:=MIN(age+0.01,999.0);
+sampleTime:=MIN(sampleTime+0.01,1.0);
+seq:=GVL_PhaseCal.udiRxSeq;
+IF seq<>lastSeq AND seq MOD 2=0 THEN
+    ua:=GVL_PhaseCal.lrRxUa; ue:=GVL_PhaseCal.lrRxUe;
+    eb:=GVL_PhaseCal.lrRxEbN0;
+    az:=GVL_PhaseCal.lrRxAz; el:=GVL_PhaseCal.lrRxEl;
+    rxLock:=GVL_PhaseCal.xRxLock;
+    IF seq=GVL_PhaseCal.udiRxSeq THEN
+        lastSeq:=seq; age:=0; newRx:=TRUE;
+    END_IF;
+END_IF;
+
+ownership:=NOT GVL.bLocalCtrl AND GVL.Axis1Remote.iMode=2 AND
+    GVL.Axis2Remote.iMode=2 AND NOT GVL.bStartTrack AND
+    NOT GVL.bStartLocalAutoTrack AND NOT Modbus_Slave.bStartTrackAcu AND
+    NOT Modbus_Slave.bSearch AND NOT SecurityCheck.bScanRun AND
+    ABS(SecurityCheck.aztest)<0.00001 AND ABS(SecurityCheck.eltest)<0.00001;
+permit:=ownership AND GVL.Axis1Status.bServo_Enable AND
+    GVL.Axis2Status.bServo_Enable AND NOT GVL.Axis1Status.Error AND
+    NOT GVL.Axis2Status.Error AND NOT GVL.Axis1Status.ErrorStop AND
+    NOT GVL.Axis2Status.ErrorStop AND GVL.eAzErrorcode=0 AND GVL.eElErrorcode=0 AND
+    NOT SecurityCheck.bPrelimit_1 AND NOT SecurityCheck.bPrelimit_2 AND
+    NOT SecurityCheck.bFinallimit_1 AND NOT SecurityCheck.bFinallimit_2;
+IF path.xBusy THEN
+    (* Never mask a changed ACU target by holding the old calibration center. *)
+    permit:=permit AND ABS(REAL_TO_LREAL(Modbus_Slave.rPosCmd_2)-baseAz)<0.00001 AND
+        ABS(REAL_TO_LREAL(Modbus_Slave.rPosCmd_1)-baseEl)<0.00001;
+END_IF;
+(* Signal quality and initial pointing are assessed manually by the operator.
+   Keep new-receive sampling; never manufacture samples from stale values. *)
+GVL_PhaseCal.xReady:=permit AND
+    NOT path.xBusy AND NOT GVL_PhaseCal.xFault AND NOT GVL_PhaseCal.xAbort AND
+    ABS(REAL_TO_LREAL(Modbus_Slave.rPosCmd_2))<274.8 AND
+    Modbus_Slave.rPosCmd_1>93.2 AND Modbus_Slave.rPosCmd_1<179.8;
+
+IF GVL_PhaseCal.xReset AND NOT path.xBusy THEN
+    GVL_PhaseCal.xFault:=FALSE; GVL_PhaseCal.uiError:=0;
+END_IF;
+IF startPulse AND NOT path.xBusy THEN
+    GVL_PhaseCal.xGainValid:=FALSE;
+    GVL_PhaseCal.lrGainFactorAz:=0; GVL_PhaseCal.lrGainFactorEl:=0;
+    GVL_PhaseCal.lrSuggestedGainAz:=0; GVL_PhaseCal.lrSuggestedGainEl:=0;
+    beamAz:=GVL_PhaseCal.lrBeamAzDeg; beamEl:=GVL_PhaseCal.lrBeamElDeg;
+    fraction:=GVL_PhaseCal.lrScanFraction; targetV:=GVL_PhaseCal.lrTargetVolt;
+    legTime:=GVL_PhaseCal.lrLegTimeSec; dwellTime:=GVL_PhaseCal.lrSettleSec;
+    rxDelay:=GVL_PhaseCal.lrRxDelaySec; stableTime:=GVL_PhaseCal.lrStableSec;
+    interval:=GVL_PhaseCal.lrSampleIntervalSec; tolerance:=GVL_PhaseCal.lrPositionToleranceDeg;
+    orthLimit:=GVL_PhaseCal.lrMaxOrthErrorDeg;
+    currentGainAz:=GVL_PhaseCal.lrCurrentGainAz; currentGainEl:=GVL_PhaseCal.lrCurrentGainEl;
+    gainOrder:=2;
+    gainMin:=GVL_PhaseCal.lrGainMin; gainMax:=GVL_PhaseCal.lrGainMax;
+    GVL_PhaseCal.lrCenterElevationDeg:=REAL_TO_LREAL(Modbus_Slave.rPosCmd_1)-90;
+    cosEl:=COS(GVL_PhaseCal.lrCenterElevationDeg*3.141592653589793/180);
+    geometryOK:=beamAz>0 AND beamEl>0 AND beamAz<=10 AND beamEl<=10 AND
+        fraction>=0.05 AND fraction<=0.2 AND GVL_PhaseCal.lrMinCosEl>=0.05 AND
+        GVL_PhaseCal.lrMinCosEl<=1 AND cosEl>=GVL_PhaseCal.lrMinCosEl;
+    azAmplitude:=0; elAmplitude:=0;
+    IF geometryOK THEN azAmplitude:=fraction*beamAz/cosEl; elAmplitude:=fraction*beamEl; END_IF;
+    (* 上报电压已经被这两个增益放大，拟合前分别除回去。 *)
+    gainAz:=currentGainAz; gainEl:=currentGainEl;
+    configOK:=geometryOK AND gainAz>=1E-6 AND gainEl>=1E-6 AND
+        (gainOrder=1 OR gainOrder=2) AND gainMin<gainMax AND
+        currentGainAz>=gainMin AND currentGainAz<=gainMax AND
+        currentGainEl>=gainMin AND currentGainEl<=gainMax AND
+        targetV>0 AND targetV<=4 AND legTime>=0.2 AND legTime<=60 AND
+        dwellTime>=0.1 AND dwellTime<=30 AND rxDelay>=0 AND stableTime>=0.05 AND
+        interval>=0.01 AND interval<=0.2 AND dwellTime>rxDelay+stableTime+5*interval AND
+        tolerance>0 AND tolerance<0.1*MIN(azAmplitude,elAmplitude) AND
+        orthLimit>0 AND orthLimit<=10 AND
+        ABS(REAL_TO_LREAL(Modbus_Slave.rPosCmd_2)-azAmplitude)<274.8 AND
+        REAL_TO_LREAL(Modbus_Slave.rPosCmd_1)+elAmplitude<179.8 AND
+        NOT GVL_PhaseCal.xReset;
+    GVL_PhaseCal.lrPlannedTimeSec:=3*legTime+4*dwellTime;
+    GVL_PhaseCal.lrProjectionCos:=cosEl;
+    GVL_PhaseCal.lrPlannedAzOffsetDeg:=azAmplitude; GVL_PhaseCal.lrPlannedElOffsetDeg:=elAmplitude;
+    GVL_PhaseCal.xDone:=FALSE;
+    GVL_PhaseCal.xFitValid:=FALSE; GVL_PhaseCal.xSuggestedValid:=FALSE;
+    IF NOT GVL_PhaseCal.xReady OR GVL_PhaseCal.lrCurrentPhaseDeg<0 OR
+       GVL_PhaseCal.lrCurrentPhaseDeg>360 OR
+       NOT configOK THEN
+        GVL_PhaseCal.uiError:=10; GVL_PhaseCal.xFault:=TRUE;
+        IF beamAz<=0 OR beamAz>10 THEN
+            GVL_PhaseCalSimple.wsMessage:="请填写半功率波束全宽，单位度，范围大于0且不超过10";
+        ELSIF GVL_PhaseCal.lrCurrentPhaseDeg<0 OR GVL_PhaseCal.lrCurrentPhaseDeg>360 THEN
+            GVL_PhaseCalSimple.wsMessage:="旋转角度必须在0到360度之间";
+        ELSIF currentGainAz<1E-6 OR currentGainEl<1E-6 OR
+            currentGainAz<gainMin OR currentGainAz>gainMax OR
+            currentGainEl<gainMin OR currentGainEl>gainMax THEN
+            GVL_PhaseCalSimple.wsMessage:="当前增益必须为正的线性倍数，且在设备增益范围内";
+        ELSIF gainOrder<>1 AND gainOrder<>2 THEN
+            GVL_PhaseCalSimple.wsMessage:="设备首次配置未完成：增益在旋转前还是旋转后尚未确认";
+        ELSIF NOT geometryOK THEN
+            GVL_PhaseCalSimple.wsMessage:="当前俯仰角不满足投影条件，请查看内部投影诊断";
+        ELSE
+            GVL_PhaseCalSimple.wsMessage:="启动条件未满足，请检查内部采样参数或控制权限；复位后再启动";
+        END_IF;
+    ELSE
+        baseAz:=REAL_TO_LREAL(Modbus_Slave.rPosCmd_2);
+        baseEl:=REAL_TO_LREAL(Modbus_Slave.rPosCmd_1);
+        centerAz:=-baseAz; centerEl:=baseEl-90;
+        phase:=GVL_PhaseCal.lrCurrentPhaseDeg;
+        direction:=GVL_PhaseCal.iPhaseDirection;
+        accepted:=TRUE; sampleTime:=0; stableElapsed:=0;
+        centerCount:=0; elCount:=0; azCount:=0; returnCount:=0;
+        GVL_PhaseCal.uiError:=0; GVL_PhaseCal.xFault:=FALSE;
+    END_IF;
+END_IF;
+
+abortRun:=GVL_PhaseCal.xAbort;
+IF path.xBusy AND path.uiState<>800 AND path.uiState<>900 THEN
+    IF ABS(-REAL_TO_LREAL(GVL.rFctPosReal_2)-centerAz-path.lrAzBias)>0.1 OR
+       ABS(REAL_TO_LREAL(GVL.rFctPosReal_1)-90-centerEl-path.lrElBias)>0.1 THEN
+        abortRun:=TRUE; GVL_PhaseCal.uiError:=21; GVL_PhaseCal.xFault:=TRUE;
+    END_IF;
+END_IF;
+path(xStart:=accepted, xAbort:=abortRun, xPermit:=permit,
+    xResetHeld:=GVL_PhaseCal.xReset AND NOT GVL.Axis1Status.bServo_Enable AND
+        NOT GVL.Axis2Status.bServo_Enable,
+    lrDtSec:=0.01, lrAzAmplitudeDeg:=azAmplitude, lrElAmplitudeDeg:=elAmplitude,
+    lrLegTimeSec:=legTime, lrSettleSec:=dwellTime);
+IF path.xFault THEN
+    GVL_PhaseCal.xFault:=TRUE; GVL_PhaseCal.uiError:=22;
+END_IF;
+IF path.xBusy AND permit AND path.uiState<>900 THEN
+    (* Same signs as existing eltest/aztest target offsets. *)
+    GVL.Axis1Remote.rPosCmd:=LREAL_TO_REAL(baseEl+path.lrElBias);
+    GVL.Axis2Remote.rPosCmd:=LREAL_TO_REAL(baseAz-path.lrAzBias);
+END_IF;
+(* Wait continuously at the commanded vertex; then allow receiver history to flush.
+   Positions are mechanical feedback. No moving samples and no synthetic new frames. *)
+IF path.uiState<>previousState THEN stableElapsed:=0; END_IF;
+previousState:=path.uiState;
+IF path.xBusy AND path.xCollect AND
+   ABS(-REAL_TO_LREAL(GVL.rFctPosReal_2)-centerAz-path.lrAzBias)<=tolerance AND
+   ABS(REAL_TO_LREAL(GVL.rFctPosReal_1)-90-centerEl-path.lrElBias)<=tolerance THEN
+    stableElapsed:=stableElapsed+0.01;
+ELSE stableElapsed:=0;
+END_IF;
+IF path.xBusy AND path.xCollect AND stableElapsed>=rxDelay+stableTime AND
+   newRx AND sampleTime>=interval AND NOT GVL_PhaseCal.xFault AND NOT path.xAborted AND
+   ABS(az-centerAz-path.lrAzBias)<=tolerance AND ABS(el-centerEl-path.lrElBias)<=tolerance THEN
+    sample:=TRUE; sampleTime:=0;
+    CASE path.uiState OF
+        10: centerCount:=centerCount+1;
+        30: elCount:=elCount+1;
+        50: azCount:=azCount+1;
+        70: returnCount:=returnCount+1;
+    END_CASE;
+END_IF;
+finish:=path.xDone AND NOT doneOld AND NOT GVL_PhaseCal.xFault;
+IF finish AND (ABS(-REAL_TO_LREAL(GVL.rFctPosReal_2)-centerAz)>tolerance OR
+              ABS(REAL_TO_LREAL(GVL.rFctPosReal_1)-90-centerEl)>tolerance) THEN
+    finish:=FALSE; GVL_PhaseCal.xFault:=TRUE; GVL_PhaseCal.uiError:=31;
+END_IF;
+IF finish AND (centerCount<5 OR elCount<5 OR azCount<5 OR returnCount<5) THEN
+    finish:=FALSE; GVL_PhaseCal.xFault:=TRUE; GVL_PhaseCal.uiError:=32;
+END_IF;
+doneOld:=path.xDone;
+normUa:=ua; normUe:=ue;
+(* Known post-rotation gains must be removed before fitting a common rotation. *)
+IF gainAz>0 AND gainEl>0 THEN normUa:=ua/gainAz; normUe:=ue/gainEl; END_IF;
+fit(xReset:=accepted, xSample:=sample, xFinish:=finish,
+    lrAz:=(az-centerAz)*cosEl, lrEl:=el-centerEl, lrUa:=normUa, lrUe:=normUe,
+    lrCurrentPhaseDeg:=phase, iPhaseDirection:=direction);
+IF finish THEN
+    GVL_PhaseCal.xDone:=TRUE;
+    GVL_PhaseCal.xFitValid:=fit.xFitValid;
+    GVL_PhaseCal.xSuggestedValid:=fit.xSuggestedValid;
+    IF NOT fit.xFitValid THEN
+        GVL_PhaseCal.xFault:=TRUE; GVL_PhaseCal.uiError:=30;
+    END_IF;
+END_IF;
+IF finish AND fit.xFitValid THEN
+    slopeAz:=SQRT(fit.lrKaa*fit.lrKaa+fit.lrKea*fit.lrKea);
+    slopeEl:=SQRT(fit.lrKae*fit.lrKae+fit.lrKee*fit.lrKee);
+    GVL_PhaseCal.lrCenterUa:=fit.lrInterceptAz; GVL_PhaseCal.lrCenterUe:=fit.lrInterceptEl;
+    slopeAz:=slopeAz*gainAz; slopeEl:=slopeEl*gainEl;
+        GVL_PhaseCal.lrCenterUa:=fit.lrInterceptAz*gainAz;
+        GVL_PhaseCal.lrCenterUe:=fit.lrInterceptEl*gainEl;
+    GVL_PhaseCal.lrSensitivityAz:=slopeAz; GVL_PhaseCal.lrSensitivityEl:=slopeEl;
+    GVL_PhaseCal.lrTargetSlopeAz:=targetV/(0.2*beamAz);
+    GVL_PhaseCal.lrTargetSlopeEl:=targetV/(0.2*beamEl);
+    IF slopeAz>1E-6 AND slopeEl>1E-6 AND fit.lrOrthErrorDeg<=orthLimit THEN
+        factorAz:=GVL_PhaseCal.lrTargetSlopeAz/slopeAz;
+        factorEl:=GVL_PhaseCal.lrTargetSlopeEl/slopeEl;
+        GVL_PhaseCal.lrGainFactorAz:=factorAz; GVL_PhaseCal.lrGainFactorEl:=factorEl;
+        (* 线性新增益=当前增益×目标斜率/当前输出斜率，无dB换算。 *)
+        GVL_PhaseCal.lrSuggestedGainAz:=currentGainAz*factorAz;
+        GVL_PhaseCal.lrSuggestedGainEl:=currentGainEl*factorEl;
+        GVL_PhaseCal.xGainValid:=fit.xSuggestedValid AND
+            GVL_PhaseCal.lrSuggestedGainAz>=gainMin AND GVL_PhaseCal.lrSuggestedGainAz<=gainMax AND
+            GVL_PhaseCal.lrSuggestedGainEl>=gainMin AND GVL_PhaseCal.lrSuggestedGainEl<=gainMax;
+    END_IF;
+END_IF;
+GVL_PhaseCal.udiCenterSamples:=centerCount; GVL_PhaseCal.udiElSamples:=elCount;
+GVL_PhaseCal.udiAzSamples:=azCount; GVL_PhaseCal.udiReturnSamples:=returnCount;
+GVL_PhaseCal.xBusy:=path.xBusy; GVL_PhaseCal.xAborted:=path.xAborted;
+GVL_PhaseCal.uiState:=path.uiState; GVL_PhaseCal.uiFitError:=fit.uiError;
+GVL_PhaseCal.lrAzBias:=path.lrAzBias; GVL_PhaseCal.lrElBias:=path.lrElBias;
+GVL_PhaseCal.lrRxAgeSec:=age; GVL_PhaseCal.udiSamples:=fit.udiSamples;
+GVL_PhaseCal.lrResponseAngleDeg:=fit.lrResponseAngleDeg;
+GVL_PhaseCal.lrCorrectionDeg:=fit.lrCorrectionDeg;
+GVL_PhaseCal.lrSuggestedDeg:=fit.lrSuggestedDeg;
+GVL_PhaseCal.lrCandidatePlusDeg:=fit.lrCandidatePlusDeg;
+GVL_PhaseCal.lrCandidateMinusDeg:=fit.lrCandidateMinusDeg;
+GVL_PhaseCal.lrOrthErrorDeg:=fit.lrOrthErrorDeg;
+GVL_PhaseCal.lrResidualAz:=fit.lrResidualAz; GVL_PhaseCal.lrResidualEl:=fit.lrResidualEl;
+GVL_PhaseCal.lrKaa:=fit.lrKaa; GVL_PhaseCal.lrKae:=fit.lrKae;
+GVL_PhaseCal.lrKea:=fit.lrKea; GVL_PhaseCal.lrKee:=fit.lrKee;
+
+(* 操作面板只公布有效的联合结果，不显示上一次残留建议。 *)
+GVL_PhaseCalSimple.xReady:=GVL_PhaseCal.xReady;
+GVL_PhaseCalSimple.xBusy:=GVL_PhaseCal.xBusy;
+GVL_PhaseCalSimple.xDone:=GVL_PhaseCal.xDone;
+GVL_PhaseCalSimple.xFault:=GVL_PhaseCal.xFault;
+GVL_PhaseCalSimple.xAborted:=GVL_PhaseCal.xAborted;
+GVL_PhaseCalSimple.xResultValid:=GVL_PhaseCal.xDone AND GVL_PhaseCal.xGainValid AND
+    GVL_PhaseCal.xSuggestedValid AND NOT GVL_PhaseCal.xFault AND NOT GVL_PhaseCal.xAborted;
+GVL_PhaseCalSimple.lrNewPhaseDeg:=0;
+GVL_PhaseCalSimple.lrNewAzGain:=0;
+GVL_PhaseCalSimple.lrNewElGain:=0;
+IF GVL_PhaseCalSimple.xResultValid THEN
+    GVL_PhaseCalSimple.lrNewPhaseDeg:=GVL_PhaseCal.lrSuggestedDeg;
+    GVL_PhaseCalSimple.lrNewAzGain:=GVL_PhaseCal.lrSuggestedGainAz;
+    GVL_PhaseCalSimple.lrNewElGain:=GVL_PhaseCal.lrSuggestedGainEl;
+END_IF;
+GVL_PhaseCalSimple.lrOrthErrorDeg:=GVL_PhaseCal.lrOrthErrorDeg;
+GVL_PhaseCalSimple.lrPlannedTimeSec:=GVL_PhaseCal.lrPlannedTimeSec;
+IF GVL_PhaseCal.xFault THEN
+    CASE GVL_PhaseCal.uiError OF
+        21: GVL_PhaseCalSimple.wsMessage:="运动跟随误差过大";
+        22: GVL_PhaseCalSimple.wsMessage:="轨迹或控制权限故障";
+        30: GVL_PhaseCalSimple.wsMessage:="拟合未通过，请查看内部uiFitError";
+        31: GVL_PhaseCalSimple.wsMessage:="结束时未回到中心位置容差内";
+        32: GVL_PhaseCalSimple.wsMessage:="某测量点新样本不足，检查接收速度或内部停留时间";
+    END_CASE;
+ELSIF GVL_PhaseCal.xBusy THEN
+    GVL_PhaseCalSimple.wsMessage:="正在校相与增益标定";
+ELSIF GVL_PhaseCal.xAborted THEN
+    GVL_PhaseCalSimple.wsMessage:="本次已中止，无有效结果";
+ELSIF GVL_PhaseCalSimple.xResultValid THEN
+    GVL_PhaseCalSimple.wsMessage:="标定完成，请手动填写建议相位和增益并复测";
+ELSIF GVL_PhaseCal.xDone THEN
+    GVL_PhaseCalSimple.wsMessage:="联合结果无效，请检查相位方向、正交度和建议增益范围";
+ELSE
+    GVL_PhaseCalSimple.wsMessage:="等待开始；首次设备配置仍需完成，准备标志不代表参数已验证";
+END_IF;
+END_PROGRAM

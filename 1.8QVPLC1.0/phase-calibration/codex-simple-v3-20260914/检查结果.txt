@@ -1,0 +1,5 @@
+PASS: 原算法去除新增接口及错误文案后逐字一致
+PASS: 声明/实现复制区重组与完整源码一致
+PASS: 日常LREAL输入恰为四项
+PASS: 单一END_PROGRAM
+未执行CODESYS编译或实机验证

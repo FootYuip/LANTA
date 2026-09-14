@@ -1,0 +1,37 @@
+FUNCTION_BLOCK FB_PhaseFit
+(* Offline candidate. Feed ONE coherent, validated sample per xSample pulse.
+   Coordinates: positive Az=right, positive El=up. Desired response is -I.
+   eAz/eEl must already have consistent signed engineering units.
+   Do not subtract 2.5 from the existing signed serial values without protocol proof. *)
+VAR_INPUT
+    xReset : BOOL;
+    xSample : BOOL;
+    xFinish : BOOL;
+    lrAz : LREAL;
+    lrEl : LREAL;
+    lrUa : LREAL;
+    lrUe : LREAL;
+    lrCurrentPhaseDeg : LREAL;
+    (* +1: increasing hardware phase rotates measured response CCW; -1: CW; 0: unknown *)
+    iPhaseDirection : INT;
+END_VAR
+VAR_OUTPUT
+    xFitValid : BOOL;
+    xSuggestedValid : BOOL;
+    uiError : UINT;
+    udiSamples : UDINT;
+    lrKaa, lrKae, lrKea, lrKee : LREAL;
+    lrInterceptAz, lrInterceptEl : LREAL;
+    lrResponseAngleDeg : LREAL;
+    lrCorrectionDeg, lrSuggestedDeg : LREAL;
+    lrCandidatePlusDeg, lrCandidateMinusDeg : LREAL;
+    lrOrthErrorDeg : LREAL;
+    lrResidualAz, lrResidualEl : LREAL;
+    lrCrossAz, lrCrossEl : LREAL;
+END_VAR
+VAR
+    sx, sy, su, sv, sxx, syy, sxy, sxu, syu, sxv, syv, suu, svv : LREAL;
+    n, xx, yy, xy, xu, yu, xv, yv, uu, vv, det : LREAL;
+    ga, lrElGain, dot, a, b, phi, pi, base, sse : LREAL;
+    finishOld : BOOL;
+END_VAR

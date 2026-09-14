@@ -1,0 +1,86 @@
+FUNCTION_BLOCK FB_PhaseTriangle
+(* Pure offset generator. Does NOT write axis commands or change operating modes.
+   Caller supplies elapsed seconds and motion permission; xStart is rising-edge.
+   xAbort returns offsets smoothly while permission remains valid.
+   Permission loss holds offsets and sets xFault: existing axis safety owns stopping.
+   Release a held offset only after the caller has safely transferred command ownership. *)
+VAR_INPUT
+    xStart, xAbort, xPermit : BOOL;
+    xResetHeld : BOOL;
+    lrDtSec : LREAL;
+    lrAzAmplitudeDeg, lrElAmplitudeDeg : LREAL;
+    lrLegTimeSec : LREAL := 1.1;
+    lrSettleSec : LREAL := 0.6;
+END_VAR
+VAR_OUTPUT
+    xBusy, xDone, xAborted, xFault : BOOL;
+    uiState : UINT;
+    lrAzBias, lrElBias : LREAL;
+    xCollect : BOOL;
+END_VAR
+VAR
+    startOld : BOOL;
+    elapsed, leg, settle, azAmplitude, elAmplitude, u, blend : LREAL;
+    fromAz, fromEl, toAz, toEl : LREAL;
+END_VAR
+
+xCollect:=FALSE;
+IF xResetHeld AND NOT xPermit AND uiState=900 THEN
+    uiState:=0; xBusy:=FALSE; xFault:=FALSE;
+    lrAzBias:=0; lrElBias:=0;
+END_IF;
+IF xStart AND NOT startOld AND NOT xBusy AND uiState<>900 THEN
+    xDone:=FALSE; xAborted:=FALSE; xFault:=FALSE;
+    (* Caller validates projected amplitudes and mechanical motion limits. *)
+    IF NOT xPermit OR lrAzAmplitudeDeg<=0 OR lrElAmplitudeDeg<=0 OR
+       lrLegTimeSec<0.2 OR lrSettleSec<0.1 OR lrSettleSec>30 THEN
+        xFault:=TRUE;
+    ELSE
+        azAmplitude:=lrAzAmplitudeDeg; elAmplitude:=lrElAmplitudeDeg;
+        leg:=lrLegTimeSec; settle:=lrSettleSec;
+        elapsed:=0; lrAzBias:=0; lrElBias:=0;
+        uiState:=10; xBusy:=TRUE;
+    END_IF;
+END_IF;
+startOld:=xStart;
+
+IF xBusy AND uiState<>900 THEN
+    IF NOT xPermit OR lrDtSec<=0 OR lrDtSec>0.1 THEN
+        xFault:=TRUE; uiState:=900;
+    ELSE
+        IF xAbort AND uiState<>800 THEN
+            fromAz:=lrAzBias; fromEl:=lrElBias;
+            toAz:=0; toEl:=0; elapsed:=0;
+            xAborted:=TRUE; uiState:=800;
+        END_IF;
+        elapsed:=elapsed+lrDtSec;
+        CASE uiState OF
+            10,30,50,70:
+                xCollect:=TRUE; (* caller still gates new-frame, quality, position settling *)
+                IF elapsed>=settle THEN
+                    elapsed:=0; fromAz:=lrAzBias; fromEl:=lrElBias;
+                    CASE uiState OF
+                        10: toAz:=0; toEl:=elAmplitude; uiState:=20;
+                        30: toAz:=azAmplitude; toEl:=0; uiState:=40;
+                        50: toAz:=0; toEl:=0; uiState:=60;
+                        70: xBusy:=FALSE; xDone:=TRUE; uiState:=0;
+                    END_CASE;
+                END_IF;
+            20,40,60,800:
+                u:=LIMIT(0.0,elapsed/leg,1.0);
+                blend:=u*u*u*(10.0+u*(-15.0+6.0*u));
+                lrAzBias:=fromAz+(toAz-fromAz)*blend;
+                lrElBias:=fromEl+(toEl-fromEl)*blend;
+                xCollect:=FALSE; (* stationary samples only *)
+                IF u>=1 THEN
+                    elapsed:=0;
+                    IF uiState=800 THEN
+                        xBusy:=FALSE; uiState:=0;
+                    ELSE
+                        uiState:=uiState+10;
+                    END_IF;
+                END_IF;
+        END_CASE;
+    END_IF;
+END_IF;
+END_FUNCTION_BLOCK

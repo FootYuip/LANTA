@@ -46,8 +46,9 @@ VAR
     icountLostLocking1 : INT;
     bType_out : BOOL;
     iconutwait : INT;
-    rdelta : REAL := 0.25;         // 螺旋每格边长(°)，4*rdelta=±1°（1°波束）
-    rStep : REAL := 12.0;          // 螺旋每格拍数，对齐2.4
+    rdelta : REAL := 0.25;         // 自动计算的螺旋每格边长：波束角/4
+    rStep : REAL := 12.0;          // 自动读取的螺旋每格周期数
+    rSpiralFullTimeSec : REAL;     // 不提前锁定时，完整螺旋轨迹预计时间(s)
     bFinish : BOOL;
     rAzErrorReal : REAL;
     rElErrorReal : REAL;
@@ -65,6 +66,10 @@ VAR
     iTrackStableNeed : INT := 20;         // 连续稳定拍数，20拍=200ms
     iTrackStableCount : INT;
     bEnableAgcSearch : BOOL := FALSE;     // 不使用 AGC 搜索；仅保留显式恢复开关
+    bAutoTrackLatch : BOOL;               // 自动转跟模式内部锁存，和ACU转跟命令完全隔离
+    bTrackingModeLast : BOOL;             // 检测ACU/自动转跟模式切换
+    iBaseLockLostCount : INT;             // 自动转跟后的基带连续失锁计数
+    iBaseLockLostNeed : INT := 200;        // 200拍×10ms=2s，连续失锁后退出自跟踪
 END_VAR
 
 // --- implementation (ST) ---
@@ -127,20 +132,12 @@ IF NOT GVL.bLocalCtrl THEN
 END_IF
 
 // =============================================================================
-// 段 5: 远控 rPosCmd 赋值（含 AGC 搜索偏置或测试扫描偏置）
-// 非 bSearch: Modbus 目标 + eltest/aztest
-// bSearch:   Modbus 目标 + *_ctrl_1 的 rSearchNextStepTarget_tb
+// 段 5: 远控 rPosCmd 赋值
+// AGC搜索永久禁用：不跨程序访问Az_ctrl_1/El_ctrl_1内部搜索变量，
+// 目标位置只使用ACU指向值及原有测试偏置。
 // =============================================================================
-IF bEnableAgcSearch AND modbus_slave.bSearch THEN
-	Axis1Remote.rPosCmd:=Modbus_Slave.rPosCmd_1 + El_ctrl_1.rSearchNextStepTarget_tb;
-	Axis2Remote.rPosCmd:=Modbus_Slave.rPosCmd_2 + Az_ctrl_1.rSearchNextStepTarget_tb;
-ELSE
-	// AGC 搜索禁用时，程引目标只使用 ACU 指向值及原有测试偏置。
-	Az_ctrl_1.rSearchNextStepTarget_tb := 0.0;
-	El_ctrl_1.rSearchNextStepTarget_tb := 0.0;
-	Axis1Remote.rPosCmd:=Modbus_Slave.rPosCmd_1 + eltest;
-	Axis2Remote.rPosCmd:=Modbus_Slave.rPosCmd_2 - aztest;
-END_IF
+Axis1Remote.rPosCmd:=Modbus_Slave.rPosCmd_1 + eltest;
+Axis2Remote.rPosCmd:=Modbus_Slave.rPosCmd_2 - aztest;
 
 // =============================================================================
 // 段 6: 远控三轴命令参量 — Modbus_Slave → AxisXRemote（核心汇总）
@@ -253,13 +250,20 @@ ELSE
 	iTrackStableCount := 0;
 END_IF
 
-// 螺旋局部参数（与直线 PersistentVars.rStep 量纲不同：此处为每格周期数）
-IF rdelta < 1.0E-6 THEN
+// 螺旋参数自动适配：界面只需输入波束角和每格周期数。
+// 螺距=波束角/4，现有状态机扫描至4*rdelta，即半范围=±1个波束角。
+// 完整轨迹固定53个网格段；MainTask为10ms，因此总时间=53*周期数*0.01s。
+IF PersistentVars.rBeamWidth > 1.0E-6 THEN
+	rdelta := PersistentVars.rBeamWidth / 4.0;
+ELSE
 	rdelta := 0.25;
 END_IF
-IF rStep < 1.0E-6 THEN
+IF PersistentVars.iSpiralStepCycles >= 1 THEN
+	rStep := INT_TO_REAL(PersistentVars.iSpiralStepCycles);
+ELSE
 	rStep := 12.0;
 END_IF
+rSpiralFullTimeSec := 53.0 * rStep * 0.01;
 
 // =============================================================================
 // 段 11: 调用扫描 FB — 直线或螺旋；locked=找到中心，连续10拍（约100ms）锁存
@@ -320,19 +324,59 @@ IF NOT bScanRun THEN
 END_IF
 
 // =============================================================================
-// 段 12: 自跟踪只跟 ACU HR[7].B10（上升沿开、下降沿关），扫描结束不置位
+// 段 12: 两种转跟模式严格隔离
+// bTrackingMode=FALSE：ACU转跟，严格跟随HR[7].B10的当前电平。
+// bTrackingMode=TRUE ：自动转跟，仅在扫描100ms确认完成(bScanFound)后开启；
+//                      基带连续失锁2s后退出，并允许恢复锁定后重新扫描。
 // =============================================================================
-IF Axis1Remote.iMode = 4 AND Axis2Remote.iMode = 4 THEN
-	RiseEdge(CLK := Modbus_Slave.bStartTrackAcu);
-	FallEdge(CLK := Modbus_Slave.bStartTrackAcu);
-	IF RiseEdge.Q THEN
-		GVL.bStartTrack := TRUE;
-	END_IF;
-	IF FallEdge.Q THEN
-		GVL.bStartTrack := FALSE;
-	END_IF;
-ELSE
+IF PersistentVars.bTrackingMode <> bTrackingModeLast THEN
+	// 切换模式时清除旧模式内部状态，随后完全服从新模式的信号源。
+	bAutoTrackLatch := FALSE;
+	iBaseLockLostCount := 0;
+	IF PersistentVars.bTrackingMode THEN
+		// 切入自动模式必须重新完成一次扫描确认，不能沿用ACU模式期间的旧结果。
+		bScanFound := FALSE;
+		bScanDoneOnce := FALSE;
+	END_IF
+	bTrackingModeLast := PersistentVars.bTrackingMode;
+END_IF
+
+IF NOT PersistentVars.bTrackingMode THEN
+	// ACU转跟模式：扫描结果不能开关自跟踪，B10置1/置0立即生效。
+	bAutoTrackLatch := FALSE;
+	iBaseLockLostCount := 0;
 	GVL.bStartTrack := Modbus_Slave.bStartTrackAcu;
+ELSE
+	// 自动转跟只允许在双轴程引模式工作，完全忽略ACU的B10。
+	IF Axis1Remote.iMode = 4 AND Axis2Remote.iMode = 4 THEN
+		IF bScanFound THEN
+			bAutoTrackLatch := TRUE;
+		END_IF
+
+		IF bAutoTrackLatch THEN
+			IF bBaseLock THEN
+				iBaseLockLostCount := 0;
+			ELSE
+				IF iBaseLockLostCount < iBaseLockLostNeed THEN
+					iBaseLockLostCount := iBaseLockLostCount + 1;
+				END_IF
+				IF iBaseLockLostCount >= iBaseLockLostNeed THEN
+					bAutoTrackLatch := FALSE;
+					bScanFound := FALSE;
+					bScanDoneOnce := FALSE;
+				END_IF
+			END_IF
+		ELSE
+			iBaseLockLostCount := 0;
+		END_IF
+	ELSE
+		bAutoTrackLatch := FALSE;
+		iBaseLockLostCount := 0;
+	END_IF
+	GVL.bStartTrack := bAutoTrackLatch;
+END_IF
+
+IF NOT (Axis1Remote.iMode = 4 AND Axis2Remote.iMode = 4) THEN
 	icountLostLocking := 0;
 	icountLostLocking1 := 0;
 	Iconutwait := 0;

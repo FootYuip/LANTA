@@ -264,12 +264,10 @@ ELSE
 	Axis2Local.bStartAutoTrack := FALSE;
 END_IF
 
-// AGC 最大值搜索永久禁用：清除当前及测试支路的所有 AGC 搜索偏置。
-IF NOT SecurityCheck.bEnableAgcSearch THEN
-	bstartagcmaxsearch := FALSE;
-	rSearchNextStepTarget := 0.0;
-	rSearchNextStepTarget_tb := 0.0;
-END_IF
+// AGC最大值搜索永久禁用：在本轴程序内部无条件清除全部AGC搜索偏置。
+bstartagcmaxsearch := FALSE;
+rSearchNextStepTarget := 0.0;
+rSearchNextStepTarget_tb := 0.0;
 //拉偏
 Axis2Remote.rPIDCmdPos:=RealTimePosCal.rInterAzPos+rStepBias+rAuToStepBias+rSearchNextStepTarget-SECURITYCHECK.AZ_out+rAuToStepBiasTemp;
 

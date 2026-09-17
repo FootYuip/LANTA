@@ -29,4 +29,6 @@ VAR_GLOBAL
     rElScanRange : REAL := 1.0;
     rStep : REAL := 0.0015;
     rEbN0LockThre : REAL := 20.0; // 扫描找到中心：Eb/N0 门限，可视化可下发
+    rBeamWidth : REAL := 1.0;      // 波束角宽度(°)，螺旋螺距自动取1/4波束
+    iSpiralStepCycles : INT := 12; // 螺旋每格周期数，MainTask=10ms
 END_VAR

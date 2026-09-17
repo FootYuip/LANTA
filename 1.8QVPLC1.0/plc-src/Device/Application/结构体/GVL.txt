@@ -148,4 +148,6 @@ VAR_GLOBAL
     rErrorTherTemp : REAL := 3.0;
     rStepTemp : REAL := 0.0015;
     rEbN0LockThreEdit : REAL := 20.0; // 可视化编辑，写入 PersistentVars.rEbN0LockThre
+    rBeamWidthTemp : REAL := 1.0;      // 可视化编辑：波束角宽度(°)
+    iSpiralStepCyclesTemp : INT := 12; // 可视化编辑：螺旋每格周期数
 END_VAR

@@ -203,6 +203,8 @@ IF GVL.bStartTrack AND Axis1Remote.iMode=4 THEN
 		rAuToStepBias:=rAuToStepBias+AutoTrackingCal.rDirSenFac*rKAuToStepBias*AutoTrackingCal.rChanUe/1000.0;
 	END_IF
 ELSIF NOT GVL.bStartTrack AND Axis1Remote.iMode=4 THEN
+	Axis1Remote.bStartAutoTrack := FALSE;
+	Axis1Remote.rChanU := 0;
 	IF 	rAuToStepBias>0 THEN//关闭自跟踪后自跟踪拉偏量逐渐归0
 		rAuToStepBias:=rAuToStepBias-rAutoStep;
 	ELSIF rAuToStepBias<0 THEN
@@ -239,6 +241,13 @@ IF GVL.bStartLocalAutoTrack AND Axis1Local.iMode = 4 THEN
 	Axis1Local.rChanU := AutoTrackingCal.rChanUeLocal;
 ELSE
 	Axis1Local.bStartAutoTrack := FALSE;
+END_IF
+
+// AGC 最大值搜索永久禁用：清除当前及测试支路的所有 AGC 搜索偏置。
+IF NOT SecurityCheck.bEnableAgcSearch THEN
+	bstartagcmaxsearch := FALSE;
+	rSearchNextStepTarget := 0.0;
+	rSearchNextStepTarget_tb := 0.0;
 END_IF
 
 //拉偏

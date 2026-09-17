@@ -59,6 +59,12 @@ VAR
     az_latch : REAL;
     el_latch : REAL;
     bBaseLock : BOOL;
+    rTrackErrorMag : REAL;
+    rTrackReleaseThreshold : REAL := 1.0; // 自跟踪稳定后释放扫描偏置的误差电压门限(V)
+    rScanReleaseStep : REAL := 0.0002;    // 每10ms释放的扫描偏置(°)，须小于自跟踪可补偿速率
+    iTrackStableNeed : INT := 20;         // 连续稳定拍数，20拍=200ms
+    iTrackStableCount : INT;
+    bEnableAgcSearch : BOOL := FALSE;     // 不使用 AGC 搜索；仅保留显式恢复开关
 END_VAR
 
 // --- implementation (ST) ---
@@ -125,12 +131,15 @@ END_IF
 // 非 bSearch: Modbus 目标 + eltest/aztest
 // bSearch:   Modbus 目标 + *_ctrl_1 的 rSearchNextStepTarget_tb
 // =============================================================================
-IF NOT modbus_slave.bSearch THEN
-	Axis1Remote.rPosCmd:=Modbus_Slave.rPosCmd_1 + eltest;
-	Axis2Remote.rPosCmd:=Modbus_Slave.rPosCmd_2 - aztest;
-ELSE
+IF bEnableAgcSearch AND modbus_slave.bSearch THEN
 	Axis1Remote.rPosCmd:=Modbus_Slave.rPosCmd_1 + El_ctrl_1.rSearchNextStepTarget_tb;
 	Axis2Remote.rPosCmd:=Modbus_Slave.rPosCmd_2 + Az_ctrl_1.rSearchNextStepTarget_tb;
+ELSE
+	// AGC 搜索禁用时，程引目标只使用 ACU 指向值及原有测试偏置。
+	Az_ctrl_1.rSearchNextStepTarget_tb := 0.0;
+	El_ctrl_1.rSearchNextStepTarget_tb := 0.0;
+	Axis1Remote.rPosCmd:=Modbus_Slave.rPosCmd_1 + eltest;
+	Axis2Remote.rPosCmd:=Modbus_Slave.rPosCmd_2 - aztest;
 END_IF
 
 // =============================================================================
@@ -241,6 +250,7 @@ ELSE
 	az_latch := 0.0;
 	el_latch := 0.0;
 	icountBaseLock := 0;
+	iTrackStableCount := 0;
 END_IF
 
 // 螺旋局部参数（与直线 PersistentVars.rStep 量纲不同：此处为每格周期数）
@@ -326,6 +336,43 @@ ELSE
 	icountLostLocking := 0;
 	icountLostLocking1 := 0;
 	Iconutwait := 0;
+END_IF
+
+// =============================================================================
+// 段 13: 扫描偏置向自跟踪平滑交接
+// 扫描偏置先锁存以进入自跟踪；误差电压稳定进入 1V 内后，才慢速释放扫描偏置。
+// 自跟踪偏置在此过程中接管补偿。误差变大时立即暂停释放，保留当前扫描偏置。
+// =============================================================================
+rTrackErrorMag := SQRT(GVL.Chan1Ua * GVL.Chan1Ua + GVL.Chan1Ue * GVL.Chan1Ue);
+IF GVL.bStartTrack AND bScanFound AND bBaseLock AND (rTrackErrorMag <= rTrackReleaseThreshold) THEN
+	IF iTrackStableCount < iTrackStableNeed THEN
+		iTrackStableCount := iTrackStableCount + 1;
+	END_IF
+	IF iTrackStableCount >= iTrackStableNeed THEN
+		IF az_latch > rScanReleaseStep THEN
+			az_latch := az_latch - rScanReleaseStep;
+		ELSIF az_latch < -rScanReleaseStep THEN
+			az_latch := az_latch + rScanReleaseStep;
+		ELSE
+			az_latch := 0.0;
+		END_IF
+
+		IF el_latch > rScanReleaseStep THEN
+			el_latch := el_latch - rScanReleaseStep;
+		ELSIF el_latch < -rScanReleaseStep THEN
+			el_latch := el_latch + rScanReleaseStep;
+		ELSE
+			el_latch := 0.0;
+		END_IF
+	END_IF
+ELSE
+	iTrackStableCount := 0;
+END_IF
+
+// 让本周期后续使用的扫描偏置也反映交接后的值。
+IF NOT bScanRun THEN
+	az_out := az_latch;
+	el_out := el_latch;
 END_IF
 
 (* fbScantest 测试块已注释 *)

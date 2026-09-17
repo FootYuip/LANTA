@@ -44,6 +44,8 @@ VAR
     segment_el_step : REAL;
     side_repeat : REAL;
     icountInit : INT;
+    hold_azimuth : REAL;
+    hold_elevation : REAL;
 END_VAR
 
 // --- implementation (ST) ---
@@ -58,8 +60,10 @@ IF NOT enable THEN
 	bInit := FALSE;
 	best_agc := 0.0;
     best_az := 0.0;
-    best_el := 0.0;
+	best_el := 0.0;
 	icountInit := 0;
+	hold_azimuth := 0.0;
+	hold_elevation := 0.0;
 	bType := FALSE;
 ELSE
     CASE state OF
@@ -67,7 +71,17 @@ ELSE
 			state := 1;
 			lock_count := 0;
         1:
-            IF NOT bInit THEN
+			// 一旦首次检测到锁定，立即记录实际机械位置相对程引中心的偏移。
+			// AzError/ELError 已按方位减、俯仰加的命令符号定义，因此统一取负值。
+			// 不使用上一拍扫描指令，避免慢伺服继续追赶超前的扫描目标。
+			IF locked THEN
+				hold_azimuth := -AzError;
+				hold_elevation := -ELError;
+				azimuth := hold_azimuth;
+				elevation := hold_elevation;
+				lock_count := 0;
+				state := 4;
+			ELSIF NOT bInit THEN
 				x := 0.0; y := 0.0;
 				dx := 1.0; dy := 0.0;
 				step_len := 1.0;
@@ -125,26 +139,33 @@ ELSE
 					elevation := 0.0;
 					done := TRUE;
 					state := 3;
-				ELSE
-					IF locked THEN
-					   lock_count := lock_count + 1;
-					ELSE
-					   lock_count := 0;
-					END_IF
-					IF lock_count >= 10 THEN
-					   azimuth := -Azerror;
-            		   elevation := -elError;
-					   done := TRUE;
-					   state := 2;
-					END_IF
 				END_IF
 			END_IF
         2:
+			// 最终保持首次满足锁定条件时的实际机械位置偏移。
+			azimuth := hold_azimuth;
+			elevation := hold_elevation;
             done := TRUE;
         3:
             azimuth := 0.0;
             elevation := 0.0;
             done := TRUE;
+		4:
+			// 固定点连续确认：扫描坐标保持不变，只观察锁定是否持续。
+			azimuth := hold_azimuth;
+			elevation := hold_elevation;
+			IF locked THEN
+				lock_count := lock_count + 1;
+				IF lock_count >= 10 THEN
+					// 确认成功后保持首次锁定瞬间记录的实际位置偏移，不再次反算。
+					done := TRUE;
+					state := 2;
+				END_IF
+			ELSE
+				// 固定点确认失败，保留螺旋内部进度，从该点继续扫描。
+				lock_count := 0;
+				state := 1;
+			END_IF
     END_CASE
 	IF state = 2 THEN
 		bType := TRUE;

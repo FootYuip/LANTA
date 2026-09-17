@@ -1,0 +1,11 @@
+# CODESYS user-specific settings and generated caches
+*.opt
+*.precompilecache
+*.project.~u
+
+# Python generated files
+__pycache__/
+*.py[cod]
+
+# CODESYS sync logs
+.codesys-sync/staging/**/*.log

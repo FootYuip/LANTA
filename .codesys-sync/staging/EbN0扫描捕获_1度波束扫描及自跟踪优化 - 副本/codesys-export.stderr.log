@@ -1,4 +1,0 @@
-错误:运行脚本'C:\Users\fcj\.codex\skills\codesys-project-sync\scripts\codesys_export.py'引起的异常_3S.CoDeSys.Core.CancelledByUserException:Traceback (most recent call last):
-  File "C:\Users\fcj\.codex\skills\codesys-project-sync\scripts\codesys_export.py", line 32, in <module>
-StandardError: 操作被用户取消.
-

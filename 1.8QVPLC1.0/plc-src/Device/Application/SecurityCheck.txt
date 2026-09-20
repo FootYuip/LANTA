@@ -60,6 +60,7 @@ VAR
     az_latch : REAL;
     el_latch : REAL;
     bBaseLock : BOOL;
+    bScanElevationReady : BOOL;         // 当前座架俯仰是否达到启扫门限
     rTrackErrorMag : REAL;
     rTrackReleaseThreshold : REAL := 1.0; // 自跟踪稳定后释放扫描偏置的误差电压门限(V)
     rScanReleaseStep : REAL := 0.0002;    // 每10ms释放的扫描偏置(°)，须小于自跟踪可补偿速率
@@ -220,12 +221,15 @@ bErrorLock  := (SQRT(GVL.Chan1Ua * GVL.Chan1Ua + GVL.Chan1Ue * GVL.Chan1Ue) <= P
 bLockSearch := (READ_485.Chan1EB_N0 > PersistentVars.rEbN0LockThre) AND bBaseLock AND bErrorLock;
 
 // =============================================================================
-// 段 10: 启扫 — 双轴程引、未自跟踪、基带锁连续 2s（200×10ms）触发一次
+// 段 10: 启扫 — 双轴程引、达到配置俯仰、未自跟踪、基带锁连续 2s触发一次
 // 扫描过程中允许短暂掉锁；找到合格点后本程引周期内不再重扫
 // 退出程引则清锁存
 // =============================================================================
+bScanElevationReady := (PersistentVars.rScanStartEl <= 0.0)
+	OR (rEl_realpos >= PersistentVars.rScanStartEl);
+
 IF Axis1Remote.iMode = 4 AND Axis2Remote.iMode = 4 THEN
-	IF NOT GVL.bStartTrack AND NOT bScanRun AND NOT bScanFound THEN
+	IF bScanElevationReady AND NOT GVL.bStartTrack AND NOT bScanRun AND NOT bScanFound THEN
 		IF bBaseLock THEN
 			icountBaseLock := icountBaseLock + 1;
 			IF icountBaseLock >= 200 THEN

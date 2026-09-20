@@ -7,3 +7,4 @@
 
 # bound POUs:
 #   - Modbus_Slave
+#   - TCP_Status_Server

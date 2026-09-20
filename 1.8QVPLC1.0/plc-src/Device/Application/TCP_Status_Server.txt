@@ -1,0 +1,285 @@
+# kind=program
+# name=TCP_Status_Server
+# objectId=NEW-OBJECT-ID-ASSIGNED-BY-CODESYS
+
+VAR
+    fbCreateSocket : gcan.FB_LAN_CreateSocket;
+    fbBindListen : gcan.FB_LAN_TcpBindListen;
+    fbAccept : gcan.FB_LAN_TcpAccept;
+    fbSend : gcan.FB_LAN_TcpSend;
+    fbCloseClient : gcan.FB_LAN_CloseSocket;
+    fbCloseServer : gcan.FB_LAN_CloseSocket;
+
+    // Set FALSE before an online change. Wait until iState=70 and both sockets=-1.
+    bTcpEnable : BOOL := TRUE;
+    bTcpSafeStopped : BOOL := FALSE;
+    bRestartAfterServerClose : BOOL := FALSE;
+
+    iState : INT := 0;
+    iServerSocket : INT := -1;
+    iClientSocket : INT := -1;
+    udClientIp : UDINT;
+    iClientPort : INT;
+
+    // Every GCAN block has its own completion flag.
+    bCreateDone : BOOL;
+    bBindDone : BOOL;
+    bAcceptDone : BOOL;
+    bSendDone : BOOL;
+    bCloseClientDone : BOOL;
+    bCloseServerDone : BOOL;
+    bSendConfirm : BOOL;
+
+    uiCreateError : UINT;
+    uiBindError : UINT;
+    uiAcceptError : UINT;
+    uiSendError : UINT;
+    uiCloseClientError : UINT;
+    uiCloseServerError : UINT;
+    uiLastBindError : UINT := 0;
+
+    // Bind recovery diagnostics. MainTask=50 ms; 20 cycles=1 second.
+    iBindRetryCounter : INT := 0;
+    uBindRetryCount : UDINT := 0;
+
+    // MainTask=50 ms; 20 cycles=1 second heartbeat period.
+    iHeartbeatCounter : INT := 0;
+    bSendNow : BOOL := FALSE;
+    bScanStartReported : BOOL := FALSE;
+    bScanResultReported : BOOL := FALSE;
+    byCurrentScanStatus : BYTE := 16#03;
+    byLastSentStatus : BYTE := 16#03;
+
+    // Station-control fixed scan-status frame: 32-byte header + 3-byte data.
+    aTx : ARRAY[0..34] OF BYTE;
+
+    // Online diagnostics.
+    bClientConnected : BOOL := FALSE;
+    uTxCount : UDINT := 0;
+END_VAR
+
+// Read-only station-control scan-status publisher. PLC is server on port 5007.
+// Send idle heartbeat 03 every second. Report scan start 00 once and
+// completion 01/02 once per scan; then continue the 03 heartbeat.
+// This POU never writes antenna-control, scan or tracking variables.
+
+// A deliberate stop takes priority over create/bind/accept/send/retry states.
+IF NOT bTcpEnable AND (iState < 50) THEN
+    bRestartAfterServerClose := FALSE;
+    IF iClientSocket >= 0 THEN
+        iState := 50;
+    ELSIF iServerSocket >= 0 THEN
+        iState := 60;
+    ELSE
+        iState := 70;
+    END_IF
+END_IF
+
+CASE iState OF
+    0: // Create a TCP server socket.
+        bTcpSafeStopped := FALSE;
+        fbCreateSocket(EN_IN := TRUE, iProtocol := 0,
+            EN_OUT => bCreateDone, iSocket => iServerSocket,
+            uiError => uiCreateError);
+
+        IF bCreateDone THEN
+            IF (uiCreateError = 0) AND (iServerSocket >= 0) THEN
+                iState := 10;
+            ELSE
+                iBindRetryCounter := 0;
+                iState := 12;
+            END_IF
+        END_IF
+
+    10: // Bind and listen on TCP port 5007.
+        fbBindListen(EN_IN := TRUE, xEnable := TRUE,
+            iSocket := iServerSocket, iPort := 5007, iMaxConnect := 1,
+            EN_OUT => bBindDone, uiError => uiBindError);
+
+        IF bBindDone THEN
+            IF uiBindError = 0 THEN
+                iClientSocket := -1;
+                iState := 20;
+            ELSE
+                uiLastBindError := uiBindError;
+                bRestartAfterServerClose := TRUE;
+                iState := 60;
+            END_IF
+        END_IF
+
+    12: // Wait 1 second before creating a fresh socket.
+        IF iBindRetryCounter < 19 THEN
+            iBindRetryCounter := iBindRetryCounter + 1;
+        ELSE
+            iBindRetryCounter := 0;
+            iState := 0;
+        END_IF
+
+    20: // Wait for one station-control client.
+        bClientConnected := FALSE;
+        fbAccept(EN_IN := TRUE, xEnable := TRUE, iSocket := iServerSocket,
+            EN_OUT => bAcceptDone, iClientSocket => iClientSocket,
+            udClientIpAddress => udClientIp, iClientPort => iClientPort,
+            uiError => uiAcceptError);
+
+        IF bAcceptDone AND (iClientSocket >= 0) AND (uiAcceptError = 0) THEN
+            bClientConnected := TRUE;
+            // Send an immediate heartbeat after a new connection.
+            iHeartbeatCounter := 19;
+            iState := 30;
+        END_IF
+
+    30: // Event frames have priority; otherwise publish heartbeat 03 each second.
+        bClientConnected := TRUE;
+        bSendNow := FALSE;
+
+        // Both flags clear only after the preceding scan state has fully cleared.
+        // This re-arms exactly one start and one result report for the next scan.
+        IF (NOT SecurityCheck.bScanRun) AND (NOT SecurityCheck.bScanDoneOnce) THEN
+            bScanStartReported := FALSE;
+            bScanResultReported := FALSE;
+        END_IF
+
+        IF SecurityCheck.bScanRun AND (NOT bScanStartReported) THEN
+            byCurrentScanStatus := 16#00;
+            bSendNow := TRUE;
+        ELSIF SecurityCheck.bScanDoneOnce AND (NOT bScanResultReported) THEN
+            IF SecurityCheck.bScanFound THEN
+                byCurrentScanStatus := 16#01;
+            ELSE
+                byCurrentScanStatus := 16#02;
+            END_IF
+            bSendNow := TRUE;
+        ELSE
+            IF iHeartbeatCounter < 19 THEN
+                iHeartbeatCounter := iHeartbeatCounter + 1;
+            ELSE
+                iHeartbeatCounter := 0;
+                byCurrentScanStatus := 16#03;
+                bSendNow := TRUE;
+            END_IF
+        END_IF
+
+        IF bSendNow THEN
+            // Exact 35-byte frame supplied by station control.
+            aTx[0] := 16#80;
+            aTx[1] := 16#00;
+            aTx[2] := 16#00;
+            aTx[3] := 16#01;
+            aTx[4] := 16#01;
+            aTx[5] := 16#01;
+            aTx[6] := 16#26;
+            aTx[7] := 16#10;
+            aTx[8] := 16#01;
+            aTx[9] := 16#10;
+            aTx[10] := 16#26;
+            aTx[11] := 16#01;
+            aTx[12] := 16#F1;
+            aTx[13] := 16#00;
+            aTx[14] := 16#00;
+            aTx[15] := 16#00;
+            aTx[16] := 16#00;
+            aTx[17] := 16#00;
+            aTx[18] := 16#00;
+            aTx[19] := 16#00;
+            aTx[20] := 16#00;
+            aTx[21] := 16#00;
+            aTx[22] := 16#00;
+            aTx[23] := 16#00;
+            aTx[24] := 16#00;
+            aTx[25] := 16#00;
+            aTx[26] := 16#00;
+            aTx[27] := 16#00;
+            aTx[28] := 16#00;
+            aTx[29] := 16#00;
+            aTx[30] := 16#03;
+            aTx[31] := 16#00;
+            aTx[32] := 16#EE;
+            aTx[33] := 16#65;
+            aTx[34] := byCurrentScanStatus;
+            iState := 31;
+        END_IF
+
+    31: // Keep calling Send until GCAN confirms completion.
+        fbSend(EN_IN := TRUE, xEnable := TRUE, iSocket := iClientSocket,
+            p_Data := ADR(aTx), iTxSize := 35,
+            EN_OUT => bSendDone, xConfirm => bSendConfirm,
+            uiError => uiSendError);
+
+        IF bSendDone THEN
+            IF uiSendError = 0 THEN
+                uTxCount := uTxCount + 1;
+                iHeartbeatCounter := 0;
+                byLastSentStatus := aTx[34];
+                IF aTx[34] = 16#00 THEN
+                    bScanStartReported := TRUE;
+                ELSIF (aTx[34] = 16#01) OR (aTx[34] = 16#02) THEN
+                    bScanResultReported := TRUE;
+                END_IF
+                iState := 30;
+            ELSE
+                iState := 40;
+            END_IF
+        END_IF
+
+    40: // Send failure: wait for client close, then return to Accept.
+        bClientConnected := FALSE;
+        IF iClientSocket < 0 THEN
+            iState := 20;
+        ELSE
+            fbCloseClient(EN_IN := TRUE, iSocket := iClientSocket,
+                EN_OUT => bCloseClientDone, uiError => uiCloseClientError);
+            // Error 9 means the peer/socket was already released by the runtime.
+            IF bCloseClientDone
+               AND ((uiCloseClientError = 0) OR (uiCloseClientError = 9)) THEN
+                iClientSocket := -1;
+                iState := 20;
+            END_IF
+        END_IF
+
+    50: // Deliberate stop: wait until the client socket is really closed.
+        bClientConnected := FALSE;
+        IF iClientSocket < 0 THEN
+            iState := 60;
+        ELSE
+            fbCloseClient(EN_IN := TRUE, iSocket := iClientSocket,
+                EN_OUT => bCloseClientDone, uiError => uiCloseClientError);
+            IF bCloseClientDone
+               AND ((uiCloseClientError = 0) OR (uiCloseClientError = 9)) THEN
+                iClientSocket := -1;
+                iState := 60;
+            END_IF
+        END_IF
+
+    60: // Wait until GCAN confirms that the server socket is closed.
+        bClientConnected := FALSE;
+        IF iServerSocket < 0 THEN
+            IF bRestartAfterServerClose AND bTcpEnable THEN
+                iBindRetryCounter := 0;
+                uBindRetryCount := uBindRetryCount + 1;
+                bRestartAfterServerClose := FALSE;
+                iState := 12;
+            ELSE
+                bRestartAfterServerClose := FALSE;
+                iState := 70;
+            END_IF
+        ELSE
+            fbCloseServer(EN_IN := TRUE, iSocket := iServerSocket,
+                EN_OUT => bCloseServerDone, uiError => uiCloseServerError);
+            IF bCloseServerDone AND (uiCloseServerError = 0) THEN
+                iServerSocket := -1;
+            END_IF
+        END_IF
+
+    70: // Safe stop: both socket handles are released.
+        bTcpSafeStopped := (iClientSocket < 0) AND (iServerSocket < 0);
+        bClientConnected := FALSE;
+        IF bTcpEnable AND bTcpSafeStopped THEN
+            bTcpSafeStopped := FALSE;
+            iState := 0;
+        END_IF
+
+ELSE
+    bRestartAfterServerClose := FALSE;
+    iState := 70;
+END_CASE

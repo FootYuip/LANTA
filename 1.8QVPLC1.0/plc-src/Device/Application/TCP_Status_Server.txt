@@ -7,6 +7,7 @@ VAR
     fbBindListen : gcan.FB_LAN_TcpBindListen;
     fbAccept : gcan.FB_LAN_TcpAccept;
     fbSend : gcan.FB_LAN_TcpSend;
+    fbReceive : gcan.FB_LAN_TcpReceive;
     fbCloseClient : gcan.FB_LAN_CloseSocket;
     fbCloseServer : gcan.FB_LAN_CloseSocket;
 
@@ -29,11 +30,14 @@ VAR
     bCloseClientDone : BOOL;
     bCloseServerDone : BOOL;
     bSendConfirm : BOOL;
+    bReceiveDone : BOOL;
+    bReceiveConfirm : BOOL;
 
     uiCreateError : UINT;
     uiBindError : UINT;
     uiAcceptError : UINT;
     uiSendError : UINT;
+    uiReceiveError : UINT;
     uiCloseClientError : UINT;
     uiCloseServerError : UINT;
     uiLastBindError : UINT := 0;
@@ -53,15 +57,33 @@ VAR
     // Station-control fixed scan-status frame: 32-byte header + 3-byte data.
     aTx : ARRAY[0..34] OF BYTE;
 
+    // Station control sends two consecutive little-endian signed I32 values per 8-byte group.
+    // Values are transmitted in 0.001 degree units; the second value is earth-frame elevation.
+    aRx : ARRAY[0..63] OF BYTE;
+    aValueBytes : ARRAY[0..7] OF BYTE;
+    iReceiveLength : INT;
+    iPartialByteCount : INT := 0;
+    iRxIndex : INT;
+    dwReceivedRaw_1 : DWORD := 0;
+    dwReceivedRaw_2 : DWORD := 0;
+    diReceivedMilli_1 : DINT := 0;
+    diReceivedMilli_2 : DINT := 0;
+    rReceivedValue_1 : REAL := 0.0;
+    rReceivedValue_2 : REAL := 0.0;
+    bReceivedAngleNew : BOOL := FALSE;
+    uRxPairCount : UDINT := 0;
+
     // Online diagnostics.
     bClientConnected : BOOL := FALSE;
     uTxCount : UDINT := 0;
 END_VAR
 
-// Read-only station-control scan-status publisher. PLC is server on port 5007.
+// Station-control scan-status publisher and earth-angle receiver. PLC is server on port 5007.
 // Send idle heartbeat 03 every second. Report scan start 00 once and
 // completion 01/02 once per scan; then continue the 03 heartbeat.
-// This POU never writes antenna-control, scan or tracking variables.
+// Receive parsing only updates the earth-frame elevation value used by scan start gating.
+
+bReceivedAngleNew := FALSE;
 
 // A deliberate stop takes priority over create/bind/accept/send/retry states.
 IF NOT bTcpEnable AND (iState < 50) THEN
@@ -124,6 +146,8 @@ CASE iState OF
 
         IF bAcceptDone AND (iClientSocket >= 0) AND (uiAcceptError = 0) THEN
             bClientConnected := TRUE;
+            iPartialByteCount := 0; // Never join bytes from different clients.
+            GVL.bEarthElevationValid := FALSE;
             // Send an immediate heartbeat after a new connection.
             iHeartbeatCounter := 19;
             iState := 30;
@@ -132,6 +156,38 @@ CASE iState OF
     30: // Event frames have priority; otherwise publish heartbeat 03 each second.
         bClientConnected := TRUE;
         bSendNow := FALSE;
+
+        // Passive receive. Preserve TCP stream framing across split/combined packets.
+        fbReceive(EN_IN := TRUE, xEnable := TRUE, iSocket := iClientSocket,
+            p_Data := ADR(aRx), iMaxSize := 64,
+            EN_OUT => bReceiveDone, xConfirm => bReceiveConfirm,
+            iRxSize => iReceiveLength, uiError => uiReceiveError);
+        IF bReceiveConfirm AND (uiReceiveError = 0)
+           AND (iReceiveLength > 0) AND (iReceiveLength <= 64) THEN
+            FOR iRxIndex := 0 TO iReceiveLength - 1 DO
+                aValueBytes[iPartialByteCount] := aRx[iRxIndex];
+                iPartialByteCount := iPartialByteCount + 1;
+                IF iPartialByteCount = 8 THEN
+                    dwReceivedRaw_1 := BYTE_TO_DWORD(aValueBytes[0])
+                        OR SHL(BYTE_TO_DWORD(aValueBytes[1]), 8)
+                        OR SHL(BYTE_TO_DWORD(aValueBytes[2]), 16)
+                        OR SHL(BYTE_TO_DWORD(aValueBytes[3]), 24);
+                    dwReceivedRaw_2 := BYTE_TO_DWORD(aValueBytes[4])
+                        OR SHL(BYTE_TO_DWORD(aValueBytes[5]), 8)
+                        OR SHL(BYTE_TO_DWORD(aValueBytes[6]), 16)
+                        OR SHL(BYTE_TO_DWORD(aValueBytes[7]), 24);
+                    diReceivedMilli_1 := DWORD_TO_DINT(dwReceivedRaw_1);
+                    diReceivedMilli_2 := DWORD_TO_DINT(dwReceivedRaw_2);
+                    rReceivedValue_1 := DINT_TO_REAL(diReceivedMilli_1) / 1000.0;
+                    rReceivedValue_2 := DINT_TO_REAL(diReceivedMilli_2) / 1000.0;
+                    GVL.rEarthElevation := rReceivedValue_2;
+                    GVL.bEarthElevationValid := TRUE;
+                    bReceivedAngleNew := TRUE;
+                    uRxPairCount := uRxPairCount + 1;
+                    iPartialByteCount := 0;
+                END_IF
+            END_FOR
+        END_IF
 
         // Both flags clear only after the preceding scan state has fully cleared.
         // This re-arms exactly one start and one result report for the next scan.
@@ -224,6 +280,8 @@ CASE iState OF
 
     40: // Send failure: wait for client close, then return to Accept.
         bClientConnected := FALSE;
+        iPartialByteCount := 0;
+        GVL.bEarthElevationValid := FALSE;
         IF iClientSocket < 0 THEN
             iState := 20;
         ELSE
@@ -239,6 +297,8 @@ CASE iState OF
 
     50: // Deliberate stop: wait until the client socket is really closed.
         bClientConnected := FALSE;
+        iPartialByteCount := 0;
+        GVL.bEarthElevationValid := FALSE;
         IF iClientSocket < 0 THEN
             iState := 60;
         ELSE

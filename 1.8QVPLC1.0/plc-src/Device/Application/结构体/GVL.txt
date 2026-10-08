@@ -101,6 +101,8 @@ VAR_GLOBAL
     rFctVelReal_3 : LREAL;
     rFctAccReal_3 : LREAL;
     rFctDecReal_3 : LREAL;
+    rEarthElevation : REAL := 0.0;       // 大地俯仰角(°)，TCP接收第二个I32后除以1000
+    bEarthElevationValid : BOOL := FALSE; // 已收到完整、有效的8字节角度数据组
     bStartTrack : BOOL;
     Chan1AGC : REAL;
     Chan1Ua : REAL;

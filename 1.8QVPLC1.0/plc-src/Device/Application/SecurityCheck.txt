@@ -221,12 +221,13 @@ bErrorLock  := (SQRT(GVL.Chan1Ua * GVL.Chan1Ua + GVL.Chan1Ue * GVL.Chan1Ue) <= P
 bLockSearch := (READ_485.Chan1EB_N0 > PersistentVars.rEbN0LockThre) AND bBaseLock AND bErrorLock;
 
 // =============================================================================
-// 段 10: 启扫 — 双轴程引、达到配置俯仰、未自跟踪、基带锁连续 2s触发一次
+// 段 10: 启扫 — 双轴程引、TCP大地俯仰角达到配置门限、未自跟踪、基带锁连续 2s触发一次
 // 扫描过程中允许短暂掉锁；找到合格点后本程引周期内不再重扫
 // 退出程引则清锁存
 // =============================================================================
 bScanElevationReady := (PersistentVars.rScanStartEl <= 0.0)
-	OR (rEl_realpos >= PersistentVars.rScanStartEl);
+	OR (GVL.bEarthElevationValid
+		AND (GVL.rEarthElevation >= PersistentVars.rScanStartEl));
 
 IF Axis1Remote.iMode = 4 AND Axis2Remote.iMode = 4 THEN
 	IF bScanElevationReady AND NOT GVL.bStartTrack AND NOT bScanRun AND NOT bScanFound THEN
